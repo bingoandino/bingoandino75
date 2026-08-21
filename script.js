@@ -93,6 +93,7 @@ let usuario = {
 };
 
 let totalCartones = 0;
+let versionCartones = localStorage.getItem('version_cartones') || '1';
 let timerReserva = null;
 // ==================== VERSIÓN MÁS SIMPLE ====================
 let contador = 0;
@@ -151,6 +152,33 @@ async function setConfigValue(clave, value) {
     .upsert([{ clave, valore: value }], { onConflict: 'clave' });
   return !error;
 }
+
+async function cargarVersionCartones() {
+  const valor = await getConfigValue('version_cartones', localStorage.getItem('version_cartones') || '1');
+  versionCartones = String(valor || '1');
+  localStorage.setItem('version_cartones', versionCartones);
+  return versionCartones;
+}
+
+async function actualizarVersionCartones() {
+  const nuevaVersion = String(Date.now());
+  versionCartones = nuevaVersion;
+  localStorage.setItem('version_cartones', nuevaVersion);
+
+  const guardado = await setConfigValue('version_cartones', nuevaVersion);
+  if (!guardado) {
+    console.warn('No se pudo guardar version_cartones en Supabase, pero se actualizó localmente.');
+  }
+
+  return nuevaVersion;
+}
+
+function agregarVersionCacheUrl(url) {
+  const version = encodeURIComponent(versionCartones || '1');
+  const separador = String(url).includes('?') ? '&' : '?';
+  return `${url}${separador}v=${version}`;
+}
+
 
 // ==================== SISTEMA DE SESIÓN ÚNICA ====================
 // Función para cerrar sesión
@@ -1763,6 +1791,7 @@ window.addEventListener('DOMContentLoaded', async () => {
    document.getElementById('modal-terminos').classList.remove('oculto');
    await obtenerTotalCartones();
   await cargarLinkWhatsapp();
+  await cargarVersionCartones();
   document.getElementById('overlay-carga').style.display = 'none';
 
   await Promise.all([
@@ -2590,7 +2619,8 @@ function nombreCartonWebP(numero) {
 }
 
 function urlCartonWebP(numero) {
-  return `${supabaseUrl}/storage/v1/object/public/cartones/${nombreCartonWebP(numero)}`;
+  const urlBase = `${supabaseUrl}/storage/v1/object/public/cartones/${nombreCartonWebP(numero)}`;
+  return agregarVersionCacheUrl(urlBase);
 }
 async function enviarComprobante() {
   const boton = document.getElementById('btnEnviarComprobante');
@@ -4222,7 +4252,7 @@ async function subirCartones() {
       const { error } = await supabase.storage
         .from('cartones')
         .upload(fileName, archivoWebP, {
-          cacheControl: '31536000',
+          cacheControl: '60',
           contentType: 'image/webp',
           upsert: true
         });
@@ -4238,6 +4268,10 @@ async function subirCartones() {
   }
 
   input.value = '';
+
+  if (subidas > 0) {
+    await actualizarVersionCartones();
+  }
 
   if (errores.length) {
     status.innerHTML = `
