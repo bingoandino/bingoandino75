@@ -1822,6 +1822,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cerrarVentasBtn')?.addEventListener('click', cerrarVentas);
   document.getElementById('abrirVentasBtn')?.addEventListener('click', abrirVentas);
   document.getElementById('imprimirListaBtn')?.addEventListener('click', imprimirLista);
+  document.getElementById('imprimirListaRefBtn')?.addEventListener('click', imprimirListaConReferencia);
   document.getElementById('verListaBtn')?.addEventListener('click', verListaAprobados);
   document.getElementById('guardarModoCartonesBtn')?.addEventListener('click', guardarModoCartones);
   document.getElementById('modoCartonesSelect')?.addEventListener('change', cambiarModoCartones);
@@ -4200,6 +4201,111 @@ function imprimirLista() {
         <h1>Lista de Aprobados</h1>
         <div class="fecha">${new Date().toLocaleString()}</div>
         ${lista.innerHTML}
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+
+  ventana.onload = function () {
+    ventana.focus();
+    ventana.print();
+  };
+}
+
+async function imprimirListaConReferencia() {
+  const { data, error } = await supabase
+    .from('inscripciones')
+    .select('*')
+    .eq('estado', 'aprobado');
+
+  if (error) {
+    alert('Error al obtener la lista de aprobados.');
+    console.error(error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert('No hay personas aprobadas para imprimir.');
+    return;
+  }
+
+  let filas = '';
+  data.forEach(item => {
+    filas += `
+      <tr>
+        <td>${item.nombre || ''}</td>
+        <td>${item.cedula || ''}</td>
+        <td>${Array.isArray(item.cartones) ? item.cartones.join(', ') : ''}</td>
+        <td>${item.pago_banco || ''}<br>${item.pago_telefono || ''}<br>${item.pago_cedula || ''}</td>
+        <td>${item.referencia4dig || ''}</td>
+      </tr>`;
+  });
+
+  const ventana = window.open('', '_blank');
+
+  ventana.document.write(`
+    <html>
+      <head>
+        <title>Lista de Aprobados (con Referencia)</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            color: #000;
+            padding: 0;
+          }
+
+          h1 {
+            text-align: center;
+            font-size: 16px;
+            margin: 0 0 4px 0;
+          }
+
+          .fecha {
+            text-align: center;
+            font-size: 9px;
+            margin-bottom: 8px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 18px;
+          }
+
+          th, td {
+            border: 1px solid #999;
+            padding: 2px 3px;
+            text-align: center;
+            vertical-align: middle;
+          }
+
+          th {
+            background: #eee;
+            font-weight: bold;
+          }
+
+          @page {
+            size: letter portrait;
+            margin: 6mm;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Lista de Aprobados</h1>
+        <div class="fecha">${new Date().toLocaleString()}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Cédula</th>
+              <th>Cartones</th>
+              <th>Pago Móvil</th>
+              <th>Referencia</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
       </body>
     </html>
   `);
