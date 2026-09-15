@@ -642,11 +642,19 @@ button:disabled {
   
   #tabla-comprobantes {
     font-size: 12px;
+    min-width: 900px;
+  }
+
+  .table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
   }
   
   #tabla-comprobantes th,
   #tabla-comprobantes td {
-    padding: 8px 4px;
+    padding: 8px 6px;
+    white-space: nowrap;
   }
   
   #tabla-comprobantes img {
@@ -1112,8 +1120,9 @@ button:disabled {
 #tabla-comprobantes {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: 14px;
+  min-width: 900px;
 }
 
 #tabla-comprobantes th {
@@ -1445,6 +1454,7 @@ input:checked + .toggle-slider:before {
   border-radius: 12px !important;
   border: 1px solid #e0e0e0 !important;
   overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
   padding: 10px !important;
 }
 
