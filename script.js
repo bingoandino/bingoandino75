@@ -3762,72 +3762,28 @@ async function guardarModoCartones() {
 }
 
 async function guardarGanador() {
-  const nombre   = document.getElementById('ganadorNombre').value.trim();
-  const cedula   = document.getElementById('ganadorCedula').value.trim();
-  const cartones = document.getElementById('ganadorCartones').value.trim();
-  const premio   = document.getElementById('ganadorPremio').value.trim();
-  const telefono  = document.getElementById('ganadorTelefono').value.trim();
-  const fecha    = document.getElementById('ganadorFecha').value.trim();
-
-  if (!nombre || !cedula || !cartones || !premio || !telefono|| !fecha) {
-    return alert("Completa todos los campos del ganador.");
-  }
-
-  const { error } = await supabase
-    .from('ganadores')
-    .insert([{ nombre, cedula, cartones, premio, telefono, fecha }]);
-
-  if (error) {
-    console.error(error);
-    alert("Error al guardar el ganador.");
-  } else {
-    alert("¡Ganador guardado correctamente!");
-    document.getElementById('formularioGanador').reset();
-    cargarGanadores();
-  }
+  alert('Publica los resultados desde la app de auditoría, mediante Publicar ganadores.');
 }
 
 async function cargarGanadores() {
-  const { data, error } = await supabase
-    .from('ganadores')
-    .select('*')
-    .order('id', { ascending: false });
-
-  const contenedor = document.getElementById('listaGanadores');
-  contenedor.innerHTML = '';
-
-  if (error || !data.length) {
-    contenedor.innerHTML = '<p>No hay ganadores registrados aún.</p>';
-    return;
+  const box=document.getElementById('listaGanadores');box.replaceChildren();
+  const status=document.createElement('p');status.textContent='Cargando historial…';box.appendChild(status);
+  const {data,error}=await supabase.from('resultados_publicados').select('fecha').order('fecha',{ascending:false}).limit(100);
+  if(error){status.textContent='No se pudo cargar el historial. Intenta nuevamente.';return}
+  if(!data.length){status.textContent='Aún no hay resultados publicados.';return}
+  status.textContent='Selecciona la fecha del sorteo';
+  const select=document.createElement('select');select.setAttribute('aria-label','Fecha del sorteo');
+  data.forEach(r=>{const o=document.createElement('option');o.value=r.fecha;o.textContent=r.fecha.split('-').reverse().join('/');select.appendChild(o)});
+  box.appendChild(select);const fecha=document.createElement('input');fecha.type='date';fecha.setAttribute('aria-label','Buscar cualquier fecha publicada');fecha.value=select.value;box.appendChild(fecha);const results=document.createElement('div');box.appendChild(results);
+  let request=0;
+  async function cargar(){
+    const current=++request;results.textContent='Cargando resultados…';
+    const {data,error}=await supabase.from('resultados_publicados').select('resultado').eq('fecha',fecha.value).single();
+    if(current!==request)return;
+    if(error){results.textContent='No se pudieron cargar los resultados.';return}
+    ResultadosPublicos.mostrar(results,data.resultado);
   }
-
-  const tabla = document.createElement('table');
-  tabla.style.width = '100%';
-  tabla.innerHTML = `
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Cédula</th>
-        <th>Cartones</th>
-        <th>Premio</th>
-        <th>Telefono</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${data.map(g => `
-        <tr>
-          <td>${g.nombre}</td>
-          <td>${g.cedula}</td>
-          <td>${g.cartones}</td>
-          <td>${g.premio}</td>
-          <td>${g.telefono}</td>
-          <td>${g.fecha || ''}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-  contenedor.appendChild(tabla);
+  select.onchange=()=>{fecha.value=select.value;cargar()};fecha.onchange=cargar;await cargar();
 }
 
 function toggleFormularioGanador() {

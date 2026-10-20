@@ -2764,3 +2764,6 @@ input:checked + .toggle-slider:before {
     font-size: 14px !important;
   }
 }
+
+
+.resultado-publico{border:1px solid #58b7cb;border-radius:12px;padding:10px;margin:8px 0;background:#effcff;color:#143b4b}.resultado-publico strong{display:block;margin-bottom:5px}#listaGanadores{max-width:680px;margin:auto;text-align:left}
