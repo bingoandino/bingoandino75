@@ -1,47 +1,45 @@
-# Publicación de resultados: preparación y despliegue
+# Publicación de ganadores
 
-Estado: implementación en rama; NO desplegar antes de validar Supabase.
+## Comportamiento
 
-## Respaldos de código
+La entrada raíz de auditoría incorpora «Publicar ganadores», vista previa y confirmación explícita. Se exige completar todas las rondas y el final. Consolación y pozo se incluyen cuando se registran sus cartones. Solo se publica versión del contrato, fecha, categorías fijas, orden, número de cartón y premio individual en céntimos de Bs. No se publican nombres, cédulas, teléfonos, datos bancarios, comprobantes ni identificadores de compradores. No se publican resultados automáticamente con el despliegue.
 
-Repositorio auditoría: `backup/antes-publicar-ganadores-20261020`, commit `1df06228c996eaf34120d7cbbae278e369a476f7`.
-Repositorio web: `backup/antes-publicar-ganadores-20261020`, commit `4d2bd032518675ecdde937aa948764ba717af454`.
-Las ramas apuntan al código anterior completo. No son un respaldo de los datos de Supabase ni del estado local de los teléfonos.
+El historial permite consultar las últimas 100 fechas o buscar cualquier fecha anterior. Los pagos conservan su cálculo actual: premio compartido redondeado hacia abajo a Bs enteros y premio único redondeado al entero; consolación usa el monto individual.
 
-## Contrato y privacidad
+## Base de datos y autorización
 
-La tabla nueva `resultados_publicados` contiene solo fecha, hora de publicación y un JSON de versión 1. Cada grupo tiene categoría fija, orden, cartón y premio en céntimos de Bs. No se publican nombres, cédulas, teléfonos, comprobantes, IDs de compradores ni datos bancarios. No se copia la tabla antigua `ganadores`. La web deja de consultarla y de usar su formulario antiguo.
+`public.resultados_publicados` es independiente de inscripciones y cartones, sin relaciones que propaguen borrados. `Nuevo sorteo` solo borra el estado local de auditoría. Los reinicios de inscripciones/cartones no borran el historial. La fecha es única; un reintento idéntico confirma éxito sin duplicar; resultados diferentes para la misma fecha se rechazan. Los triggers bloquean UPDATE, DELETE y TRUNCATE incluso si se ejecutan desde un rol con permisos elevados.
 
-Una función transaccional admite exclusivamente usuarios de `publicadores_resultados`. Estar autenticado no basta. La lista se administra exclusivamente desde una conexión privilegiada, nunca desde el navegador; comienza vacía. Se vuelven a verificar las compras aprobadas antes de insertar. El cálculo no valida quién ganó la partida: el operador revisa las rondas en la vista previa y confirma.
+La RPC pública `public.publicar_resultados_v1(jsonb)` es SECURITY INVOKER. Delega en una función SECURITY DEFINER del esquema no expuesto `privado_resultados`, con search_path vacío, que exige auth.uid() y pertenencia activa a `privado_resultados.publicadores_resultados`. La lista no es legible ni editable por usuarios del navegador. Antes de insertar se verifica una compra aprobada única por cartón y se rechaza cualquier campo fuera del contrato, incluidos textos personales. La autorización del operador existente se registra fuera de la migración, por identidad confirmada de Auth; nunca se incluyen UUID reales en el repositorio.
 
-La fecha es única, y no se permiten reemplazos ni borrados. Un reintento con el mismo JSON devuelve éxito sin duplicar; uno con otro resultado se rechaza. El bloqueo de fecha evita dos escrituras simultáneas. `Nuevo sorteo` solo borra el estado local. La tabla no tiene relaciones que propaguen el borrado de inscripciones/cartones. También se bloquean UPDATE, DELETE y TRUNCATE sobre resultados.
+Se retiró la política `public_read_ganadores` y el permiso SELECT de anon sobre la tabla antigua `ganadores`; la web elimina su antiguo lector y formulario personal. No se copian filas de esa tabla al nuevo historial. El resto de la gestión de inscripciones conserva su comportamiento previo.
 
-Se conserva el cálculo actual de pagos: si hay varios cartones se redondea el premio individual hacia abajo a Bs enteros; si hay uno se redondea al entero. Consolación usa el monto individual. La vista previa muestra los importes que se publicarán; no se cambia la operativa de pago.
+## Respaldos y alcance
 
-## Secuencia obligatoria antes de producción
+Respaldos de código: ramas `backup/antes-publicar-ganadores-20261020` en ambos repositorios.
 
-1. Conectar Supabase y verificar el proyecto `dbkixcpwirjwjvjintkr`, esquema real, tipo de `inscripciones.cartones`, políticas RLS, usuarios autorizados y mecanismos de reinicio. Comprobar si `ganadores` permite lecturas anónimas de información privada y cerrar ese acceso mediante una migración revisada. Retirar la consulta de la UI no revoca acceso a la API antigua.
-2. Obtener respaldo completo de esquema y datos, roles/políticas y funciones existentes con el mecanismo de Supabase o pg_dump, con almacenamiento privado. Registrar fecha, ubicación, tamaño y prueba de restauración en un entorno aislado. No guardar datos de clientes ni respaldos SQL de producción en estos repositorios públicos.
-3. Crear una rama de desarrollo/base aislada, restaurar el respaldo y aplicar la migración nueva. Verificar que no altera las tablas actuales. La migración crea objetos, no copia los datos existentes.
-4. Identificar con el propietario el UUID del operador ya verificado en Auth. Insertar exclusivamente ese UUID en `public.publicadores_resultados(usuario_id)`. No autorizar automáticamente a todos los autenticados ni usar metadatos editables del usuario.
-5. Probar con dos sesiones (operador y usuario sin autorización), además de acceso anónimo: solo el operador publica; cualquiera lee exclusivamente la tabla pública; nadie puede escribir directamente en ella ni consultar la lista de operadores.
-6. Completar la prueba de punta a punta: cargar aprobados, registrar todas las rondas, final, consolación y pozo, revisar, cancelar, confirmar, simular pérdida de respuesta, reintentar, comprobar duplicados y ejecutar Nuevo sorteo en el entorno aislado. Verificar que las publicaciones y fechas anteriores siguen presentes. Probar dos publicaciones simultáneas para la misma fecha.
-7. Tras superar esos controles, aplicar migración y autorizar operador en producción; desplegar primero web y después auditoría desde las ramas revisadas. Nunca publicar datos ficticios de prueba en producción.
-8. Comprobar las dos URLs públicas y la actualización de la PWA. La variante `auditoria-supabase/index.html` y las rutas antiguas/de prueba no se modifican; el botón se integra en la entrada raíz actual.
+- Auditoría: `1df06228c996eaf34120d7cbbae278e369a476f7`.
+- Web: `4d2bd032518675ecdde937aa948764ba717af454`.
 
-## Reversión
+Se guardó un respaldo privado previo de las tablas relevantes: estructura, constraints, triggers, políticas y ACL de inscripciones/ganadores, junto a 280 inscripciones y 0 ganadores. Se verificó su restauración en PostgreSQL local comparando todos los valores, con equivalencia de timestamps. No es una copia integral del proyecto: no incluye Auth, archivos de Storage ni otras tablas. Ningún dato de ese respaldo se incorpora a GitHub ni al historial público.
 
-Antes de tener publicaciones: revertir los commits de interfaz si hace falta y revocar EXECUTE sobre `publicar_resultados_v1(jsonb)` a authenticated. Después de publicar, conservar siempre la tabla y sus datos; NO eliminarla ni desactivar sus triggers. No restaurar el viejo lector público de nombres/cédulas/teléfonos: deshabilitar temporalmente la vista pública si se revierte el código de la web. Los respaldos de código solo son puntos de referencia, no una orden de restauración ciega.
+Las pruebas remotas usaron exclusivamente datos ficticios. Una comprobación que pretendía copiar datos reales al entorno de prueba fue bloqueada por revisión automática; se sustituyó por la restauración local. No se copiaron datos de clientes a la rama de pruebas.
 
-## Pruebas reproducibles
+## Verificación realizada
 
-Ejecutar `npm ci` y `npm test` en este repositorio. Las pruebas de base de datos usan PostgreSQL embebido (PGlite) con Auth e inscripciones sintéticos; no conectan a producción. Las pruebas DOM no sustituyen la comprobación visual en navegador móvil ni las pruebas del proyecto real de Supabase. No afirmar que producción está validada con estos resultados.
+- `npm ci` y `npm test`: 9 pruebas de auditoría y 1 de web aprobadas.
+- Migración probada en PostgreSQL embebido y en una rama aislada del Supabase real, con el esquema original clonado.
+- Pruebas de SQL remoto: usuario sin autorización, campos personales, publicación, reintento, conflicto de fecha, bloqueo de borrado y conservación del historial al borrar inscripciones sintéticas.
+- Concurrencia remota: dos transacciones con resultados distintos para la misma fecha dejaron una sola publicación y rechazaron la segunda.
+- REST en la rama: lectura de resultados con clave pública devuelve 200; la tabla antigua con campos personales devuelve 401.
+- Navegador Chromium en viewport móvil 390×844: vista previa, confirmación, cambio de resultados, error, reintento, historial y Nuevo sorteo sin errores JS. Inspección visual del diálogo completada.
+- Se corrigieron dos identificadores `async` sueltos preexistentes en la entrada raíz que interrumpían su inicialización.
+- Las rutas antiguas y de prueba, incluida `auditoria-supabase/index.html`, conservan su código; el botón se integra en la entrada raíz actual.
 
-## Verificación local completada (20 octubre 2026)
+La prueba completa con el código OTP del operador y un resultado real queda a cargo de su sesión: no se inicia sesión como el usuario ni se publican resultados ficticios en producción.
 
-- `npm ci --ignore-scripts` y `npm test`: 9 pruebas aprobadas en auditoría y 1 en web.
-- Migración ejecutada en PostgreSQL embebido: autorización, RLS/privilegios, campos personales, cartones duplicados/no aprobados, fechas inválidas, publicación y reintento idéntico, conflicto de fecha, revocación de operador y bloqueo de UPDATE/DELETE/TRUNCATE. La publicación sobrevive al borrado de las inscripciones de prueba.
-- DOM: carga del formulario real, vista previa sin nombres, ausencia de escritura antes de confirmar, cambio de resultado, error, reintento, consulta de historial y Nuevo sorteo sin escritura remota. Lector web consulta únicamente columnas públicas de resultados_publicados.
-- Se eliminaron dos identificadores `async` sueltos preexistentes en la entrada raíz, que producían ReferenceError e interrumpían la inicialización.
-- La prueba en navegador real no pudo ejecutarse: no hay Chromium instalado y la descarga no se completó. La comprobación visual móvil queda pendiente.
-- No se ejecutaron consultas ni cambios en Supabase real; no existe todavía respaldo de esa base en esta tarea. Pendientes: permisos/esquema reales, restauración del respaldo, concurrencia de sesiones, integración real y despliegue público.
+## Reversión y asuntos fuera de alcance
+
+Para detener nuevas publicaciones, revocar EXECUTE sobre la RPC pública a authenticated. Conservar la tabla de resultados y los triggers; nunca eliminar publicaciones para revertir una interfaz. No restaurar el antiguo lector de nombres/cédulas/teléfonos. Puede deshabilitarse temporalmente la vista de historial manteniendo los datos.
+
+La revisión encontró permisos previos de lectura pública en `inscripciones`; modificarlos exige revisar el flujo de inscripción/consulta, que depende de esa lectura. La integración nueva no añade ni amplía esos permisos. Este hallazgo y los avisos de seguridad preexistentes requieren una tarea separada para no interrumpir reservas o consultas.
