@@ -638,21 +638,8 @@
         <h3>🏆 Registrar Nuevo Ganador</h3>
       </div>
       
-      <button onclick="toggleFormularioGanador()" class="btn-primary btn-large">➕ Nuevo Ganador</button>
-      
-      <div id="formularioGanadorContenedor" class="form-container" style="display: none;">
-        <form id="formularioGanador">
-          <div class="form-grid">
-            <input type="text" id="ganadorNombre" placeholder="Nombre del ganador" required>
-            <input type="text" id="ganadorCedula" placeholder="Cédula" required>
-            <input type="text" id="ganadorCartones" placeholder="Cartones ganadores (ej: 15, 23)" required>
-            <input type="text" id="ganadorPremio" placeholder="Premio ganado" required>
-            <input type="text" id="ganadorTelefono" placeholder="Teléfono" required>
-            <input type="date" id="ganadorFecha" required>
-          </div>
-          <button type="button" onclick="guardarGanador()" class="btn-primary">💾 Guardar Ganador</button>
-        </form>
-      </div>
+      <p>Publica los resultados desde la app de auditoría usando «Publicar ganadores». El historial conserva cada fecha y muestra solo cartones y premios.</p>
+      <button onclick="mostrarSeccion('ganadores')">Ver historial publicado</button>
     </div>
   </div>
 
@@ -713,7 +700,8 @@
 </script>
 
 
-<script src="script.js?v=20260821-2"></script>
+<script src="publicacion.js?v=1"></script>
+<script src="script.js?v=20261020-resultados-1"></script>
 
 </body>
 </html>
