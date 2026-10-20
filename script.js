@@ -3767,14 +3767,14 @@ async function guardarGanador() {
 
 async function cargarGanadores() {
   const box=document.getElementById('listaGanadores');box.replaceChildren();
-  const status=document.createElement('p');status.textContent='Cargando historial…';box.appendChild(status);
+  const tools=document.createElement('details');tools.className='ganadores-historial';const summary=document.createElement('summary');summary.textContent='Consultar otra fecha';tools.appendChild(summary);box.appendChild(tools);const status=document.createElement('div');status.className='ganadores-estado';status.textContent='Cargando historial…';tools.appendChild(status);
   const {data,error}=await supabase.from('resultados_publicos_con_nombres').select('fecha').order('fecha',{ascending:false}).limit(100);
   if(error){status.textContent='No se pudo cargar el historial. Intenta nuevamente.';return}
   if(!data.length){status.textContent='Aún no hay resultados publicados.';return}
   status.textContent='Selecciona la fecha del sorteo';
   const select=document.createElement('select');select.setAttribute('aria-label','Fecha del sorteo');
   data.forEach(r=>{const o=document.createElement('option');o.value=r.fecha;o.textContent=r.fecha.split('-').reverse().join('/');select.appendChild(o)});
-  box.appendChild(select);const fecha=document.createElement('input');fecha.type='date';fecha.setAttribute('aria-label','Buscar cualquier fecha publicada');fecha.value=select.value;box.appendChild(fecha);const results=document.createElement('div');box.appendChild(results);
+  tools.appendChild(select);const fecha=document.createElement('input');fecha.type='date';fecha.setAttribute('aria-label','Buscar cualquier fecha publicada');fecha.value=select.value;tools.appendChild(fecha);const results=document.createElement('div');box.appendChild(results);
   let request=0;
   async function cargar(){
     const current=++request;results.textContent='Cargando resultados…';

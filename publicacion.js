@@ -43,14 +43,43 @@ function preparar(form,validarCarton){
 function titulo(g){return g.tipo==='ronda'?`${g.orden}ª ronda`:({final:'Cartón lleno final',consolacion:'Consolación',pozo:'Pozo acumulado'})[g.tipo]}
 function mostrar(container,payload){
  container.replaceChildren();
- const h=document.createElement('h3');h.textContent=`BingoAndino75 · ${payload.fecha.split('-').reverse().join('/')}`;container.appendChild(h);
+ const make=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;if(text!==undefined)e.textContent=text;return e};
+ const bs=c=>(c/100).toLocaleString('es-VE',{maximumFractionDigits:2})+' Bs';
+ const sheet=make('article','ganadores-resumen');sheet.setAttribute('aria-label','Resumen de ganadores');
+ const head=make('header','ganadores-cabecera');
+ head.appendChild(make('div','ganadores-titulo','Nuestros ganadores'));
+ head.appendChild(make('div','ganadores-subtitulo','BingoAndino75 · Resultados oficiales'));
+ let fecha=new Date(payload.fecha+'T12:00:00Z').toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'America/Caracas'});
+ fecha=fecha.charAt(0).toLocaleUpperCase('es')+fecha.slice(1);
+ head.appendChild(make('div','ganadores-fecha',fecha));sheet.appendChild(head);
+ const grid=make('div','ganadores-cuadricula');const rondas=payload.grupos.filter(g=>g.tipo==='ronda');
  payload.grupos.forEach(g=>{
-  const card=document.createElement('div');card.className='resultado-publico';
-  const title=document.createElement('strong');title.textContent=titulo(g);card.appendChild(title);
-  g.ganadores.forEach(w=>{const line=document.createElement('div');line.textContent=`${payload.nombres?.[String(w.carton)]?payload.nombres[String(w.carton)]+' · ':''}Cartón ${w.carton} · ${(w.premio_centimos/100).toLocaleString('es-VE',{minimumFractionDigits:2})} Bs`;card.appendChild(line)});
-  container.appendChild(card);
+  const card=make('div','resultado-publico resultado-'+g.tipo);card.dataset.tipo=g.tipo;
+  if(g.tipo==='ronda'&&rondas.length%2===1&&g===rondas[rondas.length-1])card.classList.add('ronda-ancha');
+  if(g.tipo==='consolacion'&&!payload.grupos.some(x=>x.tipo==='pozo'))card.classList.add('extra-ancho');
+  card.appendChild(make('div','ganadores-categoria',g.tipo==='final'?'Cartón lleno final':titulo(g)));
+  const iguales=g.ganadores.every(w=>w.premio_centimos===g.ganadores[0].premio_centimos);
+  const individual=g.tipo==='consolacion'&&iguales;
+  const total=individual?g.ganadores[0].premio_centimos:g.ganadores.reduce((n,w)=>n+w.premio_centimos,0);
+  card.appendChild(make('div','ganadores-premio',bs(total)));
+  const list=make('div','ganadores-personas');
+  g.ganadores.forEach(w=>{
+   const item=make('div','ganadores-persona');
+   const nombre=payload.nombres?.[String(w.carton)];
+   if(nombre)item.appendChild(make('span','ganadores-nombre',nombre));
+   item.appendChild(make('span','ganadores-carton','Cartón '+w.carton));
+   if(!iguales&&g.ganadores.length>1)item.appendChild(make('span','ganadores-individual',bs(w.premio_centimos)));
+   list.appendChild(item);
+  });
+  card.appendChild(list);
+  if(individual)card.appendChild(make('div','ganadores-reparto','Por ganador'));
+  else if(iguales&&g.ganadores.length>1)card.appendChild(make('div','ganadores-reparto',bs(g.ganadores[0].premio_centimos)+' por ganador'));
+  grid.appendChild(card);
  });
+ sheet.appendChild(grid);sheet.appendChild(make('footer','ganadores-pie','¡Felicitaciones a todos nuestros ganadores!'));
+ container.appendChild(sheet);
 }
+
 root.ResultadosPublicos={fechaISO,cartones,dinero,preparar,mostrar};
 if(typeof module!=='undefined')module.exports=root.ResultadosPublicos;
 })(typeof window!=='undefined'?window:globalThis);

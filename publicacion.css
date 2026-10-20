@@ -1,0 +1,51 @@
+/* Resumen público: estilos aislados del formulario y del resto de la página. */
+.ganadores-resumen{box-sizing:border-box;width:100%;max-width:700px;margin:0 auto;padding:12px;background:#fff;color:#233740;border:1px solid #e4e9eb;border-radius:20px;font-family:Arial,Helvetica,sans-serif;text-align:left;line-height:1.25}
+.ganadores-resumen *{box-sizing:border-box}
+.ganadores-cabecera{padding:16px 10px;text-align:center;color:#fff;background:linear-gradient(160deg,#49a1ae,#0a7e94 55%);border-radius:15px;margin-bottom:12px}
+.ganadores-titulo{font-size:clamp(20px,4.8vw,32px);font-weight:800;letter-spacing:-.5px}
+.ganadores-subtitulo{font-size:14px;margin:6px 0 9px;color:#e6f7f8}
+.ganadores-fecha{display:inline-block;max-width:100%;padding:6px 13px;background:#d9f3f1;color:#205264;border-radius:30px;font-size:13px;font-weight:600}
+.ganadores-cuadricula{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.ganadores-resumen .resultado-publico{border:0;border-radius:14px;padding:13px;margin:0;min-width:0;color:#20343d;background:#e9f5ff;overflow-wrap:anywhere}
+.ganadores-resumen .resultado-ronda:nth-child(4n+2){background:#f1eafd}
+.ganadores-resumen .resultado-ronda:nth-child(4n+3){background:#e3f6ee}
+.ganadores-resumen .resultado-ronda:nth-child(4n+4){background:#fff0e5}
+.ganadores-categoria{font-size:14px;font-weight:700;color:#236579;margin-bottom:7px}
+.ganadores-premio{font-size:clamp(22px,5.3vw,31px);font-weight:800;letter-spacing:-.6px;line-height:1.1;margin-bottom:9px;font-variant-numeric:tabular-nums}
+.ganadores-personas{display:grid;gap:6px}
+.ganadores-persona{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;row-gap:2px;min-width:0}
+.ganadores-nombre{font-size:14px;font-weight:600;flex-basis:100%}
+.ganadores-carton{font-size:12px;color:#52676f}
+.ganadores-individual{font-size:12px;font-weight:600}
+.ganadores-reparto{font-size:11px;color:#52676f;margin-top:7px}
+.ganadores-resumen .resultado-final{grid-column:1/-1;background:#fff1b8;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;align-items:center;padding:15px}
+.resultado-final .ganadores-categoria{grid-column:1/-1;text-transform:uppercase;color:#7b5d19;margin-bottom:4px}
+.resultado-final .ganadores-premio{grid-column:2;grid-row:2;margin:0;color:#624914}
+.resultado-final .ganadores-personas{grid-column:1;grid-row:2}
+.resultado-final .ganadores-reparto{grid-column:1/-1;text-align:right;color:#776431;margin-top:0}
+.ganadores-resumen .resultado-consolacion{background:#fbeaf0}
+.resultado-consolacion .ganadores-categoria,.resultado-consolacion .ganadores-premio{color:#92365f}
+.ganadores-resumen .resultado-pozo{background:#def5ee}
+.resultado-pozo .ganadores-categoria,.resultado-pozo .ganadores-premio{color:#176a5f}
+.ronda-ancha,.extra-ancho{grid-column:1/-1}
+.ronda-ancha{display:grid;grid-template-columns:1fr 1fr;column-gap:10px;align-items:center}
+.ronda-ancha .ganadores-categoria{grid-column:1/-1;margin-bottom:3px}
+.ronda-ancha .ganadores-premio{grid-column:2;grid-row:2;text-align:right;margin-bottom:0}
+.ronda-ancha .ganadores-personas{grid-column:1;grid-row:2}
+.extra-ancho .ganadores-personas{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.extra-ancho .ganadores-premio{font-size:24px;margin-bottom:8px}
+.ganadores-pie{text-align:center;font-size:13px;color:#647378;padding:14px 4px 2px}
+.ganadores-historial{font:13px Arial,sans-serif;color:#47636a;margin:0 auto 8px;max-width:700px}
+.ganadores-historial summary{cursor:pointer;padding:6px 2px;text-align:right}
+.ganadores-historial select,.ganadores-historial input{width:100%;padding:8px;margin:4px 0;color:#20343d;background:white;border:1px solid #c8dadf;border-radius:8px}
+.ganadores-estado{padding:4px;font-size:12px}
+#ganadores{background:#f5f7fa!important;max-width:760px!important;padding:12px!important;border-radius:20px;box-shadow:none!important}
+#listaGanadores{background:transparent!important;border:0!important;width:100%!important;max-width:700px!important;padding:0!important;margin:0 auto!important;box-shadow:none!important;overflow-x:visible!important;text-align:left}
+#ganadores>button{margin:10px auto 0!important;padding:9px 20px!important;font-size:13px!important;box-shadow:none!important;background:#e6eef0!important;color:#31515c!important;max-width:160px!important}
+@media(max-width:450px){.ganadores-resumen{padding:9px;border-radius:17px}.ganadores-cabecera{padding:12px 6px;margin-bottom:8px}.ganadores-cuadricula{gap:8px}.ganadores-resumen .resultado-publico{padding:10px;border-radius:12px}.ganadores-categoria{font-size:12px;margin-bottom:5px}.ganadores-premio{margin-bottom:6px}.ganadores-nombre{font-size:12px}.ganadores-carton{font-size:11px}.ganadores-personas{gap:4px}.ganadores-subtitulo{font-size:12px;margin:4px 0 7px}.ganadores-fecha{font-size:11px;padding:5px 9px}.ganadores-reparto{font-size:10px;margin-top:5px}.ganadores-pie{font-size:11px;padding-top:10px}.resultado-final .ganadores-premio{font-size:24px}.extra-ancho .ganadores-personas{gap:6px 10px}}
+@media print{.ganadores-historial,#ganadores>button{display:none!important}.ganadores-resumen{break-inside:avoid;print-color-adjust:exact}}
+@media(max-width:450px){
+ .ganadores-resumen .resultado-ronda .ganadores-persona,.ganadores-resumen .resultado-consolacion .ganadores-persona{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:5px;align-items:baseline}
+ .ganadores-resumen .resultado-ronda .ganadores-carton,.ganadores-resumen .resultado-consolacion .ganadores-carton{white-space:nowrap;font-size:10px}
+ .ganadores-resumen .ganadores-nombre{text-transform:capitalize}
+}
