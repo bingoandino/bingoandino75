@@ -47,7 +47,7 @@ function mostrar(container,payload){
  payload.grupos.forEach(g=>{
   const card=document.createElement('div');card.className='resultado-publico';
   const title=document.createElement('strong');title.textContent=titulo(g);card.appendChild(title);
-  g.ganadores.forEach(w=>{const line=document.createElement('div');line.textContent=`Cartón ${w.carton} · ${(w.premio_centimos/100).toLocaleString('es-VE',{minimumFractionDigits:2})} Bs`;card.appendChild(line)});
+  g.ganadores.forEach(w=>{const line=document.createElement('div');line.textContent=`${payload.nombres?.[String(w.carton)]?payload.nombres[String(w.carton)]+' · ':''}Cartón ${w.carton} · ${(w.premio_centimos/100).toLocaleString('es-VE',{minimumFractionDigits:2})} Bs`;card.appendChild(line)});
   container.appendChild(card);
  });
 }

@@ -3768,7 +3768,7 @@ async function guardarGanador() {
 async function cargarGanadores() {
   const box=document.getElementById('listaGanadores');box.replaceChildren();
   const status=document.createElement('p');status.textContent='Cargando historial…';box.appendChild(status);
-  const {data,error}=await supabase.from('resultados_publicados').select('fecha').order('fecha',{ascending:false}).limit(100);
+  const {data,error}=await supabase.from('resultados_publicos_con_nombres').select('fecha').order('fecha',{ascending:false}).limit(100);
   if(error){status.textContent='No se pudo cargar el historial. Intenta nuevamente.';return}
   if(!data.length){status.textContent='Aún no hay resultados publicados.';return}
   status.textContent='Selecciona la fecha del sorteo';
@@ -3778,7 +3778,7 @@ async function cargarGanadores() {
   let request=0;
   async function cargar(){
     const current=++request;results.textContent='Cargando resultados…';
-    const {data,error}=await supabase.from('resultados_publicados').select('resultado').eq('fecha',fecha.value).single();
+    const {data,error}=await supabase.from('resultados_publicos_con_nombres').select('resultado').eq('fecha',fecha.value).single();
     if(current!==request)return;
     if(error){results.textContent='No se pudieron cargar los resultados.';return}
     ResultadosPublicos.mostrar(results,data.resultado);
