@@ -2,7 +2,7 @@
 
 ## Comportamiento
 
-La entrada raíz de auditoría incorpora «Publicar ganadores», vista previa y confirmación explícita. Se exige completar todas las rondas y el final. Consolación y pozo se incluyen cuando se registran sus cartones. Solo se publica versión del contrato, fecha, categorías fijas, orden, número de cartón y premio individual en céntimos de Bs. No se publican nombres, cédulas, teléfonos, datos bancarios, comprobantes ni identificadores de compradores. No se publican resultados automáticamente con el despliegue.
+La entrada raíz de auditoría incorpora «Publicar ganadores», vista previa y confirmación explícita. Se exige completar todas las rondas y el final. Consolación y pozo se incluyen cuando se registran sus cartones. Solo se publica versión del contrato, fecha, categorías fijas, orden, número de cartón y premio individual en céntimos de Bs. Se publican los nombres autorizados; no se publican cédulas, teléfonos, datos bancarios, comprobantes ni identificadores de compradores. No se publican resultados automáticamente con el despliegue.
 
 El historial permite consultar las últimas 100 fechas o buscar cualquier fecha anterior. Los pagos conservan su cálculo actual: premio compartido redondeado hacia abajo a Bs enteros y premio único redondeado al entero; consolación usa el monto individual.
 
@@ -43,3 +43,9 @@ La prueba completa con el código OTP del operador y un resultado real queda a c
 Para detener nuevas publicaciones, revocar EXECUTE sobre la RPC pública a authenticated. Conservar la tabla de resultados y los triggers; nunca eliminar publicaciones para revertir una interfaz. No restaurar el antiguo lector de nombres/cédulas/teléfonos. Puede deshabilitarse temporalmente la vista de historial manteniendo los datos.
 
 La revisión encontró permisos previos de lectura pública en `inscripciones`; modificarlos exige revisar el flujo de inscripción/consulta, que depende de esa lectura. La integración nueva no añade ni amplía esos permisos. Este hallazgo y los avisos de seguridad preexistentes requieren una tarea separada para no interrumpir reservas o consultas.
+
+## Nombres autorizados por el propietario
+
+El propietario solicitó mostrar los nombres junto al cartón y al premio. Una tabla adicional inmutable guarda únicamente fecha, cartón y nombre aprobado. La vista `resultados_publicos_con_nombres` combina ambas fuentes con security_invoker. Se capturan los nombres de las compras aprobadas en la misma transacción que la publicación, para conservarlos después de Nuevo sorteo. Los importes y cartones de las publicaciones existentes no se modifican. Los 13 cartones del resultado del 19 de octubre se verificaron contra una compra aprobada única antes de incorporar sus nombres. No se publican campos de cédula, teléfono, comprobante ni datos bancarios.
+
+Estado de esta ampliación: el propietario autorizó explícitamente publicar los nombres en bingoandino75.com, incluidos los del sorteo de hoy. Después de esa autorización se aplicó la migración y se incorporaron los 13 nombres verificados del resultado del 19 de octubre. Las 11 pruebas locales y los flujos de GitHub aprobaron. Los importes y cartones originales se conservaron.
