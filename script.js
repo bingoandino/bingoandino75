@@ -1280,7 +1280,7 @@ async function verificarSesionInicial() {
   // Ocultar panel y login mientras se verifica
   document.getElementById('admin-panel')?.classList.add('oculto');
   document.getElementById('admin-login')?.classList.add('oculto');
-  document.getElementById('bienvenida')?.classList.remove('oculto');
+  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
 
   const sessionToken = sessionStorage.getItem('admin_session_token');
 
@@ -1330,7 +1330,7 @@ async function verificarSesionInicial() {
 
   document.getElementById('admin-login')?.classList.add('oculto');
   document.getElementById('admin-panel')?.classList.add('oculto');
-  document.getElementById('bienvenida')?.classList.remove('oculto');
+  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
 }
  } catch (error) {
   console.error('❌ Error verificando sesión inicial:', error);
@@ -1349,7 +1349,7 @@ async function verificarSesionInicial() {
 
   document.getElementById('admin-login')?.classList.add('oculto');
   document.getElementById('admin-panel')?.classList.add('oculto');
-  document.getElementById('bienvenida')?.classList.remove('oculto');
+  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
 }
 }
 // ==================== FUNCIONES FALTANTES QUE NECESITA EL HTML ====================
@@ -3520,6 +3520,9 @@ function mostrarSeccion(id) {
   secciones.forEach(sec => sec.classList.add('oculto'));
   const target = document.getElementById(id);
   if (target) target.classList.remove('oculto');
+  // El botón está al pie del inicio; cada sección se abre desde arriba.
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+  requestAnimationFrame(()=>{document.documentElement.scrollTop=0;document.body.scrollTop=0;});
   
     if (id === 'ganadores') {
     cargarGanadores();
@@ -3527,7 +3530,7 @@ function mostrarSeccion(id) {
   
   const redes = document.getElementById('redes-sociales');
   if (redes) {
-    redes.style.display = id === 'inicio' ? 'flex' : 'none';
+    redes.style.display = (id === 'inicio' || id === 'bienvenida') ? 'flex' : 'none';
   }
 }
 
