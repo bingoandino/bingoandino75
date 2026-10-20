@@ -53,3 +53,7 @@ Estado de esta ampliación: el propietario autorizó explícitamente publicar lo
 ## Presentación conforme a la referencia del propietario
 
 Encabezado turquesa con fecha, rondas en dos columnas pastel, lleno final a todo el ancho en dorado y extras rosado/verde. Incluye todos los nombres y sus cartones, sin recortes, y distingue el total de una ronda del importe individual compartido. Consolación muestra el importe por ganador. Consulta de fechas plegada para priorizar el resumen. La misma presentación se aplica a la vista previa de auditoría. Verificación visual con 13 cartones publicados en 390×844 y 360×800; sin desbordamiento horizontal ni errores JS. En pantallas estrechas se mantiene el desplazamiento vertical necesario para conservar nombres completos. No se modifica la base de datos ni el resultado publicado.
+
+## Corrección de navegación del historial
+
+La comprobación inicial de sesión podía mostrar bienvenida otra vez después de que el usuario abriera Ganadores. Ahora conserva la sección activa de ganadores. Los cambios de sección también vuelven al principio, evitando conservar el desplazamiento del botón al pie del inicio. Los selectores de secciones ocultas prevalecen sobre el diseño y el regreso a Inicio restaura las redes sociales. Verificado con el botón real, comprobación tardía de sesión, regreso y reapertura en Chromium móvil, además de una prueba de regresión DOM. No altera datos, premios, nombres ni pagos.

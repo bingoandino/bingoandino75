@@ -49,3 +49,6 @@
  .ganadores-resumen .resultado-ronda .ganadores-carton,.ganadores-resumen .resultado-consolacion .ganadores-carton{white-space:nowrap;font-size:10px}
  .ganadores-resumen .ganadores-nombre{text-transform:capitalize}
 }
+
+/* Las secciones ocultas prevalecen sobre el diseño de sus contenedores. */
+#bienvenida.oculto,#ganadores.oculto{display:none!important}
