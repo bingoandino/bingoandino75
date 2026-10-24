@@ -55,7 +55,16 @@ export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=O
    if(b.action==='comments'&&typeof b.media==='string'&&/^\d{5,30}$/.test(b.media)){
     const media=await graph(b.media,{fields:'id,username,permalink,comments_count'});
     if(String(media.username).toLowerCase()!=='bingoandino75')return reply({error:'Solo se admiten publicaciones de @bingoandino75.'},403);
-    return reply({...page(await graph(b.media+'/comments',{fields:'id,text,username,from,timestamp,hidden',limit:100,after})),media});
+    // Older clients still receive one page; new clients group up to five pages per request.
+    const maxPages=b.batch===true?5:1,started=Date.now(),seen=new Set(after?[after]:[]);
+    let cursor=after,items=[],pages=0;
+    do{
+     const current=page(await graph(b.media+'/comments',{fields:'id,text,username,from,timestamp,hidden',limit:100,after:cursor}));
+     items.push(...current.items);pages++;
+     if(current.next&&seen.has(current.next))throw new InstagramError('Instagram repitió una página. Vuelve a cargar.',502);
+     if(current.next)seen.add(current.next);cursor=current.next;
+    }while(cursor&&pages<maxPages&&Date.now()-started<8000);
+    return reply({items,next:cursor,pages,media});
    }
    return reply({error:'Solicitud inválida.'},400);
   }catch(e){return reply({error:e instanceof InstagramError?e.message:'No se pudo completar la solicitud. Inténtalo de nuevo.'},e instanceof InstagramError?e.status:503);}
