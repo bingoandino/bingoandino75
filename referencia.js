@@ -597,6 +597,33 @@
       }
       return archivosCartones.get(clave);
     }
+    // Compone las imágenes originales a su tamaño nativo: no interpreta ni redibuja números.
+    async function agruparCartones(archivos) {
+      const grupos=[];
+      for(let i=0;i<archivos.length;i+=4) {
+        const bloque=archivos.slice(i,i+4);
+        if(bloque.length===1){grupos.push(bloque[0]);continue;}
+        const imagenes=[];
+        try {
+          for(const archivo of bloque)imagenes.push(await global.createImageBitmap(archivo));
+          const ancho=Math.max(...imagenes.map(x=>x.width)),alto=Math.max(...imagenes.map(x=>x.height)),espacio=24;
+          const canvas=document.createElement('canvas');canvas.width=ancho*2+espacio*3;canvas.height=alto*Math.ceil(bloque.length/2)+espacio*(Math.ceil(bloque.length/2)+1);
+          if(canvas.width>8192||canvas.height>8192||canvas.width*canvas.height>32000000)throw Error('Las imágenes son demasiado grandes para unirlas en este dispositivo.');
+          const ctx=canvas.getContext('2d');if(!ctx)throw Error('No se pudieron unir los cartones.');
+          ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=false;
+          imagenes.forEach((imagen,j)=>{
+            const x=espacio+(j%2)*(ancho+espacio)+Math.floor((ancho-imagen.width)/2);
+            const y=espacio+Math.floor(j/2)*(alto+espacio)+Math.floor((alto-imagen.height)/2);
+            ctx.drawImage(imagen,x,y); // Sin recortar ni cambiar el tamaño de los originales.
+          });
+          const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('No se pudo crear la imagen de los cartones.')),'image/png'));
+          const numeros=bloque.map(a=>a.name.match(/carton-(\d+)/)?.[1]).filter(Boolean);
+          grupos.push(new File([blob],'BingoAndino75-cartones-'+numeros.join('-')+'.png',{type:'image/png'}));
+        } finally {imagenes.forEach(imagen=>imagen.close());}
+      }
+      return grupos;
+    }
+
     function accionesCartones(padre,numeros) {
       const fila=document.createElement('div');fila.className='compra-acciones';
       const descargar=texto(fila,'button','⬇ Descargar '+(numeros.length===1?'cartón':'cartones'));descargar.type='button';descargar.dataset.accion='descargar-cartones';
@@ -609,7 +636,8 @@
         await Promise.all(Array.from({length:Math.min(3,numeros.length)},async()=>{
           while(siguiente<numeros.length){const indice=siguiente++;resultado[indice]=await archivoCarton(numeros[indice]);terminados++;if(consulta===version)estado.textContent=`Preparando cartones: ${terminados} de ${numeros.length}…`;}
         }));
-        lista=resultado;return lista;
+        if(consulta===version)estado.textContent='Uniendo las imágenes originales, hasta cuatro cartones por imagen…';
+        lista=await agruparCartones(resultado);return lista;
       }
       async function ejecutar(accion) {
         descargar.disabled=true;compartir.disabled=true;
@@ -619,11 +647,11 @@
             if(typeof global.navigator.share!=='function'||!global.navigator.canShare?.({files})) {estado.textContent='Este navegador no permite compartir estas imágenes. Descarga los cartones y adjúntalos desde WhatsApp.';return;}
             if(global.navigator.userActivation && !global.navigator.userActivation.isActive){estado.textContent='Cartones listos. Pulsa Compartir por WhatsApp de nuevo para elegir el destino.';return;}
             await global.navigator.share({files,title:'Mis cartones · BingoAndino75'});
-            if(consulta===version)estado.textContent='Se abrió el menú para compartir los cartones. Elige WhatsApp y revisa las imágenes antes de enviarlas.';
+            if(consulta===version)estado.textContent=`Se abrió el menú con ${files.length} ${files.length===1?'imagen':'imágenes'} (${numeros.length} cartones). Elige WhatsApp para compartir.`;
           } else {
             const blob=files.length===1?files[0]:await zipCartones(files);if(consulta!==version)return;
-            const url=global.URL.createObjectURL(blob),enlace=document.createElement('a');enlace.href=url;enlace.download=files.length===1?files[0].name:'BingoAndino75-cartones.zip';document.body.appendChild(enlace);enlace.click();enlace.remove();global.setTimeout(()=>global.URL.revokeObjectURL(url),60000);
-            estado.textContent=files.length===1?'Descarga iniciada. Revisa la carpeta Descargas.':`Descarga iniciada: archivo ZIP con ${files.length} imágenes. Ábrelo desde Descargas para extraer los cartones.`;
+            const url=global.URL.createObjectURL(blob),enlace=document.createElement('a');enlace.href=url;enlace.download=files.length===1?files[0].name:'BingoAndino75-cartones-en-grupos-de-4.zip';document.body.appendChild(enlace);enlace.click();enlace.remove();global.setTimeout(()=>global.URL.revokeObjectURL(url),60000);
+            estado.textContent=files.length===1?`Descarga iniciada: ${numeros.length} ${numeros.length===1?'cartón':'cartones'} en una imagen. Revisa Descargas.`:`Descarga iniciada: ZIP con ${files.length} imágenes, hasta cuatro cartones por imagen. Ábrelo desde Descargas para extraerlas.`;
           }
         } catch(error) {
           if(consulta!==version)return;
@@ -631,6 +659,7 @@
           estado.textContent='No se pudo completar la acción. Intenta de nuevo o descarga un cartón al ampliarlo.';
         } finally {descargar.disabled=false;compartir.disabled=false;}
       }
+      if(numeros.length>1)estado.textContent='Hasta 4 cartones por imagen. Se conservan las imágenes originales sin cambiar números.';
       descargar.onclick=()=>ejecutar('descargar');compartir.onclick=()=>ejecutar('compartir');
     }
 
