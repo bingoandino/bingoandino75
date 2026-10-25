@@ -341,3 +341,82 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarInicioAgrupado, {once: true});
   else instalarInicioAgrupado();
 })(window);
+
+// Solo tiempos y nombres fijos de etapas; nunca argumentos, respuestas ni datos del cliente.
+(function (global) {
+  'use strict';
+  const muestras = [];
+  const ahora = () => global.performance?.now() ?? Date.now();
+  function registrar(etapa, inicio, resultado) {
+    muestras.push({etapa, ms: Math.max(0, Math.round(ahora() - inicio)), resultado});
+    if (muestras.length > 100) muestras.shift();
+  }
+  global.DiagnosticoCompra = Object.freeze({
+    resumen: () => muestras.map(fila => ({...fila})),
+    limpiar: () => { muestras.length = 0; }
+  });
+  // Resource Timing observa peticiones existentes; no envía telemetría ni conserva URLs.
+  if (typeof global.PerformanceObserver === 'function') {
+    try {
+      const observador = new global.PerformanceObserver(lista => {
+        for (const recurso of lista.getEntries()) {
+          try {
+            const url = new URL(recurso.name);
+            if (url.origin !== new URL(global.supabase.supabaseUrl).origin) continue;
+            const ruta = url.pathname;
+            const etapa = ruta === '/rest/v1/configuracion' ? 'red_configuracion'
+              : ruta === '/rest/v1/cartones' ? 'red_cartones'
+              : ruta === '/rest/v1/inscripciones' ? 'red_inscripciones'
+              : ruta.startsWith('/storage/v1/object/comprobantes/') ? 'red_comprobante' : null;
+            if (etapa && Number.isFinite(recurso.duration)) registrar(etapa, ahora() - recurso.duration, 'recurso');
+          } catch { /* Un recurso ajeno o sin información de tiempo se ignora. */ }
+        }
+      });
+      observador.observe({type: 'resource', buffered: true});
+      global.addEventListener('pagehide', () => observador.disconnect(), {once: true});
+    } catch { /* Las mediciones son opcionales; nunca bloquean la compra. */ }
+  }
+  let instalado = false;
+  function instalar() {
+    if (instalado) return;
+    instalado = true;
+    const etapas = {
+      obtenerTotalCartones: 'configuracion', cargarPrecioPorCarton: 'precio',
+      cargarConfiguracionModoCartones: 'modalidad', cargarCartones: 'cartones',
+      prepararComprobanteSeguro: 'preparar_imagen'
+    };
+    for (const [nombre, etapa] of Object.entries(etapas)) {
+      const original = global[nombre];
+      if (typeof original !== 'function') continue;
+      global[nombre] = async function (...args) {
+        const inicio = ahora();
+        try { const valor = await original.apply(this, args); registrar(etapa, inicio, 'terminado'); return valor; }
+        catch (error) { registrar(etapa, inicio, 'error'); throw error; }
+      };
+    }
+    const original = global.enviarComprobante;
+    if (typeof original !== 'function') return;
+    let pendiente = null;
+    global.enviarComprobante = function (...args) {
+      if (pendiente) return pendiente;
+      const boton = document.getElementById('btnEnviarComprobante');
+      const texto = boton?.textContent;
+      const deshabilitado = boton?.disabled;
+      const inicio = ahora();
+      if (boton) { boton.disabled = true; boton.setAttribute('aria-busy', 'true'); }
+      // La promesa se asigna antes de ejecutar el envío: también cubre llamadas directas.
+      pendiente = Promise.resolve().then(() => original.apply(this, args))
+        .then(valor => { registrar('envio_completo', inicio, 'terminado'); return valor; }, error => {
+          registrar('envio_completo', inicio, 'error'); throw error;
+        }).finally(() => {
+          pendiente = null;
+          if (boton) { boton.disabled = deshabilitado; boton.textContent = texto; boton.removeAttribute('aria-busy'); }
+        });
+      return pendiente;
+    };
+  }
+  // Se instala después de los otros adaptadores para medir las funciones definitivas.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalar, {once: true});
+  else instalar();
+})(window);
+
