@@ -541,15 +541,23 @@
     if (!global.supabase || typeof global.toggleCarton !== 'function' || typeof global.iniciarContadorReserva !== 'function' || !document.getElementById('contadorReserva')) return;
     const clave = 'bingo_compra_en_curso_v1', vigencia = 30 * 60 * 1000;
     const campos = ['nombre', 'telefono', 'cedula', 'referido', 'cantidadCartones', 'referencia4dig'];
-    let sellos = new Map(), vence = 0, reloj = null, sincronizando = null, demora = null, enviando = false, restaurando = false, envioIntentado = false, trabajando = false;
+    let sellos = new Map(), vence = 0, reloj = null, sincronizando = null, demora = null, enviando = false, restaurando = false, envioIntentado = false, trabajando = false, vencida = false, inicioLocal = 0;
     const numeros = () => Array.isArray(usuario.cartones) ? usuario.cartones.map(Number).filter(Number.isSafeInteger) : [];
     function leer() {
       try {
         const valor = JSON.parse(global.sessionStorage.getItem(clave));
         if (!valor || valor.schema !== 1 || !Number.isFinite(valor.guardado) || Date.now() - valor.guardado > vigencia || valor.guardado > Date.now() + 60000) return null;
         if (!valor.campos || !Array.isArray(valor.reservas) || valor.reservas.length > 10000) return null;
+        if (!valor.reservas.length && ['cartones','pago'].includes(valor.etapa)) return null;
+        if (valor.reservas.length && caducidad(valor) <= Date.now()) return null;
         return valor;
       } catch { return null; }
+    }
+    function caducidad(valor) {
+      const tiempos=valor.reservas.map(r=>Date.parse(r.sello)).filter(Number.isFinite);
+      const servidor=tiempos.length?Math.min(...tiempos)+300000:Infinity;
+      const local=Number.isFinite(valor.caducaReserva)?valor.caducaReserva:valor.guardado+300000;
+      return Math.min(servidor,local);
     }
     function escribir(valor) { try { if (valor) global.sessionStorage.setItem(clave, JSON.stringify(valor)); else global.sessionStorage.removeItem(clave); } catch { /* El bloqueo del almacenamiento no impide comprar. */ } }
     function avisar(mensaje) {
@@ -560,12 +568,12 @@
       nodo.textContent = mensaje;
     }
     function guardar() {
-      if (restaurando || !trabajando) return;
+      if (restaurando || !trabajando || vencida) return;
       const valores = Object.fromEntries(campos.map(id => [id, String(document.getElementById(id)?.value || '').slice(0, id === 'referencia4dig' ? 64 : 160)]));
       if (!valores.nombre && !valores.cedula) return;
       const mismaCedula = String(usuario.cedula || '').trim() === valores.cedula.trim();
       const seleccion = mismaCedula ? numeros() : [];
-      escribir({schema:1, guardado:Date.now(), campos:valores, cantidad:cantidadPermitida, version:String(versionCartones), precio:precioPorCarton, envioIntentado,
+      escribir({schema:1, guardado:Date.now(), campos:valores, cantidad:cantidadPermitida, version:String(versionCartones), precio:precioPorCarton, envioIntentado, caducaReserva:seleccion.length?(vence || (inicioLocal || Date.now())+300000):null,
         reservas:seleccion.map(numero => ({numero, sello:sellos.get(numero) || null})), etapa:document.querySelector('section:not(.oculto)')?.id || 'inscripcion'});
     }
     function borrar() { escribir(null); document.getElementById('retomar-compra')?.remove(); }
@@ -577,7 +585,7 @@
         nodo.style.borderColor = restantes !== null && restantes <= 60 ? '#ef476f' : '#ffbf36';
       }
       if (vence && restantes === 0 && !enviando) {
-        usuario.cartones = []; sellos.clear(); vence = 0; global.clearInterval(reloj); reloj = null; guardar(); pintarSeleccion();
+        usuario.cartones = []; sellos.clear(); vence = 0; global.clearInterval(reloj); reloj = null; vencida=true; borrar(); pintarSeleccion();
         avisar('Tu reserva venció. Vuelve a seleccionar cartones antes de continuar. Si ya realizaste el pago, contacta a soporte antes de pagar nuevamente.');
         // La limpieza del servidor libera las reservas vencidas; aquí nunca se borra una compra enviada.
       }
@@ -650,7 +658,7 @@
     function programar() { global.clearTimeout(demora); demora=global.setTimeout(sincronizar,350); }
     for (const nombre of ['toggleCarton','seleccionarAleatorioSeguro']) {
       const original=global[nombre]; if (typeof original!=='function') continue;
-      global[nombre]=async function(...args) { const resultado=await original.apply(this,args); envioIntentado=false; trabajando=true; pintarSeleccion(); guardar(); programar(); return resultado; };
+      global[nombre]=async function(...args) { const vacia=!numeros().length, inicio=Date.now(); const resultado=await original.apply(this,args); if(vacia && numeros().length){inicioLocal=inicio;vencida=false;} envioIntentado=false; trabajando=true; pintarSeleccion(); guardar(); programar(); return resultado; };
     }
     const cargar=global.cargarCartones;
     if(typeof cargar==='function') global.cargarCartones=async function(...args){const resultado=await cargar.apply(this,args);pintarSeleccion();return resultado;};
@@ -680,7 +688,7 @@
     document.addEventListener('input', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
     document.addEventListener('change', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
     global.addEventListener('pagehide',guardar);
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){actualizarReloj();if(numeros().length)programar();} });
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){if(document.getElementById('retomar-compra') && !leer())borrar();actualizarReloj();if(numeros().length)programar();} });
     global.addEventListener('online',()=>{if(numeros().length)programar();});
     const borrador=leer();
     if(!borrador){escribir(null);return;}
@@ -718,6 +726,14 @@
       finally{restaurando=false;retomar.disabled=false;retomar.textContent='Retomar compra';if(recuperado && document.getElementById('retomar-compra'))guardar();}
     };
     document.getElementById('bienvenida')?.prepend(caja);
+    if(borrador.reservas.length) {
+      const retirarVencido=()=>{
+        const vigente=leer();
+        if(!vigente){borrar();return;}
+        if(vigente.reservas.length)global.setTimeout(retirarVencido,Math.max(1,caducidad(vigente)-Date.now()));
+      };
+      global.setTimeout(retirarVencido,Math.max(1,caducidad(borrador)-Date.now()));
+    }
     try {
       const recarga=global.performance?.getEntriesByType?.('navigation')?.[0]?.type==='reload';
       const pasoCompra=['inscripcion','cantidad','cartones','pago'].includes(borrador.etapa);

@@ -11,10 +11,11 @@ function fixture(options={}){
  w.mostrarVentana=async id=>{w.document.querySelectorAll('section').forEach(s=>s.classList.toggle('oculto',s.id!==id));if(id==='pago')w.iniciarContadorReserva(5);};
  w.iniciarContadorReserva=()=>{};w.toggleCarton=async numero=>{w.usuario.cartones=w.usuario.cartones.includes(numero)?w.usuario.cartones.filter(n=>n!==numero):[...w.usuario.cartones,numero];};w.cargarCartones=async()=>{};w.actualizarMonto=()=>{};w.enviarComprobante=async()=>{calls.send++;};
  if(options.draft)w.sessionStorage.setItem(key,options.draft);
+ const longTimeouts=[];if(options.holdLongTimeouts){const native=w.setTimeout.bind(w);w.setTimeout=(callback,ms,...args)=>ms>1000?(longTimeouts.push(callback),99999):native(callback,ms,...args);}
  if(options.reload)w.performance.getEntriesByType=()=>[{type:'reload'}];
  if(options.admin)w.sessionStorage.setItem('admin_session_token','sesion-ficticia');
  w.eval(block);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
- return{w,rows,calls,setNow:value=>{now=value;},get now(){return now;},save:()=>w.sessionStorage.getItem(key),close:()=>w.close()};
+ return{w,rows,calls,longTimeouts,setNow:value=>{now=value;},get now(){return now;},save:()=>w.sessionStorage.getItem(key),close:()=>w.close()};
 }
 async function selected(f){await f.w.toggleCarton(12);await f.w.mostrarVentana('pago');return f.save();}
 async function retomar(f){await f.w.document.querySelector('#retomar-compra button').onclick();}
@@ -96,4 +97,22 @@ test('varios cartones se van seleccionando hasta el límite y quitar uno habilit
   await f.w.toggleCarton(13);assert.equal(cards[1].classList.contains('seleccionado'),true);assert.equal(cards[2].classList.contains('bloqueado'),true);assert.equal(cards[2].onclick,null);
   await f.w.toggleCarton(12);assert.equal(cards[0].classList.contains('seleccionado'),false);assert.equal(cards[2].classList.contains('bloqueado'),false);cards[2].click();assert.equal(modal,1);assert.equal(cards[3].onclick,null);
  }finally{f.close();}
+});
+test('no ofrece Retomar si los cinco minutos vencieron aunque el borrador se haya guardado recientemente',async()=>{
+ const first=fixture();let draft;try{draft=JSON.parse(await selected(first));draft.reservas[0].sello=new Date(Date.now()-360000).toISOString();draft.guardado=Date.now();}finally{first.close();}
+ const f=fixture({draft:JSON.stringify(draft)});try{assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);assert.equal(f.calls.reads,0);}finally{f.close();}
+});
+test('el aviso se retira al volver a la pestaña después de vencer sin modificar compras del servidor',async()=>{
+ const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
+ const f=fixture({draft});try{assert.ok(f.w.document.getElementById('retomar-compra'));f.setNow(f.now+300000);f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);assert.equal(f.calls.rpc,0);assert.equal(f.calls.send,0);}finally{f.close();}
+});
+test('el vencimiento durante la compra no vuelve a guardar un avance vacío al salir o recargar',async()=>{
+ const f=fixture();try{await selected(f);f.setNow(f.now+300000);f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));f.w.dispatchEvent(new f.w.Event('pagehide'));assert.equal(f.save(),null);assert.equal(f.w.usuario.cartones.length,0);}finally{f.close();}
+});
+test('el temporizador retira el aviso al vencer aunque el cliente no cambie de pestaña',async()=>{
+ const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
+ const f=fixture({draft,holdLongTimeouts:true});try{assert.equal(f.longTimeouts.length,1);f.setNow(f.now+300000);f.longTimeouts[0]();assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);}finally{f.close();}
+});
+test('después de vencer se puede empezar una nueva selección y guardar su nueva reserva',async()=>{
+ const f=fixture();try{await selected(f);f.setNow(f.now+300000);f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));assert.equal(f.save(),null);f.rows[0].reserved_at=new Date(f.now).toISOString();await f.w.toggleCarton(12);await f.w.mostrarVentana('pago');assert.deepEqual(Array.from(f.w.usuario.cartones),[12]);assert.ok(f.save());assert.match(f.w.document.getElementById('contadorReserva').textContent,/5:00/);}finally{f.close();}
 });
