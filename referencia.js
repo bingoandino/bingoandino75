@@ -438,25 +438,51 @@
     instalado = true;
     const seccion = campo.closest('section');
     const boton = seccion?.querySelector('button[onclick="consultarCartones()"]');
+    seccion?.classList.add('consulta-compra');
     campo.inputMode = 'numeric';
+    campo.autocomplete = 'off';
+    const intro = document.createElement('p');intro.className = 'consulta-intro';intro.textContent = 'Consulta el estado de tu pago y revisa tus cartones.';
+    seccion?.querySelector('h2')?.insertAdjacentElement('afterend', intro);
+    const label = document.createElement('label');label.htmlFor = campo.id;label.className = 'consulta-etiqueta';label.textContent = 'Número de cédula';campo.insertAdjacentElement('beforebegin', label);
     campo.setAttribute('aria-label', 'Cédula de la compra');
     seccion?.querySelector('h2')?.replaceChildren(document.createTextNode('Verificar tu compra'));
     cont.setAttribute('aria-live', 'polite');
     const estilo = document.createElement('style');
     estilo.textContent = `
-      #cartones-usuario{display:block;width:100%;box-sizing:border-box}
-      #cartones-usuario .compra-estado{box-sizing:border-box;width:100%;margin:18px 0;padding:20px;border:2px solid var(--borde);border-radius:18px;background:var(--fondo);color:#182033;text-align:left;overflow-wrap:anywhere}
-      #cartones-usuario .compra-estado h3{margin:0 0 12px;font-size:1.25rem;color:inherit}
-      #cartones-usuario .compra-estado p{margin:8px 0;line-height:1.5;color:inherit}
-      #cartones-usuario .compra-estado[data-estado=aprobado]{--fondo:#e6f6ed;--borde:#45a879}
-      #cartones-usuario .compra-estado[data-estado=pendiente]{--fondo:#fff5d6;--borde:#ddb142}
-      #cartones-usuario .compra-estado[data-estado=rechazado]{--fondo:#fff0ed;--borde:#dc8176}
-      #cartones-usuario .compra-estado[data-estado=otro]{--fondo:#eef2fb;--borde:#9baccd}
-      #cartones-usuario .compra-ayuda{display:inline-block;margin-top:12px;padding:12px 16px;border-radius:10px;background:#173b57;color:#fff;text-decoration:none;font-weight:bold}
-      #cartones-usuario .compra-cartones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
-      #cartones-usuario .compra-cartones figure{margin:0;width:min(100%,240px);text-align:center}
-      #cartones-usuario .compra-cartones img{display:block;max-width:100%;height:auto;margin:8px auto}
-      #cartones-usuario .consulta-aviso{padding:18px;border:2px solid #e1bd59;border-radius:14px;color:#fff;background:#17204f;line-height:1.5}
+      .consulta-compra{box-sizing:border-box;width:calc(100% - 24px)!important;max-width:720px!important;margin:20px auto!important;min-height:0!important;padding:22px 16px!important;background:#f7fafb!important;border:1px solid #d6e5e8;border-radius:22px!important;color:#143b49;text-align:left;box-shadow:0 12px 35px #020f3926}
+      .consulta-compra h2{font-size:clamp(24px,6vw,32px)!important;line-height:1.15;color:#075c6b!important;margin:0 0 8px!important;text-align:left}
+      .consulta-compra .consulta-intro{font-size:15px;color:#536d76;line-height:1.5;margin:0 0 20px}
+      .consulta-compra .consulta-etiqueta{display:block;font-size:14px;font-weight:700;color:#244e5b;margin:0 0 7px}
+      .consulta-compra #consulta-cedula{box-sizing:border-box;display:block;width:100%;max-width:none;min-height:52px;margin:0 0 12px;padding:13px 15px;font-size:18px;text-align:left;background:#fff;color:#123d49;border:1px solid #9cbcc4;border-radius:12px;box-shadow:none}
+      .consulta-compra #consulta-cedula:focus{outline:3px solid #0c829326;outline-offset:2px;border-color:#0c8293}
+      #usuario.consulta-compra>button{width:100%;max-width:none;margin:0 0 14px;padding:14px;border-radius:12px;font-size:16px;box-shadow:none;background:linear-gradient(110deg,#087d8c,#075966);color:#fff;transform:none}
+      #usuario.consulta-compra>button:last-child{margin:16px 0 0;background:#e4eef0;color:#315662;font-size:14px}
+      #cartones-usuario{display:block;width:100%;box-sizing:border-box;max-width:none;margin:0;padding:0;text-align:left}
+      #cartones-usuario>.consulta-resumen{margin:6px 0 14px;color:#496570;font-size:14px;line-height:1.4}
+      #cartones-usuario .compra-estado{box-sizing:border-box;width:100%;margin:12px 0;padding:16px;border:1px solid var(--borde);border-left:5px solid var(--borde);border-radius:16px;background:var(--fondo);color:#173d46;text-align:left;overflow-wrap:anywhere;box-shadow:none}
+      #cartones-usuario .compra-estado h3{margin:0 0 8px;font-size:20px;color:inherit;line-height:1.25}
+      #cartones-usuario .compra-estado p{margin:8px 0;line-height:1.5;font-size:14px;color:inherit}
+      #cartones-usuario .compra-estado[data-estado=aprobado]{--fondo:#edf8f2;--borde:#37a479}
+      #cartones-usuario .compra-estado[data-estado=pendiente]{--fondo:#fff8e5;--borde:#d8a527}
+      #cartones-usuario .compra-estado[data-estado=rechazado]{--fondo:#fff1ef;--borde:#cf7064}
+      #cartones-usuario .compra-estado[data-estado=otro]{--fondo:#eef2fb;--borde:#899cc2}
+      #cartones-usuario .compra-cantidad{display:inline-block;font-size:13px;font-weight:700;padding:5px 10px;border-radius:20px;background:#fff;color:#285460;border:1px solid #cbdfe0;margin:0 0 8px}
+      #cartones-usuario .compra-ayuda{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:10px;background:#075c6b;color:#fff;text-decoration:none;font-weight:bold;font-size:14px}
+      #cartones-usuario .compra-cartones{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,124px));gap:12px;justify-content:center;margin-top:12px}
+      #cartones-usuario .compra-cartones figure{margin:0;width:auto;min-width:0;text-align:center}
+      #cartones-usuario .compra-cartones figcaption{font-size:12px;font-weight:700;margin-bottom:5px;color:#315762;line-height:1.4}
+      #cartones-usuario .compra-miniatura{display:block;width:100%;max-width:none;margin:0;padding:4px;border:1px solid #d2b561;border-radius:10px;background:#fff;box-shadow:0 3px 8px #173d4612;cursor:zoom-in;transform:none}
+      #cartones-usuario .compra-miniatura:focus-visible{outline:3px solid #087d8c}
+      #cartones-usuario .compra-cartones img{display:block;width:100%;max-width:100%;height:auto;margin:0;border:0;border-radius:6px;box-shadow:none}
+      #cartones-usuario .compra-ver-todos{display:block;width:100%;max-width:none;margin:14px 0 0;padding:11px;background:#fff;color:#075c6b;border:1px solid #9ebdc4;border-radius:10px;font-size:14px;font-weight:700;box-shadow:none;transform:none}
+      #cartones-usuario .compra-indicacion{font-size:12px;color:#526d75;text-align:center;margin:10px 0 0}
+      #cartones-usuario .consulta-aviso{padding:16px;border:1px solid #d6bd77;border-radius:12px;color:#473a19;background:#fff7df;line-height:1.5;font-size:14px}
+      .consulta-zoom{box-sizing:border-box;width:min(94vw,560px);max-width:94vw;max-height:94dvh;padding:16px;border:0;border-radius:18px;background:#f7fafb;color:#143b49;box-shadow:0 16px 60px #0006;text-align:center}
+      .consulta-zoom::backdrop{background:#041628b8}
+      .consulta-zoom h3{font-size:18px;margin:0 0 10px;color:#143b49}
+      .consulta-zoom img{display:block;width:auto;max-width:100%;max-height:70dvh;height:auto;margin:0 auto;border-radius:8px;box-shadow:none}
+      .consulta-zoom button{display:block;width:100%;max-width:none;padding:12px;margin:12px 0 0;background:#075c6b;color:#fff;font-size:15px;border-radius:10px;box-shadow:none}
+      .consulta-compra.oculto{display:none!important}
     `;
     document.head.appendChild(estilo);
     const estados = {
@@ -486,30 +512,57 @@
         aviso('No encontramos compras con esta cédula. Revisa el número e inténtalo de nuevo. Si ya enviaste tu comprobante, contacta a soporte antes de realizar otro pago.');
         ayuda(cont); return;
       }
-      texto(cont, 'p', `${compras.length === 1 ? 'Se encontró 1 compra' : `Se encontraron ${compras.length} compras`}. Revisa el estado de cada una.`);
+      texto(cont, 'p', `${compras.length === 1 ? '1 compra encontrada' : `${compras.length} compras encontradas`} · Revisa el estado y toca un cartón para ampliarlo.`).className = 'consulta-resumen';
       for (const compra of compras) {
         const estado = Object.hasOwn(estados, compra.estado) ? compra.estado : 'otro';
         const info = estados[estado];
         const tarjeta = document.createElement('article'); tarjeta.className = 'compra-estado'; tarjeta.dataset.estado = estado;
         texto(tarjeta, 'h3', info.titulo); texto(tarjeta, 'p', info.mensaje);
         const numeros = Array.isArray(compra.cartones) ? [...new Set(compra.cartones.map(String).filter(n => /^\d{1,7}$/.test(n)))] : [];
+        if (numeros.length) texto(tarjeta, 'span', `${numeros.length} ${numeros.length === 1 ? 'cartón' : 'cartones'}`).className = 'compra-cantidad';
         texto(tarjeta, 'p', numeros.length ? `Cartones: ${numeros.join(', ')}` : 'Sin cartones registrados. Contacta a soporte para revisar esta compra.');
         if (info.paso) texto(tarjeta, 'p', info.paso);
         if (estado !== 'aprobado' || !numeros.length) ayuda(tarjeta);
         // Las imágenes rechazadas no se presentan como cartones válidos para jugar.
         if (estado === 'aprobado' || estado === 'pendiente') {
           const galeria = document.createElement('div'); galeria.className = 'compra-cartones';
-          if (typeof global.urlCartonWebP === 'function') for (const numero of numeros) {
-            const figura = document.createElement('figure');
-            texto(figura, 'figcaption', `Cartón ${numero}${estado === 'pendiente' ? ' · Pendiente de aprobación' : ' · Aprobado'}`);
-            const img = document.createElement('img'); img.src = global.urlCartonWebP(numero);
-            img.alt = `Cartón ${numero}`; img.loading = 'lazy'; img.className = 'carton-consulta-img';
-            figura.appendChild(img); galeria.appendChild(figura);
+          function agregarMiniaturas(desde,hasta) {
+            if (typeof global.urlCartonWebP !== 'function') return;
+            for (const numero of numeros.slice(desde,hasta)) {
+              const figura = document.createElement('figure');
+              texto(figura, 'figcaption', `Cartón ${numero}${estado === 'pendiente' ? ' · Pendiente' : ''}`);
+              const ampliar = document.createElement('button');ampliar.type = 'button';ampliar.className = 'compra-miniatura';ampliar.setAttribute('aria-label', `Ampliar cartón ${numero}${estado === 'pendiente' ? ', pendiente de aprobación' : ''}`);
+              const img = document.createElement('img');img.src = global.urlCartonWebP(numero);img.alt = `Cartón ${numero}`;img.loading = 'lazy';img.decoding = 'async';img.className = 'carton-consulta-img';
+              ampliar.onclick = () => abrirCartonConsulta(numero,estado,img.src);
+              img.onerror = () => {img.remove();ampliar.disabled = true;ampliar.textContent = 'Imagen no disponible';};
+              ampliar.appendChild(img);figura.appendChild(ampliar);galeria.appendChild(figura);
+            }
           }
+          agregarMiniaturas(0,8);
           tarjeta.appendChild(galeria);
+          if (numeros.length) texto(tarjeta, 'p', 'Toca la imagen para ver el cartón completo.').className = 'compra-indicacion';
+          if (numeros.length > 8) {
+            const todos = texto(tarjeta, 'button', `Ver los ${numeros.length} cartones`);todos.type = 'button';todos.className = 'compra-ver-todos';
+            todos.onclick = () => {agregarMiniaturas(8,numeros.length);todos.remove();};
+          }
         }
         cont.appendChild(tarjeta);
       }
+    }
+    let zoom = null;
+    function abrirCartonConsulta(numero,estado,url) {
+      if (!zoom) {
+        zoom = document.createElement('dialog');zoom.className = 'consulta-zoom';zoom.setAttribute('aria-labelledby','consulta-zoom-titulo');
+        const titulo = texto(zoom,'h3','');titulo.id = 'consulta-zoom-titulo';
+        zoom.appendChild(document.createElement('img'));
+        const cerrar = texto(zoom,'button','Cerrar cartón');cerrar.type = 'button';cerrar.onclick = () => zoom.close();
+        zoom.addEventListener('click', e => {if(e.target === zoom) zoom.close();});
+        zoom.addEventListener('close', () => zoom.querySelector('img').removeAttribute('src'));
+        document.body.appendChild(zoom);
+      }
+      zoom.querySelector('h3').textContent = `Cartón ${numero} · ${estado === 'pendiente' ? 'Pendiente de aprobación' : 'Aprobado'}`;
+      const imagen = zoom.querySelector('img');imagen.src = url;imagen.alt = `Cartón ${numero}`;
+      zoom.showModal();
     }
     let version = 0, pendiente = null, cedulaPendiente = null;
     function restaurarBoton() { if (boton) { boton.disabled = false; boton.textContent = 'Consultar'; boton.removeAttribute('aria-busy'); } cont.removeAttribute('aria-busy'); }
@@ -893,3 +946,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarHistorialCompra,{once:true});else instalarHistorialCompra();
 })(window);
+
