@@ -482,6 +482,10 @@
       .consulta-zoom h3{font-size:18px;margin:0 0 10px;color:#143b49}
       .consulta-zoom img{display:block;width:auto;max-width:100%;max-height:70dvh;height:auto;margin:0 auto;border-radius:8px;box-shadow:none}
       .consulta-zoom button{display:block;width:100%;max-width:none;padding:12px;margin:12px 0 0;background:#075c6b;color:#fff;font-size:15px;border-radius:10px;box-shadow:none}
+      #cartones-usuario .compra-acciones,.consulta-zoom .compra-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+      #cartones-usuario .compra-acciones button,.consulta-zoom .compra-acciones button{flex:1 1 160px;box-sizing:border-box;display:block;width:auto;max-width:none;margin:0;padding:12px 10px;border-radius:10px;border:1px solid #a8c6cd;background:#fff;color:#075c6b;font-size:13px;line-height:1.4;text-transform:none;letter-spacing:0;box-shadow:none;transform:none}
+      #cartones-usuario .compra-acciones button[data-accion=compartir-cartones],.consulta-zoom .compra-acciones button[data-accion=compartir-cartones]{background:#087451;color:#fff;border-color:#087451}
+      #cartones-usuario .compra-archivo-estado,.consulta-zoom .compra-archivo-estado{font-size:12px;color:#496873;line-height:1.5;margin:8px 0 0;overflow-wrap:anywhere}
       .consulta-compra.oculto{display:none!important}
     `;
     document.head.appendChild(estilo);
@@ -546,27 +550,111 @@
             todos.onclick = () => {agregarMiniaturas(8,numeros.length);todos.remove();};
           }
         }
+        if (estado === 'aprobado' && numeros.length && typeof global.urlCartonWebP === 'function') accionesCartones(tarjeta,numeros);
         cont.appendChild(tarjeta);
       }
     }
+    // Archivo ZIP sin dependencias: conserva cada imagen como archivo independiente.
+    async function zipCartones(archivos) {
+      const encoder = new TextEncoder(), partes = [], central = [];let offset = 0;
+      const tabla = new Uint32Array(256);
+      for (let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=c&1?0xedb88320^(c>>>1):c>>>1;tabla[i]=c>>>0;}
+      for (const archivo of archivos) {
+        const datos = new Uint8Array(await archivo.arrayBuffer()), nombre = encoder.encode(archivo.name);
+        let crc = 0xffffffff;for(const byte of datos)crc=tabla[(crc^byte)&255]^(crc>>>8);crc=(crc^0xffffffff)>>>0;
+        const local = new Uint8Array(30+nombre.length), l = new DataView(local.buffer);
+        l.setUint32(0,0x04034b50,true);l.setUint16(4,20,true);l.setUint16(6,0x800,true);l.setUint16(12,33,true);l.setUint32(14,crc,true);l.setUint32(18,datos.length,true);l.setUint32(22,datos.length,true);l.setUint16(26,nombre.length,true);local.set(nombre,30);
+        partes.push(local,datos);
+        const registro = new Uint8Array(46+nombre.length), r = new DataView(registro.buffer);
+        r.setUint32(0,0x02014b50,true);r.setUint16(4,20,true);r.setUint16(6,20,true);r.setUint16(8,0x800,true);r.setUint16(14,33,true);r.setUint32(16,crc,true);r.setUint32(20,datos.length,true);r.setUint32(24,datos.length,true);r.setUint16(28,nombre.length,true);r.setUint32(42,offset,true);registro.set(nombre,46);central.push(registro);offset+=local.length+datos.length;
+      }
+      const size=central.reduce((n,p)=>n+p.length,0),fin=new Uint8Array(22),v=new DataView(fin.buffer);
+      v.setUint32(0,0x06054b50,true);v.setUint16(8,archivos.length,true);v.setUint16(10,archivos.length,true);v.setUint32(12,size,true);v.setUint32(16,offset,true);
+      return new Blob([...partes,...central,fin],{type:'application/zip'});
+    }
+    const archivosCartones = new Map();
+    async function archivoCarton(numero) {
+      const url = global.urlCartonWebP(numero), clave = numero+'|'+url;
+      if (!archivosCartones.has(clave)) {
+        const tarea = (async () => {
+          const respuesta = await global.fetch(url,global.AbortSignal?.timeout?{signal:global.AbortSignal.timeout(20000)}:{});
+          if (!respuesta.ok) throw Error('No se pudo descargar el cartón '+numero+'.');
+          let blob = await respuesta.blob();let extension;
+          if (blob.type === 'image/webp') {
+            const bitmap = await global.createImageBitmap(blob);
+            try {
+              const canvas = document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
+              const ctx=canvas.getContext('2d');if(!ctx)throw Error('No se pudo preparar la imagen.');ctx.drawImage(bitmap,0,0);
+              blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('No se pudo preparar la imagen.')),'image/png'));
+            } finally {bitmap.close();}
+            extension='png';
+          } else if (blob.type === 'image/png') extension='png';
+          else if (blob.type === 'image/jpeg') extension='jpg';
+          else throw Error('El cartón '+numero+' no tiene una imagen válida.');
+          return new File([blob],'BingoAndino75-carton-'+numero+'.'+extension,{type:blob.type});
+        })();
+        archivosCartones.set(clave,tarea);tarea.catch(()=>archivosCartones.delete(clave));
+      }
+      return archivosCartones.get(clave);
+    }
+    function accionesCartones(padre,numeros) {
+      const fila=document.createElement('div');fila.className='compra-acciones';
+      const descargar=texto(fila,'button','⬇ Descargar '+(numeros.length===1?'cartón':'cartones'));descargar.type='button';descargar.dataset.accion='descargar-cartones';
+      const compartir=texto(fila,'button','📤 Compartir por WhatsApp');compartir.type='button';compartir.dataset.accion='compartir-cartones';
+      const estado=texto(padre,'p','');estado.className='compra-archivo-estado';estado.setAttribute('role','status');estado.setAttribute('aria-live','polite');padre.insertBefore(fila,estado);
+      let lista=null;const consulta=version;
+      async function preparar() {
+        if(lista)return lista;
+        const resultado=new Array(numeros.length);let siguiente=0,terminados=0;
+        await Promise.all(Array.from({length:Math.min(3,numeros.length)},async()=>{
+          while(siguiente<numeros.length){const indice=siguiente++;resultado[indice]=await archivoCarton(numeros[indice]);terminados++;if(consulta===version)estado.textContent=`Preparando cartones: ${terminados} de ${numeros.length}…`;}
+        }));
+        lista=resultado;return lista;
+      }
+      async function ejecutar(accion) {
+        descargar.disabled=true;compartir.disabled=true;
+        try {
+          const files=await preparar();if(consulta!==version)return;
+          if(accion==='compartir') {
+            if(typeof global.navigator.share!=='function'||!global.navigator.canShare?.({files})) {estado.textContent='Este navegador no permite compartir estas imágenes. Descarga los cartones y adjúntalos desde WhatsApp.';return;}
+            if(global.navigator.userActivation && !global.navigator.userActivation.isActive){estado.textContent='Cartones listos. Pulsa Compartir por WhatsApp de nuevo para elegir el destino.';return;}
+            await global.navigator.share({files,title:'Mis cartones · BingoAndino75'});
+            if(consulta===version)estado.textContent='Se abrió el menú para compartir los cartones. Elige WhatsApp y revisa las imágenes antes de enviarlas.';
+          } else {
+            const blob=files.length===1?files[0]:await zipCartones(files);if(consulta!==version)return;
+            const url=global.URL.createObjectURL(blob),enlace=document.createElement('a');enlace.href=url;enlace.download=files.length===1?files[0].name:'BingoAndino75-cartones.zip';document.body.appendChild(enlace);enlace.click();enlace.remove();global.setTimeout(()=>global.URL.revokeObjectURL(url),60000);
+            estado.textContent=files.length===1?'Descarga iniciada. Revisa la carpeta Descargas.':`Descarga iniciada: archivo ZIP con ${files.length} imágenes. Ábrelo desde Descargas para extraer los cartones.`;
+          }
+        } catch(error) {
+          if(consulta!==version)return;
+          if(error.name==='AbortError'){estado.textContent='';return;}
+          estado.textContent='No se pudo completar la acción. Intenta de nuevo o descarga un cartón al ampliarlo.';
+        } finally {descargar.disabled=false;compartir.disabled=false;}
+      }
+      descargar.onclick=()=>ejecutar('descargar');compartir.onclick=()=>ejecutar('compartir');
+    }
+
     let zoom = null;
     function abrirCartonConsulta(numero,estado,url) {
       if (!zoom) {
         zoom = document.createElement('dialog');zoom.className = 'consulta-zoom';zoom.setAttribute('aria-labelledby','consulta-zoom-titulo');
         const titulo = texto(zoom,'h3','');titulo.id = 'consulta-zoom-titulo';
         zoom.appendChild(document.createElement('img'));
-        const cerrar = texto(zoom,'button','Cerrar cartón');cerrar.type = 'button';cerrar.onclick = () => zoom.close();
+        const acciones = document.createElement('div');acciones.className = 'consulta-zoom-acciones';zoom.appendChild(acciones);
+        const cerrar = texto(zoom,'button','Cerrar cartón');cerrar.type = 'button';cerrar.className = 'consulta-zoom-cerrar';cerrar.onclick = () => zoom.close();
         zoom.addEventListener('click', e => {if(e.target === zoom) zoom.close();});
         zoom.addEventListener('close', () => zoom.querySelector('img').removeAttribute('src'));
         document.body.appendChild(zoom);
       }
       zoom.querySelector('h3').textContent = `Cartón ${numero} · ${estado === 'pendiente' ? 'Pendiente de aprobación' : 'Aprobado'}`;
       const imagen = zoom.querySelector('img');imagen.src = url;imagen.alt = `Cartón ${numero}`;
+      const acciones = zoom.querySelector('.consulta-zoom-acciones');acciones.replaceChildren();
+      if (estado === 'aprobado') accionesCartones(acciones,[numero]);
       zoom.showModal();
     }
     let version = 0, pendiente = null, cedulaPendiente = null;
     function restaurarBoton() { if (boton) { boton.disabled = false; boton.textContent = 'Consultar'; boton.removeAttribute('aria-busy'); } cont.removeAttribute('aria-busy'); }
-    campo.addEventListener('input', () => { version++; pendiente = null; cedulaPendiente = null; cont.replaceChildren(); restaurarBoton(); });
+    campo.addEventListener('input', () => { if(zoom?.open)zoom.close();archivosCartones.clear();version++; pendiente = null; cedulaPendiente = null; cont.replaceChildren(); restaurarBoton(); });
     campo.addEventListener('keydown', evento => { if (evento.key === 'Enter') { evento.preventDefault(); global.consultarCartones(); } });
     global.consultarCartones = function () {
       const cedula = campo.value.trim();
