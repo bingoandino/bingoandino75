@@ -241,7 +241,6 @@
   'use strict';
   let instalado = false;
     const claves = ['total_cartones', 'precio_carton', 'modo_cartones', 'cartones_obligatorios', 'link_whatsapp', 'version_cartones', 'imagen_premios_inicio', 'mostrar_barra_progreso'];
-    for (let i = 1; i <= 4; i++) for (const campo of ['activa', 'descripcion', 'cantidad', 'precio']) claves.push(`promo${i}_${campo}`);
     let cache = null, peticion = null, version = 0;
     function invalidar() { cache = null; version++; }
     async function leer(fresca = false) {
@@ -289,18 +288,15 @@
       if (cantidad) { cantidad.readOnly = fijo; if (fijo) cantidad.value = cantidadFijaCartones; }
       for (const id of ['btnMas', 'btnMenos']) { const boton = document.getElementById(id); if (boton) boton.disabled = fijo; }
     };
-    global.cargarPromocionesConfig = async function () {
-      const cantidadVisible = document.getElementById('cantidad')?.classList.contains('oculto') === false;
-      const valores = await leer(cantidadVisible && typeof sistemaListo !== 'undefined' && sistemaListo);
-      for (let i = 0; i < promociones.length; i++) {
-        const prefix = `promo${i + 1}`, promo = promociones[i];
-        promo.activa = String(valores.get(`${prefix}_activa`) ?? 'false') === 'true';
-        promo.descripcion = valores.get(`${prefix}_descripcion`) ?? `Promo ${i + 1}`;
-        promo.cantidad = parseInt(valores.get(`${prefix}_cantidad`), 10) || 0;
-        promo.precio = parseFloat(valores.get(`${prefix}_precio`)) || 0;
-      }
-      if (typeof global.renderizarBotonesPromociones === 'function') global.renderizarBotonesPromociones();
-    };
+    function desactivarPromocionesPublicas() {
+      // Conserva los registros históricos: solo se retiran de la compra actual.
+      if (typeof promociones !== 'undefined') promociones.forEach(promo => { promo.activa = false; });
+      if (typeof promocionSeleccionada !== 'undefined') promocionSeleccionada = null;
+      document.getElementById('promoBox')?.classList.add('oculto');
+    }
+    global.cargarPromocionesConfig = async function () { desactivarPromocionesPublicas(); };
+    global.renderizarBotonesPromociones = desactivarPromocionesPublicas;
+    desactivarPromocionesPublicas();
     global.cargarLinkWhatsapp = async function () {
       const link = (await leer()).get('link_whatsapp');
       const boton = document.getElementById('btnWhatsapp');
