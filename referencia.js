@@ -377,7 +377,7 @@
     const estados = {
       aprobado: {titulo:'✅ Compra aprobada', mensaje:'Tu compra está confirmada. Estos son tus cartones para participar.'},
       pendiente: {titulo:'⏳ Compra pendiente de aprobación', mensaje:'Recibimos tu compra y está en revisión. Estos cartones todavía no están aprobados. No necesitas volver a enviar el comprobante.', paso:'Si han pasado más de 30 minutos desde tu envío, contacta a soporte.'},
-      rechazado: {titulo:'❌ Compra rechazada', mensaje:'Esta compra no está aprobada. Contacta a soporte para revisar tu comprobante y saber cómo continuar.', paso:'No vuelvas a pagar sin confirmar primero el motivo con soporte.'},
+      rechazado: {titulo:'❌ Compra rechazada', mensaje:'Esta compra no está aprobada. Los cartones de esta compra pueden quedar libres y ser comprados por otra persona. Contacta a soporte para revisar tu comprobante y saber cómo continuar.', paso:'No vuelvas a pagar sin confirmar primero el motivo con soporte.'},
       otro: {titulo:'ℹ️ Estado por confirmar', mensaje:'No podemos confirmar el estado de esta compra. Contacta a soporte antes de realizar otro pago.'}
     };
     function texto(padre, etiqueta, contenido) {
