@@ -89,11 +89,71 @@ function mensajeCompartir(fecha){
  const dia=new Date(iso+'T12:00:00Z').toLocaleDateString('es-VE',{day:'numeric',month:'long',year:'numeric',timeZone:'America/Caracas'});
  return '🏆 BingoAndino75 · Nuestros ganadores\n📅 '+dia+'\n\nConsulta los resultados oficiales, cartones y premios aquí:\nhttps://bingoandino75.com/?ganadores='+iso+'\n\n🎉 ¡Felicitaciones a todos nuestros ganadores!';
 }
-function compartir(container,fecha){
+// Dibujo local con campos públicos explícitos; no captura formularios ni datos bancarios.
+function crearImagen(payload){
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+ if(!ctx)throw Error('No se pudo preparar la imagen.');
+ const ancho=1080,margen=40,gap=24,mitad=(ancho-margen*2-gap)/2;
+ const bs=c=>(c/100).toLocaleString('es-VE',{maximumFractionDigits:2})+' Bs';
+ function fuente(t,bold=false){ctx.font=(bold?'700 ':'400 ')+t+'px Arial, sans-serif';}
+ function lineas(valor,max,t=28,bold=false){
+  fuente(t,bold);const result=[];let linea='';
+  for(const palabra of String(valor||'').split(/\s+/)){
+   if(linea && ctx.measureText(linea+' '+palabra).width>max){result.push(linea);linea='';}
+   for(const letra of Array.from((linea?' ':'')+palabra)){
+    if(linea && ctx.measureText(linea+letra).width>max){result.push(linea);linea='';}
+    linea+=letra;
+   }
+  }
+  if(linea)result.push(linea);return result;
+ }
+ function ficha(g,w){
+  const iguales=g.ganadores.every(a=>a.premio_centimos===g.ganadores[0].premio_centimos);
+  const individual=g.tipo==='consolacion'&&iguales;
+  const total=individual?g.ganadores[0].premio_centimos:g.ganadores.reduce((a,b)=>a+b.premio_centimos,0);
+  const bloques=[{text:titulo(g),size:29,bold:true},{text:bs(total),size:46,bold:true}];
+  for(const ganador of g.ganadores){
+   const nombre=payload.nombres?.[String(ganador.carton)];
+   if(nombre)bloques.push({text:nombre,size:29,bold:true});
+   bloques.push({text:'Cartón '+ganador.carton+(!iguales&&g.ganadores.length>1?' · '+bs(ganador.premio_centimos):''),size:27});
+  }
+  if(individual)bloques.push({text:'Por ganador',size:25});
+  else if(iguales&&g.ganadores.length>1)bloques.push({text:bs(g.ganadores[0].premio_centimos)+' por ganador',size:25});
+  for(const b of bloques)b.lines=lineas(b.text,w-56,b.size,b.bold);
+  return {g,w,bloques,h:56+bloques.reduce((n,b)=>n+b.lines.length*(b.size+10)+14,0)};
+ }
+ const rows=[];const rondas=payload.grupos.filter(g=>g.tipo==='ronda');
+ for(let i=0;i<rondas.length;i+=2)rows.push(rondas.slice(i,i+2));
+ for(const g of payload.grupos.filter(g=>g.tipo==='final'))rows.push([g]);
+ const extras=payload.grupos.filter(g=>g.tipo==='consolacion'||g.tipo==='pozo');
+ for(let i=0;i<extras.length;i+=2)rows.push(extras.slice(i,i+2));
+ const plan=rows.map(row=>row.map(g=>ficha(g,row.length===1?ancho-2*margen:mitad)));
+ const alto=292+plan.reduce((n,row)=>n+Math.max(...row.map(c=>c.h))+gap,0)+125;
+ // Evita generar silenciosamente una imagen recortada si hubiera un sorteo extraordinariamente grande.
+ if(alto>16000)throw Error('Hay demasiados resultados para una sola imagen.');
+ canvas.width=ancho;canvas.height=alto;
+ function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,26);ctx.fill();}
+ ctx.fillStyle='#f5f8fa';ctx.fillRect(0,0,ancho,alto);
+ rect(margen,32,ancho-2*margen,220,'#0b8193');ctx.fillStyle='#fff';ctx.textAlign='center';fuente(50,true);ctx.fillText('Nuestros ganadores',ancho/2,104);fuente(29);ctx.fillText('BingoAndino75 · Resultados oficiales',ancho/2,153);
+ fuente(29,true);ctx.fillText(new Date(fechaISO(payload.fecha)+'T12:00:00Z').toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'America/Caracas'}),ancho/2,207);
+ ctx.textAlign='left';let y=292;
+ const paleta=['#e7f5ff','#f0e9fc','#e2f5ed','#fff0e5'];
+ for(const row of plan){const h=Math.max(...row.map(c=>c.h));let x=margen;
+  for(const c of row){const color=c.g.tipo==='final'?'#fff1b4':c.g.tipo==='consolacion'?'#fae8f0':c.g.tipo==='pozo'?'#dcf3eb':paleta[(c.g.orden-1)%paleta.length];rect(x,y,c.w,h,color);let ty=y+28;
+   for(const b of c.bloques){fuente(b.size,b.bold);ctx.fillStyle=c.g.tipo==='final'?'#624915':'#203740';
+    for(const l of b.lines){ty+=b.size;ctx.fillText(l,x+28,ty);ty+=10;}ty+=14;
+   }x+=c.w+gap;
+  }y+=h+gap;
+ }
+ ctx.textAlign='center';ctx.fillStyle='#56716f';fuente(26);ctx.fillText('¡Felicitaciones a todos nuestros ganadores!',ancho/2,y+35);fuente(23,true);ctx.fillText('bingoandino75.com · '+fechaISO(payload.fecha),ancho/2,y+80);
+ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('No se pudo generar la imagen.')),'image/png'));
+}
+
+function compartir(container,fecha,payload){
  const mensaje=mensajeCompartir(fecha);
  const caja=document.createElement('div');caja.className='ganadores-compartir';
- const copiar=document.createElement('button');copiar.type='button';copiar.textContent='📣 Compartir al canal de WhatsApp';
- const ayuda=document.createElement('p');ayuda.textContent='Copia el mensaje con el enlace y pégalo en tu canal de WhatsApp.';
+ const copiar=document.createElement('button');copiar.type='button';copiar.textContent='📋 Copiar mensaje y enlace';copiar.dataset.accion='copiar';
+ const ayuda=document.createElement('p');ayuda.textContent='Comparte la imagen con su enlace. Si WhatsApp no conserva el texto o no muestra tu canal, descarga la imagen y pega el mensaje al publicarla.';
  const estado=document.createElement('p');estado.setAttribute('role','status');estado.setAttribute('aria-live','polite');
  const texto=document.createElement('textarea');texto.value=mensaje;texto.readOnly=true;texto.hidden=true;texto.rows=7;texto.setAttribute('aria-label','Mensaje y enlace de los ganadores para copiar');
  copiar.onclick=async()=>{
@@ -107,17 +167,29 @@ function compartir(container,fecha){
    estado.textContent='Mantén pulsado el mensaje y elige Copiar (o Ctrl+C). Luego pégalo en tu canal de WhatsApp.';
   }finally{copiar.disabled=false;}
  };
- caja.append(copiar,ayuda,texto,estado);
- if(typeof root.navigator.share==='function'){
-  const otros=document.createElement('button');otros.type='button';otros.className='compartir-opciones';otros.textContent='Otras opciones para compartir';
-  otros.onclick=async()=>{
-   otros.disabled=true;
-   try{await root.navigator.share({title:'Ganadores · BingoAndino75',text:mensaje});}
-   catch(e){if(e.name!=='AbortError')estado.textContent='No se pudo abrir Compartir. Usa el botón para copiar el mensaje.';}
-   finally{otros.disabled=false;}
-  };
-  caja.appendChild(otros);
- }
+ const enviar=document.createElement('button');enviar.type='button';enviar.dataset.accion='imagen';enviar.textContent='Preparando imagen…';enviar.disabled=true;
+ const descargar=document.createElement('button');descargar.type='button';descargar.className='compartir-opciones';descargar.textContent='⬇ Descargar imagen';descargar.disabled=true;
+ let archivo,imagen;
+ const listo=Promise.resolve().then(()=>crearImagen(payload)).then(blob=>{
+  imagen=blob;archivo=new root.File([blob],'ganadores-bingoandino75-'+fechaISO(fecha)+'.png',{type:'image/png'});
+  enviar.disabled=false;descargar.disabled=false;enviar.textContent='🖼 Compartir imagen y enlace';
+ }).catch(()=>{enviar.textContent='Imagen no disponible';estado.textContent='No se pudo preparar la imagen. Recarga para volver a intentar. Puedes copiar el enlace.';});
+ caja.preparacion=()=>listo;
+ enviar.onclick=async()=>{
+  if(!archivo)return;
+  let compatible=false;try{compatible=typeof root.navigator.share==='function' && root.navigator.canShare?.({files:[archivo]})===true;}catch{}
+  if(!compatible){estado.textContent='Este navegador no permite compartir imágenes directamente. Pulsa Descargar imagen y Copiar mensaje y enlace; luego agrégalos a tu canal de WhatsApp.';return;}
+  enviar.disabled=true;
+  try{await root.navigator.share({files:[archivo],title:'Ganadores · BingoAndino75',text:mensaje});estado.textContent='Imagen y enlace enviados a la opción elegida. Revisa que WhatsApp conserve el enlace antes de publicar.';}
+  catch(e){if(e.name!=='AbortError')estado.textContent='No se pudo compartir. Puedes descargar la imagen y copiar el mensaje con el enlace.';}
+  finally{enviar.disabled=false;}
+ };
+ descargar.onclick=()=>{
+  if(!imagen)return;
+  const url=root.URL.createObjectURL(imagen),a=document.createElement('a');a.href=url;a.download=archivo.name;document.body.appendChild(a);a.click();a.remove();root.setTimeout(()=>root.URL.revokeObjectURL(url),60000);
+  estado.textContent='Imagen preparada para descargar. Usa Copiar mensaje y enlace para añadir el enlace al publicarla en tu canal.';
+ };
+ caja.append(enviar,descargar,copiar,ayuda,texto,estado);
  container.appendChild(caja);
 }
 async function cargarGanadoresCompartibles() {
@@ -137,7 +209,7 @@ async function cargarGanadoresCompartibles() {
     if(current!==request)return;
     if(error){results.textContent='No se pudieron cargar los resultados.';return}
     mostrar(results,data.resultado);
-    compartir(results,elegida);
+    compartir(results,elegida,data.resultado);
   }
   select.onchange=()=>{fecha.value=select.value;cargar()};fecha.onchange=cargar;await cargar();
 }
@@ -157,7 +229,7 @@ if(typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',abrirEnlace,{once:true});else root.queueMicrotask?.(abrirEnlace);
 }
 
-root.ResultadosPublicos={fechaISO,cartones,dinero,preparar,mostrar,fechaEnlace,mensajeCompartir,compartir};
+root.ResultadosPublicos={fechaISO,cartones,dinero,preparar,mostrar,fechaEnlace,mensajeCompartir,compartir,crearImagen};
 if(typeof module!=='undefined')module.exports=root.ResultadosPublicos;
 })(typeof window!=='undefined'?window:globalThis);
 
