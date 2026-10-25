@@ -5010,30 +5010,82 @@ function textoListaAprobados() {
   return `📋 LISTA DE APROBADOS\nBingoAndino75\n📅 ${fecha}\n\n${lista.join('\n')}\n\nTotal: ${lista.length} cartones aprobados\nbingoandino75.com`;
 }
 
+// Mensajes cortos para evitar que WhatsApp recorte una lista extensa.
+function partesListaAprobados(texto) {
+  if (texto.length <= 2800) return [texto];
+  const bloques = [];let bloque = '';
+  for (const linea of texto.split('\n')) {
+    if (bloque && bloque.length + linea.length + 1 > 2600) {bloques.push(bloque);bloque = '';}
+    let pendiente = linea;
+    while (pendiente.length > 2600) {
+      if (bloque) {bloques.push(bloque);bloque = '';}
+      // Evita separar los dos componentes de un carácter Unicode.
+      const fragmento = Array.from(pendiente).slice(0, 1200).join('');
+      bloques.push(fragmento);pendiente = pendiente.slice(fragmento.length);
+    }
+    bloque += (bloque ? '\n' : '') + pendiente;
+  }
+  if (bloque) bloques.push(bloque);
+  return bloques.map((b,i) => `📋 APROBADOS · BingoAndino75\nParte ${i+1} de ${bloques.length}\n\n${b}`);
+}
+
 async function compartirListaAprobados() {
-  const texto = textoListaAprobados();
+  const textoCompleto = textoListaAprobados();
   const estado = document.getElementById('estadoCompartirAprobados');
   const manual = document.getElementById('textoCompartirAprobados');
   const boton = document.getElementById('btnCompartirAprobados');
   estado.textContent = '';manual.hidden = true;
-  if (!texto) {estado.textContent = 'No hay aprobados para compartir.';return;}
+  if (!textoCompleto) {estado.textContent = 'No hay aprobados para compartir.';return;}
+  const partes = partesListaAprobados(textoCompleto);
+  let opciones = document.getElementById('partesCompartirAprobados');
+  if (partes.length > 1) {
+    if (!opciones) {
+      opciones = document.createElement('div');opciones.id = 'partesCompartirAprobados';
+      const label = document.createElement('label');label.htmlFor = 'parteCompartirAprobados';label.textContent = 'La lista se comparte en partes para evitar recortes. Elige la parte:';
+      const select = document.createElement('select');select.id = 'parteCompartirAprobados';
+      opciones.append(label,select);boton.insertAdjacentElement('afterend', opciones);
+    }
+    if (opciones.textoCompleto !== textoCompleto) {
+      const select = opciones.querySelector('select');select.replaceChildren();
+      partes.forEach((_,i) => {const option = document.createElement('option');option.value = String(i);option.textContent = `Parte ${i+1} de ${partes.length}`;select.appendChild(option);});
+      opciones.textoCompleto = textoCompleto;
+      select.onchange = () => {boton.textContent = `📤 Compartir parte ${Number(select.value)+1} de ${partes.length}`;estado.textContent = '';manual.hidden = true;};
+    }
+  } else if (opciones) {opciones.remove();opciones = null;boton.textContent = '📤 Compartir lista de aprobados';}
+  const select = opciones?.querySelector('select');
+  const indice = select ? Number(select.value) : 0;
+  if (select) boton.textContent = `📤 Compartir parte ${indice+1} de ${partes.length}`;
+  const texto = partes[indice];
+  const aviso = partes.length > 1 ? `Parte ${indice+1} de ${partes.length}. ` : '';
+  function siguiente() {
+    if (!select) return;
+    if (indice+1 < partes.length) {
+      select.value = String(indice+1);boton.textContent = `📤 Compartir parte ${indice+2} de ${partes.length}`;
+      estado.textContent += ` Falta compartir ${partes.length-indice-1} parte(s). Pulsa el botón para continuar.`;
+    } else {
+      boton.textContent = '📤 Volver a compartir última parte';
+      estado.textContent += ' Última parte preparada. Revisa en WhatsApp que hayas publicado todas; puedes elegir una parte para repetirla.';
+    }
+  }
   boton.disabled = true;
   try {
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({title:'Lista de aprobados · BingoAndino75', text:texto});
-        estado.textContent = 'Lista enviada a la opción elegida.';
-        return;
+        estado.textContent = aviso + 'Lista enviada a la opción elegida.';
+        siguiente();return;
       } catch (error) {
         if (error.name === 'AbortError') return;
       }
     }
     try {
       await navigator.clipboard.writeText(texto);
-      estado.textContent = 'Lista copiada. Abre WhatsApp y pégala donde quieras compartirla.';
+      estado.textContent = aviso + 'Lista copiada. Abre WhatsApp y pégala donde quieras compartirla.';
+      siguiente();
     } catch {
       manual.value = texto;manual.hidden = false;manual.focus();manual.select();
-      estado.textContent = 'Mantén pulsada la lista y elige Copiar; luego pégala en WhatsApp.';
+      estado.textContent = aviso + 'Mantén pulsada la lista y elige Copiar; luego pégala en WhatsApp.';
+      if (select) estado.textContent += ' Después elige la siguiente parte en el selector.';
     }
   } finally {boton.disabled = false;}
 }

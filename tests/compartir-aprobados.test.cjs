@@ -1,4 +1,16 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const {JSDOM}=require('jsdom');
+test('una lista extensa se comparte completa en partes cortas, reintenta cancelaciones y reinicia si cambian los datos',async()=>{
+ const d=setup(false);try{
+  const w=d.window,table=w.document.createElement('table'),body=w.document.createElement('tbody');table.appendChild(body);w.document.querySelector('#contenedor-aprobados').appendChild(table);
+  for(let i=1;i<=1200;i++){const tr=w.document.createElement('tr');for(const value of [String(i),'Participante Prueba '+i,'CEDULA-PRIVADA']){const td=w.document.createElement('td');td.textContent=value;tr.appendChild(td);}body.appendChild(tr);}
+  const enviados=[];let cancelar=true;w.navigator.share=async data=>{if(cancelar){cancelar=false;const e=Error();e.name='AbortError';throw e;}enviados.push(data.text);};
+  await w.compartirListaAprobados();const select=w.document.querySelector('select');assert.equal(select.value,'0');assert.ok(select.options.length>1);
+  const n=select.options.length;for(let i=0;i<n;i++)await w.compartirListaAprobados();
+  assert.equal(enviados.length,n);assert.ok(enviados.every(t=>t.length<2800));
+  const all=enviados.join('\n');for(let i=1;i<=1200;i++)assert.equal(all.split('Cartón '+i+' ·').length-1,1);assert.doesNotMatch(all,/CEDULA-PRIVADA/);assert.match(all,/Parte 1 de/);assert.match(all,/Cartón 1200/);
+  body.firstChild.remove();await w.compartirListaAprobados();assert.match(enviados.at(-1),/Parte 1 de/);assert.doesNotMatch(enviados.at(-1),/Cartón 1 ·/);
+ }finally{d.window.close();}
+});
 function setup(rows=true){
  const dom=new JSDOM(`<button id="btnCompartirAprobados"></button><p id="estadoCompartirAprobados"></p><textarea id="textoCompartirAprobados" hidden></textarea><div id="contenedor-aprobados">${rows?'<table><tbody><tr><td>3</td><td>Ana Prueba</td><td>CEDULA-PRIVADA</td></tr><tr><td>750</td><td>Luz Prueba</td><td>TELEFONO-PRIVADO</td></tr></tbody></table>':''}</div>`,{runScripts:'outside-only'});
  const s=fs.readFileSync(require('node:path').join(__dirname,'../script.js'),'utf8');dom.window.eval(s.slice(s.indexOf('function textoListaAprobados()'),s.indexOf('async function copiarListaAprobados()')));return dom;
