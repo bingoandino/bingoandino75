@@ -250,10 +250,16 @@
         if (error) throw error;
         if (typeof totalCartones !== 'undefined') totalCartones = config.total;
         const vendidos = Number(count) || 0, disponibles = Math.max(config.total - vendidos, 0);
-        const porcentaje = config.total ? Math.round(disponibles / config.total * 100) : 0;
+        const porcentaje = config.total ? Math.min(100, disponibles / config.total * 100) : 0;
         const totalVendidos = document.getElementById('total-vendidos');
         if (totalVendidos) totalVendidos.textContent = String(vendidos);
-        texto.textContent = `${porcentaje}% disponibles · ${disponibles} de ${config.total} cartones`;
+        texto.textContent = `${disponibles} de ${config.total} cartones disponibles`;
+  contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
+  relleno.parentElement.setAttribute('role', 'progressbar');
+  relleno.parentElement.setAttribute('aria-label', 'Cartones disponibles');
+  relleno.parentElement.setAttribute('aria-valuemin', '0');
+  relleno.parentElement.setAttribute('aria-valuemax', String(config.total));
+  relleno.parentElement.setAttribute('aria-valuenow', String(disponibles));
         relleno.style.width = `${porcentaje}%`;
         contenedor.classList.remove('oculto');
       })().finally(() => {

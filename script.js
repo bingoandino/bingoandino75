@@ -3524,21 +3524,22 @@ async function cargarListaAprobadosSeccion() {
 function actualizarHoraVenezuela() {
   const contenedor = document.getElementById('hora-venezuela');
   if (!contenedor) return;
-
-  const opciones = {
-    timeZone: 'America/Caracas',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  };
-
   const ahora = new Date();
-  const formato = new Intl.DateTimeFormat('es-VE', opciones).format(ahora);
-  contenedor.textContent = `📅 ${formato}`;
+  const fecha = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', weekday:'short', day:'numeric', month:'short', year:'numeric'}).format(ahora);
+  const hora = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', hour:'numeric', minute:'2-digit'}).format(ahora);
+  const clave = fecha + hora;
+  if (contenedor.dataset.minuto === clave) return;
+  contenedor.dataset.minuto = clave;
+  const etiqueta = document.createElement('span');
+  etiqueta.className = 'fecha-etiqueta';
+  etiqueta.textContent = 'Fecha actual · Venezuela';
+  const dia = document.createElement('strong');
+  dia.className = 'fecha-dia';
+  dia.textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+  const reloj = document.createElement('span');
+  reloj.className = 'fecha-hora';
+  reloj.textContent = hora;
+  contenedor.replaceChildren(etiqueta, dia, reloj);
 }
 
 async function guardarLinkWhatsapp() {
@@ -4754,10 +4755,16 @@ async function cargarBarraProgresoInicio() {
   const vendidos = await contarCartonesVendidos();
   const disponibles = Math.max(totalCartones - vendidos, 0);
   const porcentaje = totalCartones > 0
-    ? Math.round((disponibles / totalCartones) * 100)
+    ? Math.min(100, (disponibles / totalCartones) * 100)
     : 0;
 
-  texto.textContent = `${porcentaje}% disponibles · ${disponibles} de ${totalCartones} cartones`;
+  texto.textContent = `${disponibles} de ${totalCartones} cartones disponibles`;
+  contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
+  relleno.parentElement.setAttribute('role', 'progressbar');
+  relleno.parentElement.setAttribute('aria-label', 'Cartones disponibles');
+  relleno.parentElement.setAttribute('aria-valuemin', '0');
+  relleno.parentElement.setAttribute('aria-valuemax', String(totalCartones));
+  relleno.parentElement.setAttribute('aria-valuenow', String(disponibles));
 
   relleno.style.width = `${porcentaje}%`;
   contenedor.classList.remove('oculto');

@@ -131,3 +131,13 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 
 /* Aprobación con fondo discreto acorde a la marca. */
 #usuario #cartones-usuario .compra-estado[data-estado=aprobado]{--fondo:#f6f0f8;--borde:#8b6095;color:#4b174f}
+
+/* Fecha y disponibilidad con jerarquía clara y sin adornos adicionales. */
+#bienvenida #hora-venezuela{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:12px;row-gap:3px;padding:10px 13px!important}
+#hora-venezuela .fecha-etiqueta{grid-column:1/-1;font-size:10px;font-weight:400;color:#827087}
+#hora-venezuela .fecha-dia{font-size:13px;font-weight:600}
+#hora-venezuela .fecha-hora{font-size:13px;font-weight:600;white-space:nowrap;color:#6d4774}
+#bienvenida .barra-progreso-inicio{position:relative;padding:12px 13px}
+#bienvenida #textoProgresoCartones{padding-right:57px;font-size:13px;line-height:1.45;margin:0 0 10px;font-weight:600}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{content:attr(data-porcentaje);position:absolute;right:13px;top:12px;color:#6d4774;font-size:13px;font-weight:700}
+#bienvenida .barra-progreso-contenedor{height:7px}
