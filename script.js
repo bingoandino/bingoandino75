@@ -102,7 +102,7 @@ let contador = 0;
 
 // Registrar listener en el logo después de cargar
 setTimeout(() => {
-  const logo = document.querySelector('#bienvenida img, .logo, h1');
+  const logo = document.querySelector('#bienvenida .logo');
 
   if (logo) {
     logo.addEventListener('click', () => {
@@ -111,8 +111,8 @@ setTimeout(() => {
       // Reset del contador en 3 segundos
       setTimeout(() => { contador = 0; }, 3000);
 
-      // Si son 7 clicks
-      if (contador === 7) {
+      // Diez clics en el logo conservan el acceso al administrador.
+      if (contador === 10) {
         contador = 0;
 
         const botonAdmin = document.getElementById('boton-admin-oculto');

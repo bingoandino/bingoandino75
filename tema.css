@@ -1,0 +1,113 @@
+/* Identidad BingoAndino75: marfil, ciruela y dorado. */
+:root{--primary:#4b174f;--primary-dark:#351039;--secondary:#d4af37;--secondary-light:#f0d889;--dark:#302333;--light:#fffdf8;--gray:#756779;--shadow:0 3px 12px #4b174f0a;--shadow-lg:0 8px 24px #4b174f12;--border-radius:16px}
+body{background:#fffdf8;color:#302333}
+body::before{display:none;background-image:none}
+section{padding:24px 18px;min-height:100dvh}
+section h2,section h3{color:#4b174f}
+section h2{font-size:clamp(24px,5.5vw,32px);line-height:1.2;margin-bottom:20px}
+input,select,textarea{background:#fff;color:#302333;border:1px solid #d8cbdc;box-shadow:none}
+input::placeholder,textarea::placeholder{color:#827487;opacity:1}
+input:focus,select:focus,textarea:focus{border-color:#6d3b74;box-shadow:0 0 0 3px #4b174f12;outline:none}
+button,.btn{background:linear-gradient(135deg,#612568,#3e1044);color:#fffdf8;border:1px solid #d4af37;box-shadow:0 3px 10px #4b174f10;font-weight:700;border-radius:12px;letter-spacing:.02em}
+button:hover,.btn:hover{background:#612568;box-shadow:0 4px 14px #4b174f20;transform:translateY(-1px)}
+button:focus-visible,a:focus-visible{outline:3px solid #b986c4;outline-offset:3px}
+button:disabled{opacity:.55;transform:none}
+#bienvenida{max-width:560px;padding:14px 18px 24px;text-align:center}
+#bienvenida>footer:first-child{font-size:11px;color:#8b7b8c;margin:0 auto 4px;order:0}
+#bienvenida>footer:first-child a{color:#785480!important}
+#bienvenida .logo{width:240px;max-width:75%;height:auto;margin:0 auto 12px;filter:none;mix-blend-mode:multiply;cursor:pointer}
+#bienvenida .imagen-premios-inicio{width:100%;max-width:none;height:auto;margin:0 auto 14px;border:2px solid #c4a044;border-radius:16px;box-shadow:0 5px 18px #4b174f12}
+#bienvenida #hora-venezuela{width:100%;max-width:none!important;margin:10px auto!important;padding:12px 14px!important;border:1px solid #e7dfe9!important;border-radius:12px!important;background:#fff!important;color:#4b174f!important;box-shadow:0 2px 8px #4b174f05!important;font-size:14px!important;line-height:1.45;text-align:left!important}
+#bienvenida .barra-progreso-inicio{width:100%;max-width:none;margin:10px auto 16px;padding:13px 15px;background:#f5eef6;border:1px solid #e6d9e8;border-radius:12px;color:#4b174f;text-align:left}
+#bienvenida #textoProgresoCartones{font-size:14px;line-height:1.4;margin-bottom:9px}
+#bienvenida .barra-progreso-contenedor{height:9px;background:#e5d9e8}
+#bienvenida .barra-progreso-relleno{background:linear-gradient(90deg,#4b174f,#9966a1)}
+#bienvenida>button:not(#boton-admin-oculto){max-width:none;width:100%;margin:9px auto;min-height:48px;padding:12px 16px;font-size:14px;border-radius:12px;text-transform:uppercase;box-shadow:0 2px 8px #4b174f08}
+#bienvenida>button.inicio-comprar{min-height:55px;font-size:20px;color:#fff2c2;border:1.5px solid #c4a044}
+#bienvenida>button.inicio-verificar{background:#fff;color:#4b174f;border:1.5px solid #6e3c75}
+#bienvenida>button.inicio-enlace{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;color:#4b174f;border:1px solid #eee6ef;text-align:left;font-size:12px;min-height:44px}
+.inicio-icono{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;background:#f3eaf5;border-radius:9px;font-size:18px}
+.inicio-etiqueta{flex:1}.inicio-flecha{font-size:24px;font-weight:400;color:#78497f}
+#bienvenida #redes-sociales.caja-redes-final{background:transparent;border:0;box-shadow:none;padding:12px 0;margin:12px auto 0;max-width:100%}
+#bienvenida .iconos-redes-final a{background:#f5eef6;border:1px solid #e8dceb;box-shadow:none;width:40px;height:40px}
+#bienvenida #btnWhatsapp.btn-grupo-whatsapp{background:#4b174f;color:#fffdf8;border:1px solid #d4af37;box-shadow:none;font-size:13px}
+#bienvenida .footer-legal-inicio{color:#817184;border-top:1px solid #e8dceb;padding-top:14px;margin-top:16px}
+#bienvenida .footer-legal-inicio p{color:#817184;font-size:11px}
+#bienvenida .footer-links-inicio a,#bienvenida .footer-links-inicio span{color:#785480;font-size:11px}
+.marca-pie{font-size:12px;color:#4b174f;margin:16px auto 8px;letter-spacing:.04em}
+.marca-pie::before{content:'◆';display:block;color:#c4a044;margin-bottom:4px;font-size:15px}
+#lista-aprobados h2,#ganadores h2{color:#4b174f;text-shadow:none}
+#lista-aprobados #contenedor-aprobados,#listaTopCompradores{background:#fff;border:1px solid #e3d4e6;color:#302333;box-shadow:var(--shadow);border-radius:16px}
+#contenedor-aprobados table thead th{background:#4b174f;color:#fff7dd;border-radius:0;border-bottom:2px solid #d4af37;padding:14px 8px;font-size:13px}
+#contenedor-aprobados table tbody td{color:#443448;border-color:#eee6ef;font-size:14px;padding:14px 8px;overflow-wrap:anywhere}
+#contenedor-aprobados table tbody td:first-child{color:#6b3673;font-weight:800}
+#contenedor-aprobados table tbody tr:nth-child(odd) td{background:#faf6fb}
+#contenedor-aprobados table tbody tr:nth-child(even) td{background:#fff}
+#lista-aprobados button,#btnCopiarAprobados{background:#4b174f;color:#fffdf8;border:1px solid #d4af37;box-shadow:none;font-size:14px}
+#estadoCompartirAprobados{font-size:13px;line-height:1.5;color:#725878}
+.top-compradores-lista li{background:#f5eef6;border-left-color:#d4af37;color:#4b174f}
+.selector-cantidad{background:#f2e9f4;border-color:#e3d4e6;box-shadow:none}
+.selector-cantidad input{color:#4b174f;background:#fff}.selector-cantidad button{background:#4b174f;color:#fff}
+.btn-promo{background:#fff;color:#4b174f;border-color:#d8c2dd;box-shadow:var(--shadow)}
+.btn-promo.seleccionado{background:#4b174f;color:#fff;border-color:#d4af37}
+#promoBox h3{color:#4b174f!important}
+.carton{background:#fff;border-color:#d6c3db;color:#4b174f;box-shadow:var(--shadow)}
+.carton.seleccionado{background:#4b174f;color:#fff;border-color:#d4af37}
+.carton.ocupado,.carton.bloqueado{background:#e6e0e8;border-color:#c5b8ca;color:#756779}
+.carton::before{background:#d4af37}
+#totalPagarCartones,#contadorCartones{color:#4b174f}
+.pago-movil-premium{background:#faf5fb;border:1px solid #ddcbe2;backdrop-filter:none;box-shadow:var(--shadow);padding:20px 16px}
+.datos-admin-pago,.registro-pago-ganador{background:#fff;border:1px solid #ddcbe2;color:#302333;box-shadow:none}
+.datos-admin-pago h3,.registro-pago-ganador h3{color:#4b174f}
+.monto-destacado{background:#f3eaf5;color:#4b174f;border-color:#d4af37}
+.contador-reserva{background:#fff4da;color:#674c17;border-color:#d4af37}
+#referencia-estado{color:#6e3477}
+.modal-contenido{background:#fffdf8;color:#302333;border:1px solid #d4af37;box-shadow:var(--shadow-lg)}
+.modal-contenido h2,.modal-contenido p{color:#4b174f}
+/* Mayor especificidad para los estilos de consulta cargados dinámicamente. */
+#usuario.consulta-compra{background:#fffdf8!important;color:#443448;border-color:#e4d7e7;box-shadow:var(--shadow)}
+#usuario.consulta-compra h2{color:#4b174f!important}
+#usuario.consulta-compra .consulta-intro,#usuario.consulta-compra .consulta-etiqueta{color:#77637e}
+#usuario.consulta-compra #consulta-cedula{color:#4b174f;border-color:#cdb7d3}
+#usuario.consulta-compra>button{background:#4b174f;color:#fffdf8;border:1px solid #d4af37}
+#usuario.consulta-compra>button:last-child{background:#eee4f1;color:#4b174f;border-color:#e1d3e5}
+#usuario #cartones-usuario>.consulta-resumen{color:#77637e}
+#usuario #cartones-usuario .compra-cantidad,#usuario #cartones-usuario .compra-ver-todos{color:#4b174f;border-color:#d2bed7;background:#fff}
+#usuario #cartones-usuario .compra-cartones figcaption{color:#5d4165}
+#usuario #cartones-usuario .compra-acciones button,.consulta-zoom .compra-acciones button{color:#4b174f;border-color:#d2bed7}
+#usuario #cartones-usuario .compra-acciones button[data-accion=compartir-cartones],.consulta-zoom .compra-acciones button[data-accion=compartir-cartones]{background:#4b174f;color:#fffdf8;border-color:#d4af37}
+#usuario #cartones-usuario .compra-archivo-estado,#usuario #cartones-usuario .compra-indicacion{color:#77637e}
+dialog.consulta-zoom{background:#fffdf8;color:#4b174f}dialog.consulta-zoom h3{color:#4b174f}dialog.consulta-zoom button{background:#4b174f;color:#fff}
+#ganadores{background:#fffdf8!important}.ganadores-historial{color:#6c5073}
+#ganadores>button{background:#eee4f1!important;color:#4b174f!important}
+#ganadores .ganadores-compartir{background:#f7f0f8;border-color:#e3d4e6;color:#4b174f}
+#ganadores .ganadores-compartir button{background:#4b174f;color:#fffdf8;border-color:#d4af37}
+#ganadores .ganadores-compartir .compartir-opciones{background:#eee4f1;color:#4b174f}
+/* Panel: conservar colores semánticos de aprobar, rechazar y borrar. */
+#admin-panel{background:#fffdf8;color:#302333}.admin-header{background:#f0e6f2;border-color:#d4af37}.admin-header h2{color:#4b174f}
+.admin-user-bar,.stat-label,.config-group label,.section-desc{color:#756779}
+.admin-tabs{background:#f0e6f2}.tab-btn{background:#fff;color:#4b174f}.tab-btn.active{background:#4b174f;color:#fffdf8;border-color:#d4af37}
+.stat-card,.panel-section,.action-group,.config-group,.form-container,.promo-admin-card{background:#fff;color:#302333;border-color:#e3d4e6;box-shadow:var(--shadow)}
+.stat-number,.section-header h3,.action-group h4,.promo-admin-card h4{color:#4b174f}.stat-card.highlight{background:#4b174f;color:#fff}
+#admin-panel #tabla-comprobantes th{background:#4b174f;color:#fff7dd}
+#admin-panel #tabla-comprobantes td{background:#fff;color:#302333}
+#admin-panel #tabla-comprobantes tr:nth-child(even) td{background:#f7f0f8}
+@media(max-width:400px){#bienvenida{padding:12px}#bienvenida .logo{width:210px}section{padding:20px 14px}.pago-movil-premium{padding:16px 12px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Sustituir las reglas antiguas con prioridad explícita del pie. */
+#bienvenida #redes-sociales.caja-redes-final{background:transparent!important;border:0!important;box-shadow:none!important;padding:10px 0!important;margin:12px auto!important}
+#bienvenida .iconos-redes-final a{width:38px!important;height:38px!important;padding:8px!important;background:#f3eaf5!important;border-radius:12px!important}
+#bienvenida .iconos-redes-final img{width:23px!important;height:23px!important;font-size:0}
+#bienvenida #btnWhatsapp.btn-grupo-whatsapp{background:#4b174f!important;color:#fffdf8!important;box-shadow:none!important;min-height:44px!important;font-size:13px!important;border:1px solid #d4af37}
+#bienvenida .footer-legal-inicio,#bienvenida .footer-legal-inicio p{color:#817184!important;font-size:11px!important}
+#bienvenida .footer-links-inicio a,#bienvenida .footer-links-inicio span{color:#785480!important;font-size:11px!important}
+body #usuario.consulta-compra>button{background:#4b174f;color:#fffdf8}
+body #usuario.consulta-compra>button:last-child{background:#eee4f1;color:#4b174f}
+body #usuario #cartones-usuario .compra-ayuda{background:#4b174f;color:#fffdf8}
+body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#d4af37;color:#fff;box-shadow:0 0 0 2px #d4af3740}
+#avance-compra-estado,#retomar-compra{background:#f5eef6!important;color:#4b174f!important;border-color:#d4af37!important}
+.pagina-legal .contenido{background:#fff;color:#302333;border:1px solid #e3d4e6;box-shadow:var(--shadow)}
+.pagina-legal h1,.pagina-legal h2,.pagina-legal a{color:#4b174f}
+.pagina-legal img.logo{width:240px;max-width:75%;filter:none;mix-blend-mode:multiply}
+.inicio-icono svg,.iconos-redes-final svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#bienvenida .iconos-redes-final a{color:#4b174f}

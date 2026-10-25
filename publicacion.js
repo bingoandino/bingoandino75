@@ -53,9 +53,9 @@ function componerGanadores(payload){
  node('title',{},'Nuestros ganadores · BingoAndino75');
  const defs=node('defs');
  const gradient=(id,colors)=>{const g=node('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'},undefined,defs);colors.forEach((c,i)=>node('stop',{offset:Math.round(i/(colors.length-1)*100)+'%','stop-color':c},undefined,g));};
- gradient('ganadores-teal',['#078b94','#005663']);gradient('ganadores-gold',['#ffeaa1','#e6ae31','#fff0af']);gradient('ganadores-cream',['#fffdf7','#fff4d7']);
+ gradient('ganadores-teal',['#612568','#351039']);gradient('ganadores-gold',['#ffeaa1','#e6ae31','#fff0af']);gradient('ganadores-cream',['#fffdf7','#fff4d7']);
  const rect=(x,y,w,h,fill,stroke='none',r=15,parent=svg)=>node('rect',{x,y,width:w,height:h,rx:r,fill,stroke,'stroke-width':2},undefined,parent);
- const text=(x,y,value,size=28,fill='#073e4b',weight=700,anchor='start',cls='',parent=svg)=>node('text',{x,y,fill,'font-family':'Arial, Helvetica, sans-serif','font-size':size,'font-weight':weight,'text-anchor':anchor,...(cls?{class:cls}:{})},value,parent);
+ const text=(x,y,value,size=28,fill='#4b174f',weight=700,anchor='start',cls='',parent=svg)=>node('text',{x,y,fill,'font-family':'Arial, Helvetica, sans-serif','font-size':size,'font-weight':weight,'text-anchor':anchor,...(cls?{class:cls}:{})},value,parent);
  const ticket=(x,y,parent)=>{
   const icon=node('g',{transform:`translate(${x} ${y}) rotate(-15)`},undefined,parent);
   node('path',{d:'M0 0 H28 V6 Q21 10 28 14 V20 H0 V14 Q7 10 0 6 Z',fill:'#ffd671',stroke:'#bc861e','stroke-width':2},undefined,icon);
@@ -83,7 +83,7 @@ function componerGanadores(payload){
  text(W/2,69,'BingoAndino75',57,'#ffdf83',800,'middle','ganadores-marca');
  text(W/2,133,'NUESTROS GANADORES',51,'#fffdf7',800,'middle','ganadores-titulo');
  rect(216,153,648,43,'url(#ganadores-gold)','none',22);
- text(W/2,183,date.charAt(0).toUpperCase()+date.slice(1),27,'#083e49',700,'middle','ganadores-fecha');
+ text(W/2,183,date.charAt(0).toUpperCase()+date.slice(1),27,'#4b174f',700,'middle','ganadores-fecha');
  text(W/2,225,'Resultados oficiales',25,'#fffdf7',600,'middle','ganadores-subtitulo');
  let y=258;
  const ordered=[...payload.grupos.filter(g=>g.tipo==='ronda'),...payload.grupos.filter(g=>g.tipo==='final'),...payload.grupos.filter(g=>!['ronda','final'].includes(g.tipo))];
@@ -98,14 +98,14 @@ function componerGanadores(payload){
    const heights=rows.map(row=>Math.max(52,row.name.length*33+16)+(!same&&rows.length>1?28:0));const h=Math.max(60,heights.reduce((n,v)=>n+v,0));
    rect(M,y,CW,h,'#fffdf7','#d6ad54',13,group);rect(M+3,y+3,190,h-6,'url(#ganadores-teal)','none',10,group);rect(M+195,y+3,239,h-6,'url(#ganadores-gold)','none',9,group);
    text(M+98,y+h/2+10,titulo(g),29,'#fff',800,'middle','ganadores-categoria',group);
-   text(M+315,y+h/2+11,bs(total),33,'#103e46',800,'middle','ganadores-premio',group);
+   text(M+315,y+h/2+11,bs(total),33,'#4b174f',800,'middle','ganadores-premio',group);
    let ry=y;
    for(let i=0;i<rows.length;i++){
     const {w,name}=rows[i],rh=heights[i];
     if(i)node('path',{d:`M${M+446} ${ry} H${W-M-12}`,stroke:'#e6d5ac'},undefined,group);
-    lines(M+460,ry+(rh-name.length*33)/2+27,name,27,'#103e46','ganadores-nombre',group);
+    lines(M+460,ry+(rh-name.length*33)/2+27,name,27,'#4b174f','ganadores-nombre',group);
     ticket(W-M-216,ry+rh/2-8,group);
-    text(W-M-18,ry+rh/2+9,'Cartón '+w.carton,25,'#103e46',600,'end','ganadores-carton',group);
+    text(W-M-18,ry+rh/2+9,'Cartón '+w.carton,25,'#4b174f',600,'end','ganadores-carton',group);
     if(!same&&rows.length>1)text(W-M-18,ry+rh/2+35,bs(w.premio_centimos),21,'#66521b',600,'end','ganadores-individual',group);
     ry+=rh;
    }
@@ -115,7 +115,7 @@ function componerGanadores(payload){
   }
   const final=g.tipo==='final',start=y;
   const cardBackground=rect(M,y,CW,100,final?'url(#ganadores-gold)':'url(#ganadores-cream)','#cf9e35',23,group);
-  text(W/2,y+49,titulo(g),39,'#073e4b',800,'middle','ganadores-categoria',group);
+  text(W/2,y+49,titulo(g),39,'#4b174f',800,'middle','ganadores-categoria',group);
   // Trofeo vectorial, idéntico en el PNG y en la página.
   for(const x of [M+52,W-M-100]){
    node('path',{d:`M${x} ${y+22} h45 v22 q0 25 -22 26 q-23 -1 -23 -26 Z M${x+17} ${y+70} v12 h-12 v7 h34 v-7 h-12 v-12 M${x} ${y+29} h-12 v10 q0 18 16 18 M${x+45} ${y+29} h12 v10 q0 18 -16 18`,fill:'#f3bd43',stroke:'#9a6a13','stroke-width':3},undefined,group);
@@ -126,18 +126,18 @@ function componerGanadores(payload){
   if(!individual&&g.ganadores.length>1){text(W/2,y,'Total a repartir',22,'#5e4b1c',600,'middle','',group);y+=34;}
   if(individual||same&&g.ganadores.length>1){
    const label=individual?'Por ganador':bs(g.ganadores[0].premio_centimos)+' por ganador';
-   text(W/2,y,label,29,'#073e4b',700,'middle','ganadores-reparto',group);y+=22;
+   text(W/2,y,label,29,'#4b174f',700,'middle','ganadores-reparto',group);y+=22;
   }
   const people=node('g',{class:'ganadores-personas'},undefined,group);const gap=14,cw=(CW-42)/2;
   for(let i=0;i<g.ganadores.length;i+=2){
    const row=g.ganadores.slice(i,i+2).map(w=>({w,name:wrap(nombrePublico(payload.nombres?.[String(w.carton)]),cw-32,28)}));
    const h=Math.max(...row.map(p=>Math.max(1,p.name.length)*34+55+(!same&&g.ganadores.length>1?30:0)));
-   row.forEach(({w,name},j)=>{const x=M+14+j*(cw+gap);const p=node('g',{class:'ganadores-persona'},undefined,people);rect(x,y,cw,h,'#fffdf7','#d6ad54',13,p);lines(x+16,y+35,name,28,'#103e46','ganadores-nombre',p);ticket(x+18,y+h-36,p);text(x+58,y+h-17,'Cartón '+w.carton,25,'#103e46',600,'start','ganadores-carton',p);if(!same&&g.ganadores.length>1)text(x+16,y+h-49,bs(w.premio_centimos),24,'#66521b',600,'start','ganadores-individual',p);});
+   row.forEach(({w,name},j)=>{const x=M+14+j*(cw+gap);const p=node('g',{class:'ganadores-persona'},undefined,people);rect(x,y,cw,h,'#fffdf7','#d6ad54',13,p);lines(x+16,y+35,name,28,'#4b174f','ganadores-nombre',p);ticket(x+18,y+h-36,p);text(x+58,y+h-17,'Cartón '+w.carton,25,'#4b174f',600,'start','ganadores-carton',p);if(!same&&g.ganadores.length>1)text(x+16,y+h-49,bs(w.premio_centimos),24,'#66521b',600,'start','ganadores-individual',p);});
    y+=h+12;
   }
   y+=5;cardBackground.setAttribute('height',y-start);y+=15;
  }
- text(W/2,y+34,'¡Felicidades a nuestros ganadores!',39,'#005b69',700,'middle','ganadores-pie');
+ text(W/2,y+34,'¡Felicidades a nuestros ganadores!',39,'#4b174f',700,'middle','ganadores-pie');
  rect(314,y+57,452,45,'url(#ganadores-teal)','#d2a13c',23);
  text(W/2,y+88,'bingoandino75.com',28,'#fffdf7',700,'middle');
  const H=Math.ceil(y+123);if(H>16000)throw Error('Hay demasiados resultados para una sola imagen.');
