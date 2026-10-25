@@ -184,6 +184,7 @@
       canal = cliente.channel('progreso-cartones-inicio')
         .on('postgres_changes', {event: '*', schema: 'public', table: 'cartones'}, programar)
         .on('postgres_changes', {event: '*', schema: 'public', table: 'configuracion'}, payload => {
+          global.invalidarConfiguracionInicio?.();
           const claves = [payload.new?.clave, payload.old?.clave].filter(Boolean);
           if (!claves.length || claves.some(clave => ['mostrar_barra_progreso', 'total_cartones'].includes(clave))) { invalidarConfig(); programar(); }
         })
@@ -233,4 +234,114 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarDisponibilidadAgrupada, {once: true});
   else instalarDisponibilidadAgrupada();
+})(window);
+
+// Una sola lectura de configuración para iniciar la compra; presentación en segundo plano.
+(function (global) {
+  'use strict';
+  let instalado = false;
+    const claves = ['total_cartones', 'precio_carton', 'modo_cartones', 'cartones_obligatorios', 'link_whatsapp', 'version_cartones', 'imagen_premios_inicio', 'mostrar_barra_progreso'];
+    for (let i = 1; i <= 4; i++) for (const campo of ['activa', 'descripcion', 'cantidad', 'precio']) claves.push(`promo${i}_${campo}`);
+    let cache = null, peticion = null, version = 0;
+    function invalidar() { cache = null; version++; }
+    async function leer(fresca = false) {
+      if (!fresca && cache && cache.hasta > Date.now()) return cache.valores;
+      if (peticion) return peticion;
+      const actual = version;
+      peticion = (async () => {
+        let consulta = global.supabase.from('configuracion').select('clave,valore,valor').in('clave', claves);
+        if (typeof consulta.abortSignal === 'function' && global.AbortSignal?.timeout) consulta = consulta.abortSignal(global.AbortSignal.timeout(12000));
+        const {data, error} = await consulta;
+        if (error || !Array.isArray(data)) throw new Error('No se pudieron cargar los datos del sorteo. Revisa tu conexión e inténtalo de nuevo.');
+        const valores = new Map(data.map(fila => [fila.clave, fila.valore ?? fila.valor]));
+        if (actual === version) cache = {valores, hasta: Date.now() + 5000};
+        return valores;
+      })().finally(() => { peticion = null; });
+      return peticion;
+    }
+  function instalarInicioAgrupado() {
+    if (instalado || !global.supabase || typeof global.cargarPromocionesConfig !== 'function' || typeof global.cargarPrecioPorCarton !== 'function') return;
+    instalado = true;
+    global.invalidarConfiguracionInicio = invalidar;
+    const getOriginal = global.getConfigValue;
+    if (typeof getOriginal === 'function') global.getConfigValue = async function (clave, fallback = null) {
+      if (!claves.includes(clave)) return getOriginal(clave, fallback);
+      return (await leer()).get(clave) ?? fallback;
+    };
+    global.obtenerTotalCartones = async function () {
+      const valor = (await leer()).get('total_cartones');
+      const total = Number(valor);
+      if (!Number.isInteger(total) || total < 1) throw new Error('No se pudo cargar la cantidad de cartones del sorteo.');
+      totalCartones = total;
+    };
+    global.cargarPrecioPorCarton = async function () {
+      const valor = (await leer()).get('precio_carton');
+      const precio = Number(valor);
+      if (valor == null || valor === '' || !Number.isFinite(precio) || precio < 0) throw new Error('No se pudo cargar el precio del sorteo.');
+      precioPorCarton = precio;
+    };
+    global.cargarConfiguracionModoCartones = async function () {
+      const valores = await leer();
+      modoCartones = valores.get('modo_cartones') || 'libre';
+      const fijo = modoCartones === 'fijo';
+      if (fijo) cantidadFijaCartones = parseInt(valores.get('cartones_obligatorios'), 10) || 1;
+      const cantidad = document.getElementById('cantidadCartones');
+      if (cantidad) { cantidad.readOnly = fijo; if (fijo) cantidad.value = cantidadFijaCartones; }
+      for (const id of ['btnMas', 'btnMenos']) { const boton = document.getElementById(id); if (boton) boton.disabled = fijo; }
+    };
+    global.cargarPromocionesConfig = async function () {
+      const cantidadVisible = document.getElementById('cantidad')?.classList.contains('oculto') === false;
+      const valores = await leer(cantidadVisible && typeof sistemaListo !== 'undefined' && sistemaListo);
+      for (let i = 0; i < promociones.length; i++) {
+        const prefix = `promo${i + 1}`, promo = promociones[i];
+        promo.activa = String(valores.get(`${prefix}_activa`) ?? 'false') === 'true';
+        promo.descripcion = valores.get(`${prefix}_descripcion`) ?? `Promo ${i + 1}`;
+        promo.cantidad = parseInt(valores.get(`${prefix}_cantidad`), 10) || 0;
+        promo.precio = parseFloat(valores.get(`${prefix}_precio`)) || 0;
+      }
+      if (typeof global.renderizarBotonesPromociones === 'function') global.renderizarBotonesPromociones();
+    };
+    global.cargarLinkWhatsapp = async function () {
+      const link = (await leer()).get('link_whatsapp');
+      const boton = document.getElementById('btnWhatsapp');
+      if (boton && link) { boton.href = link; boton.style.display = 'inline-block'; }
+    };
+    global.cargarImagenPremiosInicio = async function () {
+      const imagen = document.getElementById('imagenPremiosInicio');
+      if (!imagen) return;
+      const url = (await leer()).get('imagen_premios_inicio');
+      if (!url) { imagen.classList.add('oculto'); return; }
+      imagen.src = url;
+      imagen.classList.remove('oculto');
+    };
+    // Estas tareas no habilitan compras ni conceden acceso al administrador.
+    for (const nombre of ['cargarBarraProgresoInicio', 'cargarConfigBarraProgresoAdmin', 'cargarImagenPremiosInicio']) {
+      const original = global[nombre];
+      if (typeof original !== 'function') continue;
+      global[nombre] = function (...args) {
+        const tarea = Promise.resolve().then(() => original.apply(this, args));
+        if (typeof sistemaListo !== 'undefined' && !sistemaListo) {
+          tarea.catch(error => console.error('No se pudo completar una actualización de presentación:', error));
+          return Promise.resolve();
+        }
+        return tarea;
+      };
+    }
+    const verificarInicial = global.verificarSesionInicial;
+    let verificando = Promise.resolve();
+    if (typeof verificarInicial === 'function') global.verificarSesionInicial = function (...args) {
+      verificando = Promise.resolve().then(() => verificarInicial.apply(this, args)).catch(error => console.error('No se pudo completar la verificación inicial:', error));
+      return typeof sistemaListo !== 'undefined' && !sistemaListo ? Promise.resolve() : verificando;
+    };
+    const entrarOriginal = global.entrarAdmin;
+    if (typeof entrarOriginal === 'function') global.entrarAdmin = async function (...args) {
+      await verificando;
+      // EntrarAdmin conserva su verificación de sesión obligatoria antes de abrir el panel.
+      return entrarOriginal.apply(this, args);
+    };
+  }
+  // Empieza la consulta mientras termina de descargarse el script principal.
+  if (global.supabase && document.getElementById('cantidadCartones') && document.getElementById('btnEnviarComprobante')) leer().catch(() => {});
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarInicioAgrupado, {once: true});
+  else instalarInicioAgrupado();
 })(window);
