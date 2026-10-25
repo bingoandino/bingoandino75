@@ -5003,11 +5003,21 @@ function textoListaAprobados() {
     if (celdas.length < 2) return null;
     const carton = celdas[0].textContent.trim();
     const nombre = celdas[1].textContent.trim().replace(/\s+/g, ' ');
-    return carton ? `🎟️ Cartón ${carton} · ${nombre}` : null;
+    return carton ? `${carton} | ${nombre}` : null;
   }).filter(Boolean);
   if (!lista.length) return '';
   const fecha = new Date().toLocaleDateString('es-VE', {day:'numeric', month:'long', year:'numeric', timeZone:'America/Caracas'});
-  return `📋 LISTA DE APROBADOS\nBingoAndino75\n📅 ${fecha}\n\n${lista.join('\n')}\n\nTotal: ${lista.length} cartones aprobados\nbingoandino75.com`;
+  return `LISTA DE APROBADOS · BingoAndino75\n${fecha}\n\n${lista.join('\n')}\n\nFIN DE LA LISTA · Total: ${lista.length} cartones aprobados\nbingoandino75.com`;
+}
+
+function prepararEnlaceAprobados() {
+  const boton = document.getElementById('btnWhatsAppAprobados');
+  const estado = document.getElementById('estadoCompartirAprobados');
+  const texto = textoListaAprobados();
+  if (!texto) {estado.textContent = 'No hay aprobados para compartir.';return false;}
+  boton.href = 'https://wa.me/?text=' + encodeURIComponent(texto);
+  estado.textContent = 'Abriendo WhatsApp con la lista completa. Comprueba que aparezca FIN DE LA LISTA antes de enviarla.';
+  return true;
 }
 
 async function compartirListaAprobados() {
@@ -5021,8 +5031,8 @@ async function compartirListaAprobados() {
   try {
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({title:'Lista de aprobados · BingoAndino75', text:texto});
-        estado.textContent = 'Lista enviada a la opción elegida.';
+        await navigator.share({text:texto});
+        estado.textContent = 'Menú de compartir abierto con la lista completa. Comprueba que el mensaje termine en FIN DE LA LISTA. Si WhatsApp lo recorta, prueba Abrir lista en WhatsApp o usa Copiar.';
         return;
       } catch (error) {
         if (error.name === 'AbortError') return;
