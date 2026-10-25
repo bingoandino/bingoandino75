@@ -52,3 +52,13 @@ test('una respuesta fallida permite volver a consultar sin repetir datos anterio
   let attempts=0;const f=fixture(()=>Promise.resolve(++attempts===1?{error:{message:'ficticio'}}:{data:[{estado:'aprobado',cartones:['45']}]}));
   try{await f.w.consultarCartones();assert.match(f.cont.textContent,/Revisa tu conexión/);await f.w.consultarCartones();assert.match(f.cont.textContent,/Compra aprobada/);assert.equal(f.calls.length,2);}finally{f.close();}
 });
+
+test('50 cartones cargan ocho miniaturas inicialmente y permiten desplegarlas todas',async()=>{
+ const f=fixture({data:[{estado:'aprobado',cartones:Array.from({length:50},(_,i)=>String(i+1))}]});
+ try{await f.w.consultarCartones();assert.equal(f.cont.querySelectorAll('img').length,8);assert.match(f.cont.querySelector('.compra-cantidad').textContent,/50 cartones/);f.cont.querySelector('.compra-ver-todos').click();assert.equal(f.cont.querySelectorAll('img').length,50);assert.equal(f.cont.querySelectorAll('.compra-ver-todos').length,0);}finally{f.close();}
+});
+test('ampliar un cartón pendiente conserva su estado y no abre acciones de compra',async()=>{
+ const f=fixture({data:[{estado:'pendiente',cartones:['58']}]});
+ try{f.w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};f.w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new f.w.Event('close'));};await f.w.consultarCartones();f.cont.querySelector('.compra-miniatura').click();const dialog=f.w.document.querySelector('dialog');assert.equal(dialog.open,true);assert.match(dialog.textContent,/Cartón 58 · Pendiente de aprobación/);assert.equal(dialog.querySelector('img').getAttribute('src'),'https://example.test/carton-58.webp');dialog.querySelector('button').click();assert.equal(dialog.open,false);assert.equal(dialog.querySelector('img').hasAttribute('src'),false);}finally{f.close();}
+});
+
