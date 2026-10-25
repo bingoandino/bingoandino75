@@ -1823,6 +1823,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   // Cargar likde WhatsApp
     sistemaListo = true;
+    await abrirEnlaceListaAprobados();
   // Mostrar términos
 
   document.getElementById('overlay-carga').style.display = 'none';
@@ -4997,17 +4998,17 @@ function copiarTodoPagoMovil() {
 
 
 function textoListaAprobados() {
-  const filas = Array.from(document.querySelectorAll('#contenedor-aprobados tbody tr'));
-  const lista = filas.map(fila => {
-    const celdas = fila.querySelectorAll('td');
-    if (celdas.length < 2) return null;
-    const carton = celdas[0].textContent.trim();
-    const nombre = celdas[1].textContent.trim().replace(/\s+/g, ' ');
-    return carton ? `${carton} | ${nombre}` : null;
-  }).filter(Boolean);
-  if (!lista.length) return '';
-  const fecha = new Date().toLocaleDateString('es-VE', {day:'numeric', month:'long', year:'numeric', timeZone:'America/Caracas'});
-  return `LISTA DE APROBADOS · BingoAndino75\n${fecha}\n\n${lista.join('\n')}\n\nFIN DE LA LISTA · Total: ${lista.length} cartones aprobados\nbingoandino75.com`;
+  return '📋 Lista de aprobados · BingoAndino75\n\nConsulta aquí todos los cartones aprobados y sus participantes:\nhttps://bingoandino75.com/?aprobados=1\n\nLa lista se actualiza en la página.';
+}
+
+function esEnlaceAprobados() {
+  return new URLSearchParams(window.location.search).get('aprobados') === '1';
+}
+
+async function abrirEnlaceListaAprobados() {
+  if (!esEnlaceAprobados()) return;
+  document.getElementById('modal-terminos')?.classList.add('oculto');
+  await mostrarVentana('lista-aprobados');
 }
 
 function prepararEnlaceAprobados() {
@@ -5016,7 +5017,7 @@ function prepararEnlaceAprobados() {
   const texto = textoListaAprobados();
   if (!texto) {estado.textContent = 'No hay aprobados para compartir.';return false;}
   boton.href = 'https://wa.me/?text=' + encodeURIComponent(texto);
-  estado.textContent = 'Abriendo WhatsApp con la lista completa. Comprueba que aparezca FIN DE LA LISTA antes de enviarla.';
+  estado.textContent = 'Abriendo WhatsApp con el enlace de la lista de aprobados.';
   return true;
 }
 
@@ -5032,7 +5033,7 @@ async function compartirListaAprobados() {
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({text:texto});
-        estado.textContent = 'Menú de compartir abierto con la lista completa. Comprueba que el mensaje termine en FIN DE LA LISTA. Si WhatsApp lo recorta, prueba Abrir lista en WhatsApp o usa Copiar.';
+        estado.textContent = 'Enlace preparado para compartir. Al abrirlo se muestra la lista actualizada de aprobados.';
         return;
       } catch (error) {
         if (error.name === 'AbortError') return;
@@ -5040,10 +5041,10 @@ async function compartirListaAprobados() {
     }
     try {
       await navigator.clipboard.writeText(texto);
-      estado.textContent = 'Lista copiada. Abre WhatsApp y pégala donde quieras compartirla.';
+      estado.textContent = 'Enlace copiado. Abre WhatsApp y pégalo donde quieras compartirlo.';
     } catch {
       manual.value = texto;manual.hidden = false;manual.focus();manual.select();
-      estado.textContent = 'Mantén pulsada la lista y elige Copiar; luego pégala en WhatsApp.';
+      estado.textContent = 'Mantén pulsado el mensaje y elige Copiar; luego pégalo en WhatsApp.';
     }
   } finally {boton.disabled = false;}
 }
