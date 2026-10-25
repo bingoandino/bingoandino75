@@ -342,6 +342,119 @@
   else instalarInicioAgrupado();
 })(window);
 
+// Consulta del cliente: cada compra conserva su propio estado y sus cartones.
+(function (global) {
+  'use strict';
+  let instalado = false;
+  function instalarConsultaCliente() {
+    const campo = document.getElementById('consulta-cedula');
+    const cont = document.getElementById('cartones-usuario');
+    if (instalado || !campo || !cont || !global.supabase) return;
+    instalado = true;
+    const seccion = campo.closest('section');
+    const boton = seccion?.querySelector('button[onclick="consultarCartones()"]');
+    campo.inputMode = 'numeric';
+    campo.setAttribute('aria-label', 'Cédula de la compra');
+    seccion?.querySelector('h2')?.replaceChildren(document.createTextNode('Verificar tu compra'));
+    cont.setAttribute('aria-live', 'polite');
+    const estilo = document.createElement('style');
+    estilo.textContent = `
+      #cartones-usuario{display:block;width:100%;box-sizing:border-box}
+      #cartones-usuario .compra-estado{box-sizing:border-box;width:100%;margin:18px 0;padding:20px;border:2px solid var(--borde);border-radius:18px;background:var(--fondo);color:#182033;text-align:left;overflow-wrap:anywhere}
+      #cartones-usuario .compra-estado h3{margin:0 0 12px;font-size:1.25rem;color:inherit}
+      #cartones-usuario .compra-estado p{margin:8px 0;line-height:1.5;color:inherit}
+      #cartones-usuario .compra-estado[data-estado=aprobado]{--fondo:#e6f6ed;--borde:#45a879}
+      #cartones-usuario .compra-estado[data-estado=pendiente]{--fondo:#fff5d6;--borde:#ddb142}
+      #cartones-usuario .compra-estado[data-estado=rechazado]{--fondo:#fff0ed;--borde:#dc8176}
+      #cartones-usuario .compra-estado[data-estado=otro]{--fondo:#eef2fb;--borde:#9baccd}
+      #cartones-usuario .compra-ayuda{display:inline-block;margin-top:12px;padding:12px 16px;border-radius:10px;background:#173b57;color:#fff;text-decoration:none;font-weight:bold}
+      #cartones-usuario .compra-cartones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
+      #cartones-usuario .compra-cartones figure{margin:0;width:min(100%,240px);text-align:center}
+      #cartones-usuario .compra-cartones img{display:block;max-width:100%;height:auto;margin:8px auto}
+      #cartones-usuario .consulta-aviso{padding:18px;border:2px solid #e1bd59;border-radius:14px;color:#fff;background:#17204f;line-height:1.5}
+    `;
+    document.head.appendChild(estilo);
+    const estados = {
+      aprobado: {titulo:'✅ Compra aprobada', mensaje:'Tu compra está confirmada. Estos son tus cartones para participar.'},
+      pendiente: {titulo:'⏳ Compra pendiente de aprobación', mensaje:'Recibimos tu compra y está en revisión. Estos cartones todavía no están aprobados. No necesitas volver a enviar el comprobante.', paso:'Si han pasado más de 30 minutos desde tu envío, contacta a soporte.'},
+      rechazado: {titulo:'❌ Compra rechazada', mensaje:'Esta compra no está aprobada. Contacta a soporte para revisar tu comprobante y saber cómo continuar.', paso:'No vuelvas a pagar sin confirmar primero el motivo con soporte.'},
+      otro: {titulo:'ℹ️ Estado por confirmar', mensaje:'No podemos confirmar el estado de esta compra. Contacta a soporte antes de realizar otro pago.'}
+    };
+    function texto(padre, etiqueta, contenido) {
+      const el = document.createElement(etiqueta); el.textContent = contenido; padre.appendChild(el); return el;
+    }
+    function aviso(mensaje) { cont.replaceChildren(); texto(cont, 'p', mensaje).className = 'consulta-aviso'; }
+    function ayuda(padre) {
+      const enlace = document.querySelector('#redes-sociales a[href^="https://wa.me/"]');
+      if (!enlace) return;
+      try {
+        const url = new URL(enlace.href);
+        if (url.hostname !== 'wa.me' || !/^\/\d+$/.test(url.pathname)) return;
+        url.search = ''; url.searchParams.set('text', 'Hola, necesito ayuda para verificar mi compra en BingoAndino75.');
+        const a = texto(padre, 'a', 'Contactar a soporte'); a.href = url.href;
+        a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'compra-ayuda';
+      } catch { /* La orientación de soporte sigue visible aunque no haya enlace. */ }
+    }
+    function renderizar(compras) {
+      cont.replaceChildren();
+      if (!compras.length) {
+        aviso('No encontramos compras con esta cédula. Revisa el número e inténtalo de nuevo. Si ya enviaste tu comprobante, contacta a soporte antes de realizar otro pago.');
+        ayuda(cont); return;
+      }
+      texto(cont, 'p', `${compras.length === 1 ? 'Se encontró 1 compra' : `Se encontraron ${compras.length} compras`}. Revisa el estado de cada una.`);
+      for (const compra of compras) {
+        const estado = Object.hasOwn(estados, compra.estado) ? compra.estado : 'otro';
+        const info = estados[estado];
+        const tarjeta = document.createElement('article'); tarjeta.className = 'compra-estado'; tarjeta.dataset.estado = estado;
+        texto(tarjeta, 'h3', info.titulo); texto(tarjeta, 'p', info.mensaje);
+        const numeros = Array.isArray(compra.cartones) ? [...new Set(compra.cartones.map(String).filter(n => /^\d{1,7}$/.test(n)))] : [];
+        texto(tarjeta, 'p', numeros.length ? `Cartones: ${numeros.join(', ')}` : 'Sin cartones registrados. Contacta a soporte para revisar esta compra.');
+        if (info.paso) texto(tarjeta, 'p', info.paso);
+        if (estado !== 'aprobado' || !numeros.length) ayuda(tarjeta);
+        // Las imágenes rechazadas no se presentan como cartones válidos para jugar.
+        if (estado === 'aprobado' || estado === 'pendiente') {
+          const galeria = document.createElement('div'); galeria.className = 'compra-cartones';
+          if (typeof global.urlCartonWebP === 'function') for (const numero of numeros) {
+            const figura = document.createElement('figure');
+            texto(figura, 'figcaption', `Cartón ${numero}${estado === 'pendiente' ? ' · Pendiente de aprobación' : ' · Aprobado'}`);
+            const img = document.createElement('img'); img.src = global.urlCartonWebP(numero);
+            img.alt = `Cartón ${numero}`; img.loading = 'lazy'; img.className = 'carton-consulta-img';
+            figura.appendChild(img); galeria.appendChild(figura);
+          }
+          tarjeta.appendChild(galeria);
+        }
+        cont.appendChild(tarjeta);
+      }
+    }
+    let version = 0, pendiente = null, cedulaPendiente = null;
+    function restaurarBoton() { if (boton) { boton.disabled = false; boton.textContent = 'Consultar'; boton.removeAttribute('aria-busy'); } cont.removeAttribute('aria-busy'); }
+    campo.addEventListener('input', () => { version++; pendiente = null; cedulaPendiente = null; cont.replaceChildren(); restaurarBoton(); });
+    campo.addEventListener('keydown', evento => { if (evento.key === 'Enter') { evento.preventDefault(); global.consultarCartones(); } });
+    global.consultarCartones = function () {
+      const cedula = campo.value.trim();
+      if (pendiente && cedula === cedulaPendiente) return pendiente;
+      const actual = ++version;
+      if (!/^\d{5,12}$/.test(cedula)) { restaurarBoton(); aviso('Ingresa la cédula usada en tu compra, solo números.'); campo.focus(); return Promise.resolve(); }
+      cedulaPendiente = cedula;
+      aviso('Consultando el estado de tu compra…'); cont.setAttribute('aria-busy', 'true');
+      if (boton) { boton.disabled = true; boton.textContent = 'Consultando…'; boton.setAttribute('aria-busy', 'true'); }
+      pendiente = Promise.resolve().then(async () => {
+        let consulta = global.supabase.from('inscripciones').select('id,cartones,estado').eq('cedula', cedula).order('id', {ascending: false});
+        if (typeof consulta.abortSignal === 'function' && global.AbortSignal?.timeout) consulta = consulta.abortSignal(global.AbortSignal.timeout(15000));
+        const {data, error} = await consulta;
+        if (actual !== version) return;
+        if (error || !Array.isArray(data)) throw new Error('consulta');
+        renderizar(data);
+      }).catch(() => {
+        if (actual === version) aviso('No pudimos consultar tu compra. Revisa tu conexión y pulsa Consultar para intentarlo de nuevo. Esto no significa que tu compra haya sido rechazada.');
+      }).finally(() => { if (actual === version) { pendiente = null; cedulaPendiente = null; restaurarBoton(); } });
+      return pendiente;
+    };
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarConsultaCliente, {once: true});
+  else instalarConsultaCliente();
+})(window);
+
 // Solo tiempos y nombres fijos de etapas; nunca argumentos, respuestas ni datos del cliente.
 (function (global) {
   'use strict';
