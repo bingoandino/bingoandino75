@@ -116,13 +116,13 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida{padding-top:8px}
 #bienvenida>footer:first-child{font-size:10px;margin-bottom:0}
 #bienvenida .logo{width:132px;max-width:45%;margin:0 auto 6px}
-#bienvenida .imagen-premios-inicio{width:auto;max-width:100%;max-height:min(38svh,310px);object-fit:contain;margin:0 auto 7px;cursor:zoom-in}
+#bienvenida .imagen-premios-inicio{width:100%;max-width:100%;max-height:none;height:auto;object-fit:contain;margin:0 auto 4px;cursor:zoom-in}
 #bienvenida #hora-venezuela{margin:7px auto!important;padding:9px 12px!important;font-size:12px!important}
 #bienvenida .barra-progreso-inicio{margin:7px auto 10px;padding:10px 12px}
 #bienvenida #textoProgresoCartones{font-size:12px;margin-bottom:7px}
 #bienvenida>button:not(#boton-admin-oculto){margin:7px auto;min-height:44px;padding:10px 14px}
 #bienvenida>button.inicio-comprar{min-height:48px;font-size:18px}
-#bienvenida .flyer-ayuda{font-size:11px;color:#785480;margin:0 auto 7px;text-align:center}
+#bienvenida .flyer-ayuda{font-size:10px;color:#785480;margin:0 auto 4px;text-align:center}
 #flyer-ampliado{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(96vw,900px);max-width:96vw;max-height:96dvh;padding:12px;background:#fffdf8;border:1px solid #d4af37;border-radius:16px;color:#4b174f;overflow:auto}
 #flyer-ampliado::backdrop{background:#1e0829d9}
 #flyer-ampliado img{display:block;width:auto;max-width:100%;max-height:80dvh;height:auto;margin:auto;object-fit:contain;border-radius:8px}
