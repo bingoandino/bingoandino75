@@ -441,6 +441,18 @@
     seccion?.classList.add('consulta-compra');
     campo.inputMode = 'numeric';
     campo.autocomplete = 'off';
+    const claveCedulaConsulta = 'bingo_consulta_cedula_v1';
+    function guardarCedulaConsulta() {
+      const valor = campo.value.trim();
+      try {global.localStorage.setItem(claveCedulaConsulta,/^\d{5,12}$/.test(valor)?valor:'');} catch { /* Consultar sigue funcionando si el navegador bloquea el almacenamiento. */ }
+    }
+    try {
+      const guardada = global.localStorage.getItem(claveCedulaConsulta);
+      const anterior = guardada === null ? global.localStorage.getItem('cliente_cedula') : guardada;
+      if (!campo.value && /^\d{5,12}$/.test(anterior || '')) campo.value = anterior;
+    } catch { /* El almacenamiento no es obligatorio para consultar. */ }
+    campo.addEventListener('input', guardarCedulaConsulta);
+
     const intro = document.createElement('p');intro.className = 'consulta-intro';intro.textContent = 'Consulta el estado de tu pago y revisa tus cartones.';
     seccion?.querySelector('h2')?.insertAdjacentElement('afterend', intro);
     const label = document.createElement('label');label.htmlFor = campo.id;label.className = 'consulta-etiqueta';label.textContent = 'Número de cédula';campo.insertAdjacentElement('beforebegin', label);
@@ -690,6 +702,7 @@
       if (pendiente && cedula === cedulaPendiente) return pendiente;
       const actual = ++version;
       if (!/^\d{5,12}$/.test(cedula)) { restaurarBoton(); aviso('Ingresa la cédula usada en tu compra, solo números.'); campo.focus(); return Promise.resolve(); }
+      guardarCedulaConsulta();
       cedulaPendiente = cedula;
       aviso('Consultando el estado de tu compra…'); cont.setAttribute('aria-busy', 'true');
       if (boton) { boton.disabled = true; boton.textContent = 'Consultando…'; boton.setAttribute('aria-busy', 'true'); }

@@ -4,15 +4,17 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {JSDOM}=require('jsdom');
 const source=fs.readFileSync(path.join(__dirname,'..','referencia.js'),'utf8');
-function fixture(response){
+function fixture(response,opciones={}){
   const dom=new JSDOM('<div id="redes-sociales"><a href="https://wa.me/580000000000">Contacto ficticio</a></div><section><h2>Consultar cartones</h2><input id="consulta-cedula"><button onclick="consultarCartones()">Consultar</button><div id="cartones-usuario"></div></section>',{runScripts:'outside-only',url:'https://example.test'});
   const w=dom.window, calls=[];
   w.supabase={from(table){const call={table};calls.push(call);return {select(fields){call.fields=fields;return this;},eq(key,value){call.key=key;call.value=value;return this;},order(){return typeof response==='function'?response(call):Promise.resolve(response);}};}};
   w.createImageBitmap=async()=>({width:240,height:320,close(){}});
   w.HTMLCanvasElement.prototype.getContext=()=>({fillRect(){},drawImage(){}});w.HTMLCanvasElement.prototype.toBlob=function(fn){fn(new Blob(['PNG'],{type:'image/png'}));};
   w.urlCartonWebP=n=>`https://example.test/carton-${n}.webp`;
+  for(const [k,v] of Object.entries(opciones.guardado||{}))w.localStorage.setItem(k,v);
+  if(opciones.bloqueado)Object.defineProperty(w,'localStorage',{get(){throw new Error('Almacenamiento bloqueado');}});
   w.eval(source);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
-  const input=w.document.getElementById('consulta-cedula');input.value='12345678';
+  const input=w.document.getElementById('consulta-cedula');if(!opciones.restaurar)input.value='12345678';
   return {w,calls,input,cont:w.document.getElementById('cartones-usuario'),button:w.document.querySelector('button'),close:()=>w.close()};
 }
 test('compras mixtas se muestran por separado con instrucciones y cartones de cada estado',async()=>{
@@ -85,5 +87,15 @@ test('preparar sin activación permite compartir en la siguiente pulsación y ca
 test('la cuadrícula dibuja las cuatro imágenes originales sin recortar ni redimensionar',async()=>{
  const f=fixture({data:[{estado:'aprobado',cartones:['1','2','3','4']}]});
  try{f.w.Blob=Blob;f.w.File=File;const imagenes=[],dibujos=[];let cierres=0,canvas;f.w.fetch=async()=>({ok:true,blob:async()=>new Blob(['PNG'],{type:'image/png'})});f.w.createImageBitmap=async file=>{const bitmap={width:240,height:320,name:file.name,close(){cierres++;}};imagenes.push(bitmap);return bitmap;};f.w.HTMLCanvasElement.prototype.getContext=function(){canvas=this;return{fillRect(){},drawImage(...args){dibujos.push(args);}};};f.w.navigator.canShare=()=>true;f.w.navigator.share=async()=>{};await f.w.consultarCartones();await f.cont.querySelector('[data-accion=compartir-cartones]').onclick();assert.equal(imagenes.length,4);assert.equal(dibujos.length,4);dibujos.forEach((args,i)=>{assert.equal(args[0],imagenes[i]);assert.equal(args.length,3);});assert.deepEqual(dibujos.map(x=>x.slice(1)),[[24,24],[288,24],[24,368],[288,368]]);assert.equal(canvas.width,552);assert.equal(canvas.height,712);assert.equal(cierres,4);}finally{f.close();}
+});
+
+test('restaura la cédula guardada sin consultar automáticamente y guarda cambios y borrado',async()=>{
+ const f=fixture({data:[]},{guardado:{bingo_consulta_cedula_v1:'87654321',cliente_cedula:'11111111'},restaurar:true});
+ try{assert.equal(f.input.value,'87654321');assert.equal(f.calls.length,0);f.input.value='22222222';f.input.dispatchEvent(new f.w.Event('input'));assert.equal(f.w.localStorage.getItem('bingo_consulta_cedula_v1'),'22222222');assert.equal(f.w.localStorage.getItem('cliente_cedula'),'11111111');f.input.value='';f.input.dispatchEvent(new f.w.Event('input'));assert.equal(f.w.localStorage.getItem('bingo_consulta_cedula_v1'),'');}finally{f.close();}
+ const vacia=fixture({data:[]},{guardado:{bingo_consulta_cedula_v1:'',cliente_cedula:'11111111'},restaurar:true});try{assert.equal(vacia.input.value,'');}finally{vacia.close();}
+});
+test('usa la cédula del registro la primera vez y funciona con almacenamiento bloqueado',async()=>{
+ const f=fixture({data:[]},{guardado:{cliente_cedula:'12345678'},restaurar:true});try{assert.equal(f.input.value,'12345678');await f.w.consultarCartones();assert.equal(f.w.localStorage.getItem('bingo_consulta_cedula_v1'),'12345678');}finally{f.close();}
+ const bloqueada=fixture({data:[]},{bloqueado:true});try{await bloqueada.w.consultarCartones();assert.equal(bloqueada.calls.length,1);assert.match(bloqueada.cont.textContent,/No encontramos/);}finally{bloqueada.close();}
 });
 
