@@ -197,3 +197,31 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:29px;right:16px;font-size:17px}
 #bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:14px}
 @media(max-width:400px){#bienvenida .logo{width:100px}}
+
+/* Montañas tenues: decoración local, sin descargas adicionales. */
+body{isolation:isolate}
+body::before{display:block;position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221600%22%20height%3D%221000%22%20viewBox%3D%220%200%201600%201000%22%3E%3Cpath%20d%3D%22M0%20350%20170%20240%20310%20330%20520%20160%20780%20380%201010%20230%201190%20350%201400%20210%201600%20320V1000H0Z%22%20fill%3D%22%23eee6ef%22%20opacity%3D%22.48%22%2F%3E%3Cpath%20d%3D%22M0%20470%20230%20350%20430%20460%20660%20300%20920%20490%201120%20370%201360%20470%201600%20340V1000H0Z%22%20fill%3D%22%23e5d7e9%22%20opacity%3D%22.3%22%2F%3E%3Cpath%20d%3D%22M0%20580Q220%20445%20430%20550T850%20560T1260%20540T1600%20560%22%20fill%3D%22none%22%20stroke%3D%22%23c6a65d%22%20stroke-width%3D%223%22%20opacity%3D%22.48%22%2F%3E%3Cpath%20d%3D%22M0%20620Q230%20490%20460%20590T920%20590T1370%20580T1600%20610%22%20fill%3D%22none%22%20stroke%3D%22%23dbc995%22%20stroke-width%3D%222%22%20opacity%3D%22.3%22%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;background-position:center top;background-size:cover;opacity:1}
+/* Lista pública: reemplazar la prioridad explícita de los estilos antiguos. */
+#lista-aprobados{max-width:760px;padding:22px 14px!important;background:transparent}
+#lista-aprobados h2{color:#4b174f!important;text-shadow:none!important;font-size:26px!important;margin:0 0 16px!important;text-align:center!important}
+#lista-aprobados .aprobados-acciones{display:flex;align-items:stretch;gap:8px;max-width:620px;margin:0 auto}
+#lista-aprobados .aprobados-acciones button{flex:1;width:auto!important;max-width:none!important;margin:0!important;padding:11px 12px!important;font-size:12px!important;line-height:1.4!important;border-radius:12px!important;letter-spacing:0;text-transform:none}
+#lista-aprobados button{background:#4b174f!important;color:#fffdf8!important;border:1px solid #c5a355!important;border-radius:12px!important;box-shadow:none!important;font-size:14px!important;margin:14px auto!important;padding:12px 18px!important}
+#lista-aprobados button:hover{background:#612568!important;transform:none!important;box-shadow:none!important}
+#lista-aprobados #btnCopiarAprobados{background:#fffdf8!important;color:#4b174f!important;border-color:#d8c7dd!important}
+#lista-aprobados #estadoCompartirAprobados{max-width:620px;margin:8px auto;font-size:12px;line-height:1.5;color:#6f5377;text-align:center}
+#lista-aprobados #estadoCompartirAprobados:empty{display:none}
+#lista-aprobados #contenedor-aprobados{background:#fffdf8!important;border:1px solid #d8c7dd!important;border-radius:16px!important;box-shadow:0 4px 18px #4b174f08!important;padding:8px!important;margin:16px auto!important;max-width:620px!important;overflow:hidden}
+#lista-aprobados #contenedor-aprobados table{background:transparent!important;width:100%!important;table-layout:fixed;border-collapse:separate!important;border-spacing:0!important}
+#lista-aprobados #contenedor-aprobados table thead th{background:#4b174f!important;color:#fff3cf!important;border-radius:0!important;border-bottom:2px solid #c5a355!important;font-size:12px!important;padding:13px 7px!important;letter-spacing:.02em!important}
+#lista-aprobados #contenedor-aprobados table thead th:first-child{border-radius:9px 0 0 0!important}
+#lista-aprobados #contenedor-aprobados table thead th:last-child{border-radius:0 9px 0 0!important}
+#lista-aprobados #contenedor-aprobados table tbody td{color:#4b3a50!important;padding:13px 7px!important;font-size:14px!important;font-weight:400!important;border-bottom:1px solid #ebe1ee!important;overflow-wrap:anywhere;line-height:1.4}
+#lista-aprobados #contenedor-aprobados table tbody tr:nth-child(odd) td{background:#f6eff8!important}
+#lista-aprobados #contenedor-aprobados table tbody tr:nth-child(even) td{background:#fffdf8!important}
+#lista-aprobados #contenedor-aprobados table tbody tr:hover td{background:#eee2f1!important;color:#4b174f!important}
+#lista-aprobados #contenedor-aprobados table th:first-child,#lista-aprobados #contenedor-aprobados table td:first-child{width:20%!important}
+#lista-aprobados #contenedor-aprobados table th:nth-child(2),#lista-aprobados #contenedor-aprobados table td:nth-child(2){width:50%!important}
+#lista-aprobados #contenedor-aprobados table th:nth-child(3),#lista-aprobados #contenedor-aprobados table td:nth-child(3){width:30%!important}
+#lista-aprobados #contenedor-aprobados table tbody td:first-child{font-weight:700!important;color:#6b3474!important;font-size:14px!important}
+#lista-aprobados #contenedor-aprobados p{background:#f6eff8!important;color:#6f5377!important;padding:22px 12px!important;font-size:14px!important}

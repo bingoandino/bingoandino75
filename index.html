@@ -18,7 +18,7 @@
   <meta property="og:image" content="https://i.postimg.cc/wj0b7wG6/bingo-andino75.png" />
   <link rel="stylesheet" href="styles.css?v=20261024-referencia-completa">
   <link rel="stylesheet" href="publicacion.css?v=20261025-dorado-1">
-  <link rel="stylesheet" href="tema.css?v=20261025-barra-gruesa-1">
+  <link rel="stylesheet" href="tema.css?v=20261025-aprobados-montanas-1">
   <style>#textoCompartirAprobados[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -661,13 +661,15 @@
 
 
 <section id="lista-aprobados" class="oculto">
+  <h2>Lista de aprobados</h2>
+  <div class="aprobados-acciones">
     <button id="btnCopiarAprobados" onclick="copiarListaAprobados()">
-    📋
+    Copiar lista
   </button>
-  <button id="btnCompartirAprobados" type="button" onclick="compartirListaAprobados()">📤 Compartir enlace de aprobados</button>
+  <button id="btnCompartirAprobados" type="button" onclick="compartirListaAprobados()">Compartir enlace</button>
+  </div>
   <p id="estadoCompartirAprobados" role="status" aria-live="polite"></p>
   <textarea id="textoCompartirAprobados" readonly hidden rows="8" aria-label="Lista de aprobados para copiar" style="box-sizing:border-box;width:100%;text-align:left"></textarea>
-  <h2>Lista de Aprobados</h2>
   <div id="contenedor-aprobados"></div>
   <button onclick="mostrarVentana('bienvenida')">Inicio</button>
 </section>
