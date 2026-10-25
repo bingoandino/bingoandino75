@@ -128,3 +128,6 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #flyer-ampliado img{display:block;width:auto;max-width:100%;max-height:80dvh;height:auto;margin:auto;object-fit:contain;border-radius:8px}
 #flyer-ampliado button{width:100%;max-width:200px;margin:10px auto 0;min-height:44px;padding:10px}
 @media(max-width:400px){#bienvenida .logo{width:120px}}
+
+/* Aprobación con fondo discreto acorde a la marca. */
+#usuario #cartones-usuario .compra-estado[data-estado=aprobado]{--fondo:#f6f0f8;--borde:#8b6095;color:#4b174f}
