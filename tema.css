@@ -141,3 +141,14 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida #textoProgresoCartones{padding-right:57px;font-size:13px;line-height:1.45;margin:0 0 10px;font-weight:600}
 #bienvenida .barra-progreso-inicio[data-porcentaje]::after{content:attr(data-porcentaje);position:absolute;right:13px;top:12px;color:#6d4774;font-size:13px;font-weight:700}
 #bienvenida .barra-progreso-contenedor{height:7px}
+
+/* Fecha centrada y disponibilidad con acabado limpio. */
+#bienvenida #hora-venezuela{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px!important;text-align:center!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#hora-venezuela .fecha-etiqueta{font-size:10px;letter-spacing:.03em;color:#8a798e}
+#hora-venezuela .fecha-dia{font-size:15px;font-weight:700;line-height:1.35}
+#hora-venezuela .fecha-hora{font-size:13px;font-weight:400;color:#7e6485}
+#bienvenida .barra-progreso-inicio{position:relative;background:#fff;border:1px solid #e8ddeb;border-radius:16px;padding:15px 16px 20px;margin:5px auto 12px;box-shadow:0 3px 14px #4b174f06}
+#bienvenida #textoProgresoCartones{padding:0;text-align:center;font-size:14px;font-weight:600;line-height:1.4;margin:0 0 19px}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:auto;bottom:12px;right:14px;padding:4px 8px;border-radius:8px;background:#f3ebf5;color:#6b3b75;font-size:11px;line-height:1.4;font-weight:700;min-width:44px;text-align:center}
+#bienvenida .barra-progreso-contenedor{width:calc(100% - 62px);height:10px;background:#eee7f0;border-radius:999px;box-shadow:inset 0 1px 2px #4b174f0a;overflow:hidden}
+#bienvenida .barra-progreso-relleno{background:linear-gradient(90deg,#4b174f,#95609c);box-shadow:inset 0 0 0 1px #ffffff20}
