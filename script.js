@@ -1,3 +1,5 @@
+function escaparHTML(valor) { return String(valor ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function comprobanteURLSegura(valor) { try { const url=new URL(String(valor)); return url.protocol==='https:' && url.hostname==='dbkixcpwirjwjvjintkr.supabase.co' && url.pathname.startsWith('/storage/v1/object/public/comprobantes/') ? url.href : ''; } catch { return ''; } }
 var supabase = window.supabase;
 // Configuración del amin
 let sistemaListo = false;
@@ -224,7 +226,6 @@ async function logoutAdmin() {
   const deviceId = localStorage.getItem('admin_device_id');
   const sessionToken = sessionStorage.getItem('admin_session_token');
   
-  console.log('🔍 Datos para logout:', { email, deviceId, sessionToken });
   
   if (!email || !deviceId) {
     console.log("⚠️ No hay sesión activa completa");
@@ -260,7 +261,6 @@ async function logoutAdmin() {
     
     console.log('📡 Estado respuesta logout:', response.status);
     const result = await response.json();
-    console.log('📦 Resultado logout:', result);
     
     if (result.success) {
       console.log('✅ Logout exitoso en servidor');
@@ -484,7 +484,6 @@ async function loginAdmin() {
     
     console.log('📡 Estado respuesta:', response.status);
     const result = await response.json();
-    console.log('📦 Resultado:', result);
     
     if (!response.ok) {
       // MANEJO DE ERRORES ESPECÍFICOS
@@ -592,7 +591,7 @@ function mostrarInterfazOTP(email) {
     otpContainer.innerHTML = `
       <h3 style="color: #4CAF50; margin-top: 0;">🔐 Verificación en Dos Pasos</h3>
       <p>✅ <strong>Credenciales verificadas</strong></p>
-      <p>📧 Código enviado a: <strong id="otp-email-display">${email}</strong></p>
+      <p>📧 Código enviado a: <strong id="otp-email-display">${escaparHTML(email)}</strong></p>
       
       <div style="margin: 15px 0;">
         <label for="otp-code"><strong>Código de 6 dígitos:</strong></label><br>
@@ -717,7 +716,6 @@ async function verificarOTP() {
     }
     
     const result = await response.json();
-    console.log('✅ Sesión creada:', result);
     
     // 3. GUARDAR DATOS DE SESIÓN
     sessionStorage.setItem('admin_session_token', result.sessionToken);
@@ -1095,7 +1093,6 @@ async function mostrarPanelAdminSeguro(sessionToken) {
   sessionInfo.innerHTML = `
     🔒 <strong>SESIÓN SEGURA ACTIVA</strong><br>
     <small>Autenticación vía Edge Function</small><br>
-    <small>Token: ${sessionToken?.substring(0, 25)}...</small>
   `;
   const firstElement = panel.querySelector('h2').nextElementSibling;
   if (firstElement) panel.insertBefore(sessionInfo, firstElement.nextSibling);
@@ -1150,7 +1147,6 @@ function generateSessionToken() {
 
 // Mostrar panel admin con OTP
 async function mostrarPanelAdminOTP(sessionToken) {
-  console.log('🎉 Mostrando panel admin con token:', sessionToken);
   
   document.getElementById('admin-login').classList.add('oculto');
   document.getElementById('admin-panel').classList.remove('oculto');
@@ -1168,7 +1164,6 @@ async function mostrarPanelAdminOTP(sessionToken) {
   sessionInfo.innerHTML = `
     ✅ <strong>SESIÓN ÚNICA ACTIVA</strong><br>
     <small>Solo tú puedes acceder hasta que cierres sesión.</small><br>
-    <small>Token: ${sessionToken?.substring(0, 20)}...</small>
   `;
   
   const panel = document.getElementById('admin-panel');
@@ -1220,7 +1215,6 @@ function actualizarActividadSesion() {
   if (sessionToken) {
     // Aquí puedes hacer una llamada a tu Edge Function si quieres
     // registrar la actividad en el servidor
-    console.log('Sesión activa, token:', sessionToken.substring(0, 20) + '...');
   }
 }
 // Timer de inactividad
@@ -1402,15 +1396,15 @@ async function verListaAprobados() {
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td style="border: 1px solid #ccc; padding: 8px;">${item.nombre || ''}</td>
-      <td style="border: 1px solid #ccc; padding: 8px;">${item.cedula || ''}</td>
+      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}</td>
+      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.cedula || '')}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">
-        ${Array.isArray(item.cartones) ? item.cartones.join(', ') : ''}
+        ${escaparHTML(Array.isArray(item.cartones) ? item.cartones.join(', ') : '')}
       </td>
       <td style="border: 1px solid #ccc; padding: 8px;">
-  ${item.pago_banco || ''}<br>
-  ${item.pago_telefono || ''}<br>
-  ${item.pago_cedula || ''}
+  ${escaparHTML(item.pago_banco || '')}<br>
+  ${escaparHTML(item.pago_telefono || '')}<br>
+  ${escaparHTML(item.pago_cedula || '')}
 </td>
     `;
 
@@ -2194,7 +2188,7 @@ const { data: liberado, error: errorLiberar } = await supabase.rpc('rpc_liberar_
   });
 
   if (error || data !== true) {
-    alert('Ese cartón ya fue tomado por otra persona. Elige otro.');
+    alert(error?.message || 'Ese cartón ya fue tomado por otra persona. Elige otro.');
     await cargarCartones();
     return;
   }
@@ -2946,44 +2940,40 @@ cartonesOcupados = await fetchTodosLosOcupados();
     const tr = document.createElement('tr');
     tr.dataset.estadoActual = item.estado || 'pendiente';
     tr.innerHTML = `
-      <td>${item.nombre}</td>
+      <td>${escaparHTML(item.nombre)}</td>
       <td>
-        <a href="${buildWhatsAppLink(item.telefono, `Hola ${item.nombre}, te escribo de parte del equipo de bingoandino75.`)}"
+        <a href="${buildWhatsAppLink(item.telefono, `Hola ${escaparHTML(item.nombre)}, te escribo de parte del equipo de bingoandino75.`)}"
            target="_blank" rel="noopener">
-          ${item.telefono}
+          ${escaparHTML(item.telefono)}
         </a>
       </td>
-      <td>${item.cedula}</td>
-      <td>${item.referido}</td>
-      <td>${Array.isArray(item.cartones) ? item.cartones.join(', ') : ''}</td>
-      <td class="celda-ref" data-id="${item.id}">
-        <span class="ref-text">${item.referencia4dig || ''}</span>
+      <td>${escaparHTML(item.cedula)}</td>
+      <td>${escaparHTML(item.referido)}</td>
+      <td>${escaparHTML(Array.isArray(item.cartones) ? item.cartones.join(', ') : '')}</td>
+      <td class="celda-ref" data-id="${escaparHTML(item.id)}">
+        <span class="ref-text">${escaparHTML(item.referencia4dig || '')}</span>
         <button class="btn-accion btn-edit-ref" title="Editar">&#9998;</button>
       </td>
-      <td><a href="${item.comprobante}" target="_blank">
-            <img src="${item.comprobante}" alt="Comp." loading="lazy">
+      <td><a href="${escaparHTML(comprobanteURLSegura(item.comprobante))}" target="_blank">
+            <img src="${escaparHTML(comprobanteURLSegura(item.comprobante))}" alt="Comp." loading="lazy">
           </a></td>
           <td class="pago-ganador-admin">
-  <strong>${item.pago_banco || 'Sin banco'}</strong><br>
-  📱 ${item.pago_telefono || 'Sin número'}<br>
-  🪪 ${item.pago_cedula || 'Sin cédula'}
+  <strong>${escaparHTML(item.pago_banco || 'Sin banco')}</strong><br>
+  📱 ${escaparHTML(item.pago_telefono || 'Sin número')}<br>
+  🪪 ${escaparHTML(item.pago_cedula || 'Sin cédula')}
    <button
     class="btn-copiar-pago"
-    onclick="copiarPagoMovil(
-      '${item.pago_banco || ''}',
-      '${item.pago_telefono || ''}',
-      '${item.pago_cedula || ''}'
-    )">
+    >
     📋 Copiar
   </button>
 </td>
       <td>
         <span class="estado-circulo ${
-  item.estado === 'aprobado'
+  escaparHTML(item.estado === 'aprobado'
     ? 'verde'
     : item.estado === 'rechazado'
       ? 'naranja'
-      : 'rojo'
+      : 'rojo')
 }"></span>
         <button class="btn-accion btn-aprobar" title="Aprobar">&#x2705;</button>
         <button class="btn-accion btn-rechazar" title="Rechazar">&#x274C;</button>
@@ -2991,6 +2981,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
       </td>
     `;
 
+    tr.querySelector('.btn-copiar-pago')?.addEventListener('click',()=>copiarPagoMovil(item.pago_banco,item.pago_telefono,item.pago_cedula));
     const btnAprobar = tr.querySelector('.btn-aprobar');
     const btnRechazar = tr.querySelector('.btn-rechazar');
     const btnEliminar = tr.querySelector('.btn-eliminar');
@@ -3256,72 +3247,14 @@ async function abrirVentas() {
 }
 
 async function reiniciarTodo() {
-  if (!confirm('⚠️ ¿Estás seguro de reiniciar todo?\n\nEsto borrará todos los datos permanentemente.')) {
-    return;
-  }
-  
-  const claveIngresada = prompt('🔒 INGRESA LA CLAVE DE SEGURIDAD PARA CONTINUAR:');
-  
-  if (!claveIngresada) {
-    alert('❌ Operación cancelada. No se ingresó clave.');
-    return;
-  }
-  
-  const { data: claveData, error } = await supabase
-    .from('configuracion')
-    .select('valore')
-    .eq('clave', 'clave_reinicio')
-    .single();
-  
-  if (error || !claveData) {
-    alert('❌ Error del sistema. No se pudo verificar la clave.');
-    return;
-  }
-  
-  const claveCorrecta = claveData.valore;
-  
-  if (claveIngresada.trim() !== claveCorrecta) {
-    alert('❌ CLAVE INCORRECTA\n\nOperación cancelada por seguridad.');
-    return;
-  }
-  
-  if (!confirm('🔥 ÚLTIMA CONFIRMACIÓN\n\n¿Estás ABSOLUTAMENTE seguro?\n\nEsto NO se puede deshacer.')) {
-    alert('✅ Operación cancelada.');
-    return;
-  }
-  
-  await supabase.from('inscripciones').delete().neq('cedula', '');
-  await supabase.from('cartones').delete().neq('numero', 0);
-
-  let totalEliminados = 0;
-  const pageSize = 1500;
-  let offset = 0;
-
-  while (true) {
-    const { data: files, error: listErr } = await supabase.storage
-      .from('comprobantes')
-      .list('', { limit: pageSize, offset, sortBy: { column: 'name', order: 'asc' } });
-
-    if (listErr) {
-      alert('Error listando comprobantes: ' + listErr.message);
-      break;
-    }
-    if (!files || files.length === 0) break;
-
-    const names = files.map(f => f.name);
-    const { error: delErr } = await supabase.storage.from('comprobantes').remove(names);
-    if (delErr) {
-      alert('Error eliminando comprobantes: ' + delErr.message);
-      break;
-    }
-
-    totalEliminados += names.length;
-    if (files.length < pageSize) break;
-    offset += pageSize;
-  }
-
-  alert(`✅ Datos reiniciados. Comprobantes eliminados: ${totalEliminados}`);
-  location.reload();
+  if (!confirm('¿Reiniciar el sorteo? Se guardará un respaldo privado antes de vaciar compras y reservas. Los resultados publicados se conservarán.')) return;
+  if (prompt('Escribe REINICIAR para confirmar') !== 'REINICIAR') return;
+  try {
+    const {error} = await supabase.rpc('rpc_reiniciar_sorteo_seguro');
+    if (error) throw error;
+    alert('Sorteo reiniciado. El respaldo y sus comprobantes se conservaron.');
+    location.reload();
+  } catch { alert('No se pudo reiniciar. Verifica tu sesión de administrador.'); }
 }
 
 // ==================== FUNCIONES DE MODAL ====================
@@ -3577,9 +3510,9 @@ async function cargarListaAprobadosSeccion() {
   filas.forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${item.carton}</td>
-      <td>${item.nombre}</td>
-      <td>${'*'.repeat(Math.max(0, String(item.cedula || '').length - 4))}${String(item.cedula || '').slice(-4)}</td>
+      <td>${escaparHTML(item.carton)}</td>
+      <td>${escaparHTML(item.nombre)}</td>
+      <td>${escaparHTML('*'.repeat(Math.max(0, String(item.cedula || '').length - 4)))}${escaparHTML(String(item.cedula || '').slice(-4))}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -3919,7 +3852,7 @@ function editarReferencia(td) {
   const prev = (td.querySelector('.ref-text')?.textContent || '').trim();
 
   td.innerHTML = `
-    <input class="ref-input" type="text" maxlength="4" value="${prev}">
+    <input class="ref-input" type="text" maxlength="4" value="${escaparHTML(prev)}">
     <button class="btn-mini btn-guardar">Guardar</button>
     <button class="btn-mini btn-cancelar">Cancelar</button>
   `;
@@ -3957,7 +3890,7 @@ function editarReferencia(td) {
     }
 
     td.innerHTML = `
-      <span class="ref-text">${val}</span>
+      <span class="ref-text">${escaparHTML(val)}</span>
       <button class="btn-accion btn-edit-ref" title="Editar">&#9998;</button>
     `;
     td.querySelector('.btn-edit-ref').onclick = () => editarReferencia(td);
@@ -3965,7 +3898,7 @@ function editarReferencia(td) {
 
   btnCancel.onclick = () => {
     td.innerHTML = `
-      <span class="ref-text">${prev}</span>
+      <span class="ref-text">${escaparHTML(prev)}</span>
       <button class="btn-accion btn-edit-ref" title="Editar">&#9998;</button>
     `;
     td.querySelector('.btn-edit-ref').onclick = () => editarReferencia(td);
@@ -4006,7 +3939,7 @@ function renderDuplicadosAprobados(lista, tipoClave) {
 
   if (!lista.length) {
     cont.innerHTML = `<p style="color:#4caf50;font-weight:600;">
-      No se encontraron duplicados por ${tipoClave} entre los aprobados.
+      No se encontraron duplicados por ${escaparHTML(tipoClave)} entre los aprobados.
     </p>`;
     return;
   }
@@ -4022,27 +3955,28 @@ function renderDuplicadosAprobados(lista, tipoClave) {
     const detalleId = `dup-detalle-${tipoClave}-${index}`;
 
     card.innerHTML = `
-      <div class="duplicado-header" onclick="toggleDuplicado('${detalleId}')">
-        <span>${titulo}</span>
-        <span>${g.items.length} veces ▼</span>
+      <div class="duplicado-header" >
+        <span>${escaparHTML(titulo)}</span>
+        <span>${escaparHTML(g.items.length)} veces ▼</span>
       </div>
 
-      <div id="${detalleId}" class="duplicado-detalle">
+      <div id="${escaparHTML(detalleId)}" class="duplicado-detalle">
         ${g.items.map(x => {
           const carts = Array.isArray(x.cartones) ? x.cartones.join(', ') : '';
 
           return `
             <div class="persona-item">
-              <strong>${x.nombre || 'Sin nombre'}</strong><br>
-              CI: ${x.cedula || 'N/A'}
-              ${x.telefono ? `<br>Tel: ${x.telefono}` : ''}
-              ${carts ? `<br>Cartones: ${carts}` : ''}
+              <strong>${escaparHTML(x.nombre || 'Sin nombre')}</strong><br>
+              CI: ${escaparHTML(x.cedula || 'N/A')}
+              ${x.telefono ? `<br>Tel: ${escaparHTML(x.telefono)}` : ''}
+              ${carts ? `<br>Cartones: ${escaparHTML(carts)}` : ''}
             </div>
           `;
         }).join('')}
       </div>
     `;
 
+    card.querySelector('.duplicado-header')?.addEventListener('click',()=>toggleDuplicado(detalleId));
     cont.appendChild(card);
   });
 }
@@ -4337,11 +4271,11 @@ async function subirCartones() {
 
   if (errores.length) {
     status.innerHTML = `
-      <p style="color:red;">Se subieron ${subidas}, pero hubo errores:</p>
-      <ul>${errores.map(e => `<li>${e}</li>`).join('')}</ul>
+      <p style="color:red;">Se subieron ${escaparHTML(subidas)}, pero hubo errores:</p>
+      <ul>${errores.map(e => `<li>${escaparHTML(e)}</li>`).join('')}</ul>
     `;
   } else {
-    status.innerHTML = `<p style="color:green;">✅ ${subidas} imágenes fueron convertidas a WebP y subidas exitosamente.</p>`;
+    status.innerHTML = `<p style="color:green;">✅ ${escaparHTML(subidas)} imágenes fueron convertidas a WebP y subidas exitosamente.</p>`;
   }
 
   setTimeout(() => {
@@ -4403,11 +4337,11 @@ async function borrarCartones() {
 
     if (deleteError) throw deleteError;
 
-    status.innerHTML = `<p style="color:green;">✅ Se borraron ${fileNames.length} imágenes exitosamente.</p>`;
+    status.innerHTML = `<p style="color:green;">✅ Se borraron ${escaparHTML(fileNames.length)} imágenes exitosamente.</p>`;
     
   } catch (error) {
     console.error('Error borrando cartones:', error);
-    status.innerHTML = `<p style="color:red;">❌ Error al borrar imágenes: ${error.message}</p>`;
+    status.innerHTML = `<p style="color:red;">❌ Error al borrar imágenes: ${escaparHTML(error.message)}</p>`;
   }
 
   setTimeout(() => {
@@ -4545,7 +4479,7 @@ function iniciarContadorReserva(minutos = 5) {
     const seg = restante % 60;
 
     div.innerHTML =
-      `⏳ Reserva activa: ${min}:${seg.toString().padStart(2,'0')}`;
+      `⏳ Reserva activa: ${escaparHTML(min)}:${escaparHTML(seg.toString().padStart(2,'0'))}`;
 
     if (restante <= 60) {
       div.style.background = 'rgba(239,71,111,.2)';
@@ -4634,9 +4568,9 @@ async function cargarTopCompradores() {
     <ol class="top-compradores-lista">
       ${top.map((p, i) => `
         <li>
-          <strong>#${i + 1} ${p.nombre}</strong><br>
-          Cédula: ****${String(p.cedula || '').slice(-4)}<br>
-          Cartones comprados: <strong>${p.total}</strong>
+          <strong>#${escaparHTML(i + 1)} ${escaparHTML(p.nombre)}</strong><br>
+          Cédula: ****${escaparHTML(String(p.cedula || '').slice(-4))}<br>
+          Cartones comprados: <strong>${escaparHTML(p.total)}</strong>
         </li>
       `).join('')}
     </ol>
@@ -4911,7 +4845,7 @@ if (seleccionAleatoriaEnProceso) return;
 
   if (error) {
     console.error(error);
-    alert('Error eligiendo cartones aleatorios.');
+    alert(error.message || 'Error eligiendo cartones aleatorios.');
     return;
   }
 

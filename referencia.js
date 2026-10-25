@@ -1,3 +1,88 @@
+// Credencial de reserva por pestaña y autenticación real en las acciones del administrador.
+(function(global){
+ 'use strict';
+ let token;
+ try{token=global.sessionStorage.getItem('bingo_reserva_credencial_v1');}catch{}
+ if(!/^[a-f0-9-]{36,128}$/.test(token||'')){
+  token=Array.from(global.crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
+  try{global.sessionStorage.setItem('bingo_reserva_credencial_v1',token);}catch{}
+ }
+ const cliente=global.supabase;
+ if(cliente && typeof cliente.rpc==='function' && cliente.auth && typeof cliente.from==='function'){
+  const rpc=cliente.rpc.bind(cliente);
+  cliente.rpc=function(nombre,...args){
+   const protegidas={rpc_reservar_carton:'rpc_reservar_carton_seguro',rpc_reservar_cartones_aleatorios:'rpc_reservar_cartones_aleatorios_seguro',rpc_liberar_reserva:'rpc_liberar_reserva_seguro'};
+   const consulta=rpc(protegidas[nombre]||nombre,...args);
+   if(['rpc_reservar_carton','rpc_reservar_cartones_aleatorios','rpc_liberar_reserva'].includes(nombre)){
+    if(typeof consulta.setHeader!=='function')throw new Error('Actualiza la página para activar la protección de reservas.');
+    return consulta.setHeader('x-bingo-reserva',token);
+   }
+   return consulta;
+  };
+  const from=cliente.from.bind(cliente);
+  cliente.from=function(tabla){
+   const constructor=from(tabla);
+   if(tabla==='inscripciones' && typeof constructor.insert==='function'){
+    const insertar=constructor.insert.bind(constructor);
+    constructor.insert=function(...args){
+     const filas=args[0];if(!Array.isArray(filas)||filas.length!==1)throw new Error('Envía una compra a la vez.');
+     const consulta=rpc('rpc_registrar_compra_segura',{_compra:filas[0]});
+     if(typeof consulta.setHeader!=='function')throw new Error('Actualiza la página para enviar la compra de forma segura.');
+     return consulta.setHeader('x-bingo-reserva',token);
+    };
+   }
+   return constructor;
+  };
+ }
+ if(typeof global.fetch==='function'){
+  const original=global.fetch.bind(global);
+  global.fetch=async function(entrada,opciones){
+   const url=typeof entrada==='string'?entrada:entrada?.url;
+   if(typeof url==='string' && /^https:\/\/dbkixcpwirjwjvjintkr\.supabase\.co\/functions\/v1\/(admin-auth|verify-session|update-session|create-session)(?:\?|$)/.test(url)){
+    let accion;try{accion=JSON.parse(opciones?.body||'{}').action;}catch{}
+    if(accion!=='verify_credentials' && global.supabase?.auth){
+     const {data,error}=await global.supabase.auth.getSession();
+     if(error || !data?.session?.access_token) return new Response(JSON.stringify({error:'Debes verificar tu acceso de administrador.',valid:false}),{status:401,headers:{'Content-Type':'application/json'}});
+     const headers=new Headers(opciones?.headers||{});headers.set('Authorization','Bearer '+data.session.access_token);
+     opciones={...opciones,headers};
+    }
+   }
+   return original(entrada,opciones);
+  };
+ }
+ function respaldos(){
+  const panel=document.getElementById('admin-panel');if(!panel)return;
+  const caja=document.createElement('div');caja.style.cssText='margin:20px 0;padding:18px;border:2px solid #ffbf36;border-radius:14px';
+  const titulo=document.createElement('h3');titulo.textContent='Respaldos del sorteo';caja.appendChild(titulo);
+  const aviso=document.createElement('p');aviso.setAttribute('role','status');
+  const crear=document.createElement('button');crear.textContent='Crear respaldo ahora';
+  const listar=document.createElement('button');listar.textContent='Consultar respaldos';
+  const lista=document.createElement('div');
+  caja.append(crear,listar,aviso,lista);panel.appendChild(caja);
+  crear.onclick=async()=>{crear.disabled=true;try{const{error}=await global.supabase.rpc('rpc_respaldar_sorteo',{_motivo:'Respaldo manual del administrador'});if(error)throw error;aviso.textContent='Respaldo guardado.';}catch{aviso.textContent='No se pudo crear el respaldo. Verifica tu acceso.';}finally{crear.disabled=false;}};
+  listar.onclick=async()=>{
+   listar.disabled=true;lista.replaceChildren();
+   try{
+    const{data,error}=await global.supabase.rpc('rpc_listar_respaldos');if(error)throw error;
+    if(!data?.length)aviso.textContent='No hay respaldos registrados.';
+    for(const respaldo of data||[]){
+     const fila=document.createElement('div');fila.style.cssText='padding:12px;border-bottom:1px solid #999';
+     const texto=document.createElement('p');texto.textContent=`${new Date(respaldo.fecha).toLocaleString('es-VE',{timeZone:'America/Caracas'})} · ${respaldo.compras} compras · ${respaldo.cartones} cartones · ${respaldo.motivo}`;
+     const restaurar=document.createElement('button');restaurar.textContent='Restaurar este respaldo';
+     restaurar.onclick=async()=>{
+      if(!global.confirm('Pausa el bot y las ventas antes de restaurar. Esta acción sustituirá los datos del sorteo actual por este respaldo. Antes se guardará otra copia del estado actual.'))return;
+      if(global.prompt('Escribe RESTAURAR para confirmar')!=='RESTAURAR')return;
+      restaurar.disabled=true;
+      try{const{error}=await global.supabase.rpc('rpc_restaurar_sorteo',{_respaldo:respaldo.id});if(error)throw error;global.alert('Sorteo restaurado.');global.location.reload();}catch{aviso.textContent='No se pudo restaurar. Los cambios de una restauración fallida se revierten.';restaurar.disabled=false;}
+     };
+     fila.append(texto,restaurar);lista.appendChild(fila);
+    }
+   }catch{aviso.textContent='No se pudieron consultar los respaldos. Verifica tu acceso.';}finally{listar.disabled=false;}
+  };
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',respaldos,{once:true});else respaldos();
+})(window);
+
 (function (global) {
   'use strict';
   function normalizar(valor) {
