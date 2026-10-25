@@ -548,7 +548,7 @@
         const valor = JSON.parse(global.sessionStorage.getItem(clave));
         if (!valor || valor.schema !== 1 || !Number.isFinite(valor.guardado) || Date.now() - valor.guardado > vigencia || valor.guardado > Date.now() + 60000) return null;
         if (!valor.campos || !Array.isArray(valor.reservas) || valor.reservas.length > 10000) return null;
-        if (!valor.reservas.length && ['cartones','pago'].includes(valor.etapa)) return null;
+        if (!valor.reservas.length && ['bienvenida','cartones','pago'].includes(valor.etapa)) return null;
         if (valor.reservas.length && caducidad(valor) <= Date.now()) return null;
         return valor;
       } catch { return null; }

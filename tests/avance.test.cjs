@@ -116,3 +116,6 @@ test('el temporizador retira el aviso al vencer aunque el cliente no cambie de p
 test('después de vencer se puede empezar una nueva selección y guardar su nueva reserva',async()=>{
  const f=fixture();try{await selected(f);f.setNow(f.now+300000);f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));assert.equal(f.save(),null);f.rows[0].reserved_at=new Date(f.now).toISOString();await f.w.toggleCarton(12);await f.w.mostrarVentana('pago');assert.deepEqual(Array.from(f.w.usuario.cartones),[12]);assert.ok(f.save());assert.match(f.w.document.getElementById('contadorReserva').textContent,/5:00/);}finally{f.close();}
 });
+test('un avance vacío guardado en Inicio por una versión anterior no muestra el anuncio',()=>{
+ const draft=JSON.stringify({schema:1,guardado:Date.now(),campos:{cedula:'12345678'},reservas:[],etapa:'bienvenida'});const f=fixture({draft});try{assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);}finally{f.close();}
+});
