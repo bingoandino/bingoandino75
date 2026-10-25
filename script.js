@@ -4996,6 +4996,48 @@ function copiarTodoPagoMovil() {
 }
 
 
+function textoListaAprobados() {
+  const filas = Array.from(document.querySelectorAll('#contenedor-aprobados tbody tr'));
+  const lista = filas.map(fila => {
+    const celdas = fila.querySelectorAll('td');
+    if (celdas.length < 2) return null;
+    const carton = celdas[0].textContent.trim();
+    const nombre = celdas[1].textContent.trim().replace(/\s+/g, ' ');
+    return carton ? `🎟️ Cartón ${carton} · ${nombre}` : null;
+  }).filter(Boolean);
+  if (!lista.length) return '';
+  const fecha = new Date().toLocaleDateString('es-VE', {day:'numeric', month:'long', year:'numeric', timeZone:'America/Caracas'});
+  return `📋 LISTA DE APROBADOS\nBingoAndino75\n📅 ${fecha}\n\n${lista.join('\n')}\n\nTotal: ${lista.length} cartones aprobados\nbingoandino75.com`;
+}
+
+async function compartirListaAprobados() {
+  const texto = textoListaAprobados();
+  const estado = document.getElementById('estadoCompartirAprobados');
+  const manual = document.getElementById('textoCompartirAprobados');
+  const boton = document.getElementById('btnCompartirAprobados');
+  estado.textContent = '';manual.hidden = true;
+  if (!texto) {estado.textContent = 'No hay aprobados para compartir.';return;}
+  boton.disabled = true;
+  try {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({title:'Lista de aprobados · BingoAndino75', text:texto});
+        estado.textContent = 'Lista enviada a la opción elegida.';
+        return;
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(texto);
+      estado.textContent = 'Lista copiada. Abre WhatsApp y pégala donde quieras compartirla.';
+    } catch {
+      manual.value = texto;manual.hidden = false;manual.focus();manual.select();
+      estado.textContent = 'Mantén pulsada la lista y elige Copiar; luego pégala en WhatsApp.';
+    }
+  } finally {boton.disabled = false;}
+}
+
 async function copiarListaAprobados() {
   const filas = document.querySelectorAll('#contenedor-aprobados tbody tr');
 
@@ -5068,4 +5110,5 @@ window.forzarCerrarSesionRemota = forzarCerrarSesionRemota;
 window.recuperarPasswordAdmin = recuperarPasswordAdmin;
 
 console.log('✅ Sistema de sesión única configurado correctamente');
+
 
