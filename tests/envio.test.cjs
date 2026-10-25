@@ -28,6 +28,7 @@ test('los tiempos de red excluyen URLs privadas y recursos de otros servicios',a
   let observe;
   const f=await fixture(async()=>{},w=>{
     w.supabase={supabaseUrl:'https://ejemplo.supabase.co'};
+    Object.defineProperty(w.performance,'now',{value:()=>1000});
     w.PerformanceObserver=class {constructor(callback){observe=callback;}observe(){}disconnect(){}};
   });
   try{observe({getEntries:()=>[
