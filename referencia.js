@@ -696,13 +696,22 @@
         aplicar(validas);
         if(seleccion.some(n=>consulta.enviadas.has(n))){usuario.cartones=[];sellos.clear();vence=0;borrar();await abrir.call(global,'usuario');document.getElementById('consulta-cedula').value=cedula;avisar('Ya existe una compra enviada con estos cartones. Consulta su estado antes de volver a enviar o pagar.');return;}
         const completa=numeros().length===cantidadPermitida&&vence>Date.now();
-        await abrir.call(global,completa&&borrador.etapa==='pago'?'pago':numeros().length?'cartones':'cantidad');
+        await abrir.call(global,borrador.etapa==='inscripcion'?'inscripcion':completa&&borrador.etapa==='pago'?'pago':numeros().length?'cartones':'cantidad');
         pintarSeleccion();arrancarReloj();restaurando=false;guardar();caja.remove();
         avisar(completa?'Recuperamos tus datos y la reserva vigente. Revisa el monto y vuelve a seleccionar el archivo del comprobante; el navegador no conserva ese archivo al recargar.':'Recuperamos tus datos. Los cartones vencidos o no confirmados no se recuperaron. Revisa la cantidad y vuelve a elegir los que falten. Si ya pagaste, contacta a soporte antes de pagar nuevamente.');
       }catch{avisar('No se pudo recuperar la compra. Revisa tu conexión y vuelve a pulsar Retomar compra.');}
       finally{restaurando=false;retomar.disabled=false;retomar.textContent='Retomar compra';if(recuperado && document.getElementById('retomar-compra'))guardar();}
     };
     document.getElementById('bienvenida')?.prepend(caja);
+    try {
+      const recarga=global.performance?.getEntriesByType?.('navigation')?.[0]?.type==='reload';
+      const pasoCompra=['inscripcion','cantidad','cartones','pago'].includes(borrador.etapa);
+      const administrador=global.sessionStorage.getItem('admin_session_token');
+      if(recarga && pasoCompra && !administrador) global.queueMicrotask(()=>{
+        avisar('Recuperando tu compra. Estamos comprobando los datos y la reserva…');
+        retomar.onclick();
+      });
+    } catch { /* Si el navegador no informa la recarga, queda disponible Retomar compra. */ }
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarAvance,{once:true});else instalarAvance();
 })(window);
@@ -720,7 +729,7 @@
     function escribir(id,reemplazar=false){
       try{global.history[reemplazar?'replaceState':'pushState']({[campo]:id},'');}catch{/* Si no hay History API, siguen funcionando los botones de la página. */}
     }
-    // Tras una recarga el avance se recupera expresamente con «Retomar compra».
+    // El historial comienza en la vista visible; la recuperación validada registra luego el paso restaurado.
     escribir(ultima,true);
     function registrar(){
       const id=actual();

@@ -11,6 +11,8 @@ function fixture(options={}){
  w.mostrarVentana=async id=>{w.document.querySelectorAll('section').forEach(s=>s.classList.toggle('oculto',s.id!==id));if(id==='pago')w.iniciarContadorReserva(5);};
  w.iniciarContadorReserva=()=>{};w.toggleCarton=async numero=>{w.usuario.cartones=w.usuario.cartones.includes(numero)?w.usuario.cartones.filter(n=>n!==numero):[...w.usuario.cartones,numero];};w.cargarCartones=async()=>{};w.actualizarMonto=()=>{};w.enviarComprobante=async()=>{calls.send++;};
  if(options.draft)w.sessionStorage.setItem(key,options.draft);
+ if(options.reload)w.performance.getEntriesByType=()=>[{type:'reload'}];
+ if(options.admin)w.sessionStorage.setItem('admin_session_token','sesion-ficticia');
  w.eval(block);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
  return{w,rows,calls,setNow:value=>{now=value;},get now(){return now;},save:()=>w.sessionStorage.getItem(key),close:()=>w.close()};
 }
@@ -60,4 +62,17 @@ test('un borrador de más de treinta minutos no se ofrece para recuperar',async(
 test('recargar otra vez sin retomar todavía no sobrescribe el avance guardado',async()=>{
  const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
  const f=fixture({draft});try{f.w.dispatchEvent(new f.w.Event('pagehide'));assert.equal(f.save(),draft);}finally{f.close();}
+});
+async function esperarRecuperacion(f){for(let i=0;i<30;i++){await new Promise(resolve=>setTimeout(resolve,5));if(!f.w.document.getElementById('retomar-compra')||f.w.document.getElementById('avance-compra-estado')?.textContent.includes('No se pudo recuperar'))return;}}
+test('una recarga vuelve automáticamente a pago validando la reserva sin reiniciar el reloj',async()=>{
+ const first=fixture();let draft,rows;try{draft=await selected(first);rows=first.rows;}finally{first.close();}
+ const f=fixture({draft,rows,reload:true});try{await esperarRecuperacion(f);assert.equal(f.w.document.getElementById('pago').classList.contains('oculto'),false);assert.deepEqual(Array.from(f.w.usuario.cartones),[12]);assert.match(f.w.document.getElementById('contadorReserva').textContent,/3:|4:/);assert.equal(f.calls.send,0);assert.equal(f.calls.rpc,0);}finally{f.close();}
+});
+test('recargar con reserva vencida recupera datos y cantidad sin regresar a pago',async()=>{
+ const first=fixture();let draft,rows;try{draft=await selected(first);rows=first.rows.map(r=>({...r,reserved_at:new Date(Date.now()-600000).toISOString()}));}finally{first.close();}
+ const f=fixture({draft,rows,reload:true});try{await esperarRecuperacion(f);assert.equal(f.w.document.getElementById('pago').classList.contains('oculto'),true);assert.equal(f.w.usuario.cartones.length,0);assert.equal(f.w.document.getElementById('cantidad').classList.contains('oculto'),false);}finally{f.close();}
+});
+test('la recarga no recupera una compra encima de una sesión de administrador',async()=>{
+ const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
+ const f=fixture({draft,reload:true,admin:true});try{await new Promise(resolve=>setTimeout(resolve,15));assert.equal(f.w.document.getElementById('bienvenida').classList.contains('oculto'),false);assert.ok(f.w.document.getElementById('retomar-compra'));assert.equal(f.calls.reads,0);}finally{f.close();}
 });
