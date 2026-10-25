@@ -533,3 +533,176 @@
   else instalar();
 })(window);
 
+
+// Recuperación en esta pestaña y reloj basado en la reserva registrada en el servidor.
+(function (global) {
+  'use strict';
+  function instalarAvance() {
+    if (!global.supabase || typeof global.toggleCarton !== 'function' || typeof global.iniciarContadorReserva !== 'function' || !document.getElementById('contadorReserva')) return;
+    const clave = 'bingo_compra_en_curso_v1', vigencia = 30 * 60 * 1000;
+    const campos = ['nombre', 'telefono', 'cedula', 'referido', 'cantidadCartones', 'referencia4dig'];
+    let sellos = new Map(), vence = 0, reloj = null, sincronizando = null, demora = null, enviando = false, restaurando = false, envioIntentado = false, trabajando = false;
+    const numeros = () => Array.isArray(usuario.cartones) ? usuario.cartones.map(Number).filter(Number.isSafeInteger) : [];
+    function leer() {
+      try {
+        const valor = JSON.parse(global.sessionStorage.getItem(clave));
+        if (!valor || valor.schema !== 1 || !Number.isFinite(valor.guardado) || Date.now() - valor.guardado > vigencia || valor.guardado > Date.now() + 60000) return null;
+        if (!valor.campos || !Array.isArray(valor.reservas) || valor.reservas.length > 10000) return null;
+        return valor;
+      } catch { return null; }
+    }
+    function escribir(valor) { try { if (valor) global.sessionStorage.setItem(clave, JSON.stringify(valor)); else global.sessionStorage.removeItem(clave); } catch { /* El bloqueo del almacenamiento no impide comprar. */ } }
+    function avisar(mensaje) {
+      let nodo = document.getElementById('avance-compra-estado');
+      if (!nodo) { nodo = document.createElement('p'); nodo.id = 'avance-compra-estado'; nodo.setAttribute('role','status'); nodo.style.cssText='padding:14px;border:2px solid #ffbf36;border-radius:12px;background:#17204f;color:#fff;line-height:1.5'; }
+      const seccion = document.querySelector('section:not(.oculto)');
+      if (seccion) seccion.prepend(nodo);
+      nodo.textContent = mensaje;
+    }
+    function guardar() {
+      if (restaurando || !trabajando) return;
+      const valores = Object.fromEntries(campos.map(id => [id, String(document.getElementById(id)?.value || '').slice(0, id === 'referencia4dig' ? 64 : 160)]));
+      if (!valores.nombre && !valores.cedula) return;
+      const mismaCedula = String(usuario.cedula || '').trim() === valores.cedula.trim();
+      const seleccion = mismaCedula ? numeros() : [];
+      escribir({schema:1, guardado:Date.now(), campos:valores, cantidad:cantidadPermitida, version:String(versionCartones), precio:precioPorCarton, envioIntentado,
+        reservas:seleccion.map(numero => ({numero, sello:sellos.get(numero) || null})), etapa:document.querySelector('section:not(.oculto)')?.id || 'inscripcion'});
+    }
+    function borrar() { escribir(null); document.getElementById('retomar-compra')?.remove(); }
+    function actualizarReloj() {
+      const restantes = vence ? Math.max(0, Math.ceil((vence - Date.now()) / 1000)) : null;
+      for (const id of ['contadorReserva','contadorReservaSeleccion']) {
+        const nodo = document.getElementById(id); if (!nodo) continue;
+        nodo.textContent = !numeros().length ? '' : restantes === null ? '⏳ Verificando el tiempo de tu reserva…' : restantes === 0 && enviando ? '⏳ Envío en curso. Espera la confirmación.' : restantes === 0 ? '⛔ La reserva venció. Debes volver a elegir tus cartones.' : `⏳ Tiempo de reserva: ${Math.floor(restantes / 60)}:${String(restantes % 60).padStart(2,'0')}`;
+        nodo.style.borderColor = restantes !== null && restantes <= 60 ? '#ef476f' : '#ffbf36';
+      }
+      if (vence && restantes === 0 && !enviando) {
+        usuario.cartones = []; sellos.clear(); vence = 0; global.clearInterval(reloj); reloj = null; guardar(); pintarSeleccion();
+        avisar('Tu reserva venció. Vuelve a seleccionar cartones antes de continuar. Si ya realizaste el pago, contacta a soporte antes de pagar nuevamente.');
+        // La limpieza del servidor libera las reservas vencidas; aquí nunca se borra una compra enviada.
+      }
+    }
+    function arrancarReloj() {
+      if (typeof timerReserva !== 'undefined') global.clearInterval(timerReserva);
+      global.clearInterval(reloj); actualizarReloj();
+      if (vence && numeros().length) reloj = global.setInterval(actualizarReloj, 1000);
+    }
+    const contador = document.createElement('div'); contador.id='contadorReservaSeleccion'; contador.className='contador-reserva';
+    document.getElementById('cartones')?.querySelector('h2')?.after(contador);
+    async function consultar(cedula, seleccion) {
+      const limitar = consulta => typeof consulta.abortSignal === 'function' && global.AbortSignal?.timeout ? consulta.abortSignal(global.AbortSignal.timeout(15000)) : consulta;
+      const resultados = await Promise.all([
+        limitar(global.supabase.from('cartones').select('numero,cedula,reserved_at,created_at,partida_id').eq('cedula', cedula).in('numero', seleccion)),
+        limitar(global.supabase.from('inscripciones').select('cartones').eq('cedula', cedula).in('estado', ['pendiente','aprobado']))
+      ]);
+      if (resultados.some(r => r.error || !Array.isArray(r.data))) throw new Error('No se pudo verificar la reserva');
+      return {filas:resultados[0].data, enviadas:new Set(resultados[1].data.flatMap(r => (r.cartones || []).map(Number)))};
+    }
+    function validar(filas, enviadas, seleccion, anteriores = null) {
+      const validas = new Map();
+      for (const fila of filas) {
+        const numero=Number(fila.numero), sello=fila.reserved_at || fila.created_at, tiempo=Date.parse(sello);
+        if (!seleccion.includes(numero) || fila.partida_id != null || enviadas.has(numero) || !Number.isFinite(tiempo) || tiempo + 300000 <= Date.now()) continue;
+        if (anteriores && anteriores.get(numero) !== sello) continue;
+        validas.set(numero,sello);
+      }
+      return validas;
+    }
+    function aplicar(validas) {
+      sellos=validas; usuario.cartones=numeros().filter(n => validas.has(n));
+      vence=sellos.size ? Math.min(...[...sellos.values()].map(s => Date.parse(s) + 300000)) : 0;
+      arrancarReloj(); guardar(); pintarSeleccion();
+    }
+    function pintarSeleccion() {
+      const elegidos = numeros();
+      document.querySelectorAll('#contenedor-cartones .carton').forEach(nodo => {
+        const numero=Number(nodo.textContent);
+        if (elegidos.includes(numero)) { nodo.classList.remove('ocupado','bloqueado'); nodo.classList.add('seleccionado'); nodo.onclick=()=>global.toggleCarton(numero,nodo); }
+        else nodo.classList.remove('seleccionado');
+      });
+      global.actualizarMonto?.();
+    }
+    function sincronizar() {
+      if (sincronizando) return sincronizando;
+      const cedula=String(usuario.cedula || '').trim(), seleccion=numeros();
+      if (!cedula || !seleccion.length) { sellos.clear(); vence=0; arrancarReloj(); guardar(); return Promise.resolve(false); }
+      sincronizando=consultar(cedula,seleccion).then(({filas,enviadas})=>{
+        if (String(usuario.cedula || '').trim() !== cedula || numeros().join(',') !== seleccion.join(',')) { programar(); return false; }
+        aplicar(validar(filas,enviadas,seleccion)); return numeros().length === seleccion.length;
+      }).catch(()=>{ avisar('No se pudo comprobar tu reserva. Revisa tu conexión antes de continuar.'); return false; }).finally(()=>{sincronizando=null;});
+      return sincronizando;
+    }
+    function programar() { global.clearTimeout(demora); demora=global.setTimeout(sincronizar,350); }
+    for (const nombre of ['toggleCarton','seleccionarAleatorioSeguro']) {
+      const original=global[nombre]; if (typeof original!=='function') continue;
+      global[nombre]=async function(...args) { const resultado=await original.apply(this,args); envioIntentado=false; trabajando=true; guardar(); programar(); return resultado; };
+    }
+    const cargar=global.cargarCartones;
+    if(typeof cargar==='function') global.cargarCartones=async function(...args){const resultado=await cargar.apply(this,args);pintarSeleccion();return resultado;};
+    global.iniciarContadorReserva=function(){ if (!vence) programar(); arrancarReloj(); };
+    const abrir=global.mostrarVentana;
+    global.mostrarVentana=async function(id,...args) {
+      if(id==='pago' && numeros().length) {
+        const verificada=await sincronizar();
+        if(!verificada || !vence || vence<=Date.now() || sellos.size!==numeros().length || !numeros().length) { avisar('No pudimos confirmar todos tus cartones. Revisa la selección antes de continuar.'); return; }
+      }
+      const resultado=await abrir.call(this,id,...args); if(['inscripcion','cantidad','cartones','pago'].includes(id)){trabajando=true;guardar();} return resultado;
+    };
+    const enviar=global.enviarComprobante;
+    let envio=null;
+    if(typeof enviar==='function') global.enviarComprobante=function(...args) {
+      if(envio)return envio;
+      const boton=document.getElementById('btnEnviarComprobante'), texto=boton?.textContent, deshabilitado=boton?.disabled;
+      if(boton){boton.disabled=true;boton.textContent='Verificando reserva…';boton.setAttribute('aria-busy','true');}
+      envio=(async()=>{
+        const verificada=await sincronizar();
+        if(!verificada || !vence || vence<=Date.now() || !numeros().length) { avisar('La reserva no está vigente o no se pudo verificar. Vuelve a seleccionar tus cartones. Si ya pagaste, contacta a soporte.');return; }
+        enviando=true;envioIntentado=true;trabajando=true;guardar();
+        try { return await enviar.apply(this,args); }
+        finally { enviando=false;actualizarReloj(); }
+      })().finally(()=>{envio=null;if(boton){boton.disabled=deshabilitado;boton.textContent=texto;boton.removeAttribute('aria-busy');}});return envio;
+    };
+    document.addEventListener('input', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
+    document.addEventListener('change', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
+    global.addEventListener('pagehide',guardar);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){actualizarReloj();if(numeros().length)programar();} });
+    global.addEventListener('online',()=>{if(numeros().length)programar();});
+    const borrador=leer();
+    if(!borrador){escribir(null);return;}
+    const caja=document.createElement('div');caja.id='retomar-compra';caja.style.cssText='padding:16px;border:2px solid #ffbf36;border-radius:14px;background:#17204f;color:#fff;margin:16px 0';
+    const texto=document.createElement('p');texto.textContent=borrador.envioIntentado?'Guardamos tu último intento de compra. Comprueba si el comprobante se envió antes de volver a pagar o enviar.':'Tienes una compra sin terminar en esta pestaña. Puedes recuperar tus datos y comprobar si tus cartones siguen reservados.';caja.appendChild(texto);
+    const retomar=document.createElement('button');retomar.type='button';retomar.textContent=borrador.envioIntentado?'Comprobar mi compra':'Retomar compra';caja.appendChild(retomar);
+    const descartar=document.createElement('button');descartar.type='button';descartar.textContent='Descartar avance';caja.appendChild(descartar);
+    descartar.onclick=()=>{borrar();};
+    retomar.onclick=async()=>{
+      if(restaurando)return;let recuperado=false;restaurando=true;retomar.disabled=true;retomar.textContent='Comprobando reserva…';
+      try{
+        const inicio=Date.now();while(!sistemaListo && Date.now()-inicio<15000) await new Promise(resolve=>global.setTimeout(resolve,100));
+        if(!sistemaListo)throw new Error('carga');
+        const cantidad=Number(borrador.cantidad || borrador.campos.cantidadCartones);
+        if(!Number.isInteger(cantidad)||cantidad<1||cantidad>totalCartones) {
+          for(const id of ['nombre','telefono','cedula','referido']) if(document.getElementById(id))document.getElementById(id).value=String(borrador.campos[id]||'').slice(0,160);
+          await abrir.call(global,'inscripcion');avisar('Recuperamos tus datos. Revisa la inscripción y elige la cantidad de cartones.');borrar();return;
+        }
+        const seleccion=borrador.reservas.map(r=>Number(r.numero)).filter(n=>Number.isSafeInteger(n)&&n>=1&&n<=totalCartones);
+        const cedula=String(borrador.campos.cedula||'').trim();
+        const consulta=seleccion.length?await consultar(cedula,seleccion):{filas:[],enviadas:new Set()};
+        for(const id of campos){const nodo=document.getElementById(id);if(nodo&&borrador.campos[id]!=null)nodo.value=String(borrador.campos[id]).slice(0,160);}
+        recuperado=true;trabajando=true;envioIntentado=!!borrador.envioIntentado;
+        for(const id of ['nombre','telefono','cedula','referido'])usuario[id]=String(borrador.campos[id]||'').trim();
+        cantidadPermitida=modoCartones==='fijo'?cantidadFijaCartones:cantidad;usuario.cartones=seleccion;
+        const anteriores=new Map(borrador.reservas.map(r=>[Number(r.numero),r.sello]));
+        const validas=String(borrador.version)===String(versionCartones)?validar(consulta.filas,consulta.enviadas,seleccion,anteriores):new Map();
+        aplicar(validas);
+        if(seleccion.some(n=>consulta.enviadas.has(n))){usuario.cartones=[];sellos.clear();vence=0;borrar();await abrir.call(global,'usuario');document.getElementById('consulta-cedula').value=cedula;avisar('Ya existe una compra enviada con estos cartones. Consulta su estado antes de volver a enviar o pagar.');return;}
+        const completa=numeros().length===cantidadPermitida&&vence>Date.now();
+        await abrir.call(global,completa&&borrador.etapa==='pago'?'pago':numeros().length?'cartones':'cantidad');
+        pintarSeleccion();arrancarReloj();restaurando=false;guardar();caja.remove();
+        avisar(completa?'Recuperamos tus datos y la reserva vigente. Revisa el monto y vuelve a seleccionar el archivo del comprobante; el navegador no conserva ese archivo al recargar.':'Recuperamos tus datos. Los cartones vencidos o no confirmados no se recuperaron. Revisa la cantidad y vuelve a elegir los que falten. Si ya pagaste, contacta a soporte antes de pagar nuevamente.');
+      }catch{avisar('No se pudo recuperar la compra. Revisa tu conexión y vuelve a pulsar Retomar compra.');}
+      finally{restaurando=false;retomar.disabled=false;retomar.textContent='Retomar compra';if(recuperado && document.getElementById('retomar-compra'))guardar();}
+    };
+    document.getElementById('bienvenida')?.prepend(caja);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarAvance,{once:true});else instalarAvance();
+})(window);
