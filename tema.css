@@ -163,3 +163,14 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida .barra-progreso-contenedor{width:100%;height:9px;background:#ffffff19;box-shadow:inset 0 1px 2px #18051f55;border-radius:999px}
 #bienvenida .barra-progreso-relleno{background:linear-gradient(90deg,#c8a34f,#f2d88c);box-shadow:none}
 @media(max-width:360px){#bienvenida .disponibles-numero{font-size:32px}#bienvenida .disponibles-detalle{font-size:11px}}
+
+/* Disponibilidad sobria: marfil, tipografía ciruela y oro tenue. */
+#bienvenida .barra-progreso-inicio{background:#fffdf8;border:1px solid #dfd3df;border-radius:14px;padding:16px 18px 18px;box-shadow:none}
+#bienvenida .barra-progreso-inicio::before{color:#8b748f;font-size:9px;font-weight:500;letter-spacing:.13em}
+#bienvenida #textoProgresoCartones{gap:9px;margin:7px 0 17px;padding-right:68px;color:#4b174f}
+#bienvenida .disponibles-numero{font-size:30px;font-weight:600;letter-spacing:-.035em;color:#4b174f}
+#bienvenida .disponibles-detalle{font-size:11px;font-weight:400;line-height:1.45;color:#8a758e;max-width:145px}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:35px;right:18px;min-width:0;padding:0;background:none;border:0;border-radius:0;color:#74517c;font-size:18px;font-weight:500;line-height:1.4;letter-spacing:-.03em}
+#bienvenida .barra-progreso-contenedor{height:5px;background:#eee7ef;box-shadow:none}
+#bienvenida .barra-progreso-relleno{background:#c1a05b;box-shadow:none}
+@media(max-width:360px){#bienvenida .disponibles-numero{font-size:28px}}
