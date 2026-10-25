@@ -3525,7 +3525,7 @@ function actualizarHoraVenezuela() {
   const contenedor = document.getElementById('hora-venezuela');
   if (!contenedor) return;
   const ahora = new Date();
-  const fecha = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', weekday:'short', day:'numeric', month:'short', year:'numeric'}).format(ahora);
+  const fecha = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(ahora);
   const hora = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', hour:'numeric', minute:'2-digit'}).format(ahora);
   const clave = fecha + hora;
   if (contenedor.dataset.minuto === clave) return;
@@ -3539,7 +3539,14 @@ function actualizarHoraVenezuela() {
   const reloj = document.createElement('span');
   reloj.className = 'fecha-hora';
   reloj.textContent = hora;
-  contenedor.replaceChildren(etiqueta, dia, reloj);
+  const icono = document.createElement('span');
+  icono.className = 'fecha-icono';
+  icono.setAttribute('aria-hidden', 'true');
+  icono.innerHTML = '<svg viewBox="0 0 40 44" fill="none"><rect x="4" y="7" width="32" height="33" rx="4" stroke="#b79b58" stroke-width="2"/><path d="M4 17h32V11a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4Z" fill="#4b174f"/><path d="M12 3v8M28 3v8" stroke="#4b174f" stroke-width="4" stroke-linecap="round"/></svg>';
+  const numero = document.createElement('span');
+  numero.textContent = new Intl.DateTimeFormat('es-VE', {timeZone:'America/Caracas', day:'numeric'}).format(ahora);
+  icono.append(numero);
+  contenedor.replaceChildren(icono, etiqueta, dia, reloj);
 }
 
 async function guardarLinkWhatsapp() {
@@ -4760,10 +4767,10 @@ async function cargarBarraProgresoInicio() {
 
   const cantidad = document.createElement('span');
   cantidad.className = 'disponibles-numero';
-  cantidad.textContent = String(disponibles);
+  cantidad.textContent = disponibles + ' cartones disponibles';
   const detalle = document.createElement('span');
   detalle.className = 'disponibles-detalle';
-  detalle.textContent = `de ${totalCartones} cartones disponibles`;
+  detalle.textContent = `De ${totalCartones} cartones · ${new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje)}% disponibles`;
   texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
   contenedor.dataset.nivel = porcentaje > 50 ? 'alto' : porcentaje > 20 ? 'medio' : porcentaje > 10 ? 'bajo' : 'critico';

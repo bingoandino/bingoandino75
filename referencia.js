@@ -255,10 +255,10 @@
         if (totalVendidos) totalVendidos.textContent = String(vendidos);
         const cantidad = document.createElement('span');
   cantidad.className = 'disponibles-numero';
-  cantidad.textContent = String(disponibles);
+  cantidad.textContent = disponibles + ' cartones disponibles';
   const detalle = document.createElement('span');
   detalle.className = 'disponibles-detalle';
-  detalle.textContent = `de ${config.total} cartones disponibles`;
+  detalle.textContent = `De ${config.total} cartones · ${new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje)}% disponibles`;
   texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
   contenedor.dataset.nivel = porcentaje > 50 ? 'alto' : porcentaje > 20 ? 'medio' : porcentaje > 10 ? 'bajo' : 'critico';
