@@ -706,3 +706,65 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarAvance,{once:true});else instalarAvance();
 })(window);
+
+// Historial público: Atrás/Adelante cambia de paso sin guardar datos del cliente en la URL.
+(function (global) {
+  'use strict';
+  function instalarHistorialCompra() {
+    if (typeof global.mostrarVentana !== 'function' || !document.getElementById('bienvenida')) return;
+    const publicas=new Set(['bienvenida','inscripcion','cantidad','cartones','pago','usuario','lista-aprobados','top-compradores','ganadores']);
+    const pasos=['bienvenida','inscripcion','cantidad','cartones','pago'];
+    const campo='_bingoVista';
+    const actual=()=>document.querySelector('section:not(.oculto)')?.id;
+    let ultima=publicas.has(actual())?actual():'bienvenida', restaurando=false, destino=null;
+    function escribir(id,reemplazar=false){
+      try{global.history[reemplazar?'replaceState':'pushState']({[campo]:id},'');}catch{/* Si no hay History API, siguen funcionando los botones de la página. */}
+    }
+    // Tras una recarga el avance se recupera expresamente con «Retomar compra».
+    escribir(ultima,true);
+    function registrar(){
+      const id=actual();
+      if(restaurando || !publicas.has(id) || id===ultima)return;
+      const desde=pasos.indexOf(ultima),hasta=pasos.indexOf(id);
+      // Retomar puede abrir pago directamente: Atrás debe encontrar antes los pasos de compra.
+      if(desde>=0 && hasta>desde+1)for(let i=desde+1;i<hasta;i++)escribir(pasos[i]);
+      escribir(id);ultima=id;
+    }
+    const observador=new global.MutationObserver(registrar);
+    document.querySelectorAll('section').forEach(seccion=>observador.observe(seccion,{attributes:true,attributeFilter:['class']}));
+    function rutaPermitida(id){
+      if(['cantidad','cartones','pago'].includes(id)){
+        if(typeof usuario==='undefined' || !usuario.nombre || !usuario.telefono || !usuario.cedula)return 'inscripcion';
+        if(id!=='cantidad' && (typeof cantidadPermitida==='undefined' || cantidadPermitida<1))return 'cantidad';
+        if(id==='pago'){
+          const requerida=typeof modoCartones!=='undefined' && modoCartones==='fijo'?cantidadFijaCartones:cantidadPermitida;
+          if(!Array.isArray(usuario.cartones) || usuario.cartones.length!==requerida)return 'cartones';
+        }
+      }
+      return id;
+    }
+    global.addEventListener('popstate',evento=>{
+      const id=evento.state?.[campo];if(!publicas.has(id))return;
+      destino=id;
+      if(restaurando)return;
+      restaurando=true;
+      (async()=>{
+        while(destino){
+          const solicitado=destino;destino=null;
+          const ruta=rutaPermitida(solicitado);
+          try{
+            if(ruta==='ganadores' && typeof global.mostrarSeccion==='function')await global.mostrarSeccion(ruta);
+            else await global.mostrarVentana(ruta);
+          }catch{
+            await global.mostrarVentana('bienvenida');
+          }
+          if(destino)continue;
+          const mostrada=actual();ultima=publicas.has(mostrada)?mostrada:'bienvenida';
+          // Las validaciones de ventas, cantidad y reserva pueden impedir abrir el paso solicitado.
+          escribir(ultima,true);
+        }
+      })().finally(()=>{restaurando=false;registrar();});
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarHistorialCompra,{once:true});else instalarHistorialCompra();
+})(window);
