@@ -183,3 +183,17 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:9px;background:color-mix(in srgb,var(--disponibilidad-color) 13%,#fffdf8)}
 #bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-relleno{background:linear-gradient(90deg,var(--disponibilidad-color),var(--disponibilidad-luz))}
 #bienvenida .barra-progreso-inicio[data-nivel]::after{color:var(--disponibilidad-color)}
+
+/* Barra visible y primer acceso a Comprar dentro de la pantalla. */
+#bienvenida .logo{width:105px;margin-bottom:4px}
+#bienvenida .imagen-premios-inicio{max-width:min(100%,calc(100svh - 390px));margin-bottom:3px}
+#bienvenida .flyer-ayuda{margin-bottom:2px}
+#bienvenida #hora-venezuela{padding:6px!important;gap:2px;margin:4px auto!important}
+#hora-venezuela .fecha-dia{font-size:14px}
+#hora-venezuela .fecha-hora{font-size:12px}
+#bienvenida .barra-progreso-inicio{padding:12px 16px 14px;margin:4px auto 8px}
+#bienvenida #textoProgresoCartones{margin:5px 0 10px}
+#bienvenida .disponibles-numero{font-size:27px}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:29px;right:16px;font-size:17px}
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:14px}
+@media(max-width:400px){#bienvenida .logo{width:100px}}
