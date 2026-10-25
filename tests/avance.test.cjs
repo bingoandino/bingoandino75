@@ -76,3 +76,24 @@ test('la recarga no recupera una compra encima de una sesión de administrador',
  const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
  const f=fixture({draft,reload:true,admin:true});try{await new Promise(resolve=>setTimeout(resolve,15));assert.equal(f.w.document.getElementById('bienvenida').classList.contains('oculto'),false);assert.ok(f.w.document.getElementById('retomar-compra'));assert.equal(f.calls.reads,0);}finally{f.close();}
 });
+test('al retomar un cartón completo mantiene los demás bloqueados y distingue los ocupados',async()=>{
+ const first=fixture();let draft,rows;try{draft=await selected(first);rows=first.rows;}finally{first.close();}
+ const f=fixture({draft,rows});try{
+  f.w.document.getElementById('contenedor-cartones').insertAdjacentHTML('beforeend','<div class="carton">13</div><div class="carton ocupado">14</div>');
+  await retomar(f);const cards=f.w.document.querySelectorAll('.carton');
+  assert.equal(cards[0].classList.contains('seleccionado'),true);assert.equal(cards[0].classList.contains('bloqueado'),false);
+  assert.equal(cards[1].classList.contains('bloqueado'),true);assert.equal(cards[1].onclick,null);
+  assert.equal(cards[2].classList.contains('ocupado'),true);assert.equal(cards[2].onclick,null);
+  const rule=Array.from(f.w.document.styleSheets).flatMap(s=>Array.from(s.cssRules)).find(r=>r.selectorText==='#contenedor-cartones .carton.seleccionado');
+  assert.ok(rule);assert.match(rule.style.background,/#168443|22, 132, 67/);
+ }finally{f.close();}
+});
+test('varios cartones se van seleccionando hasta el límite y quitar uno habilita los libres',async()=>{
+ const f=fixture();try{
+  f.w.cantidadPermitida=2;let modal=0;f.w.abrirModalCarton=()=>modal++;
+  f.w.document.getElementById('contenedor-cartones').insertAdjacentHTML('beforeend','<div class="carton">13</div><div class="carton">14</div><div class="carton ocupado">15</div>');
+  await f.w.toggleCarton(12);let cards=f.w.document.querySelectorAll('.carton');assert.equal(cards[0].classList.contains('seleccionado'),true);assert.equal(cards[1].classList.contains('bloqueado'),false);
+  await f.w.toggleCarton(13);assert.equal(cards[1].classList.contains('seleccionado'),true);assert.equal(cards[2].classList.contains('bloqueado'),true);assert.equal(cards[2].onclick,null);
+  await f.w.toggleCarton(12);assert.equal(cards[0].classList.contains('seleccionado'),false);assert.equal(cards[2].classList.contains('bloqueado'),false);cards[2].click();assert.equal(modal,1);assert.equal(cards[3].onclick,null);
+ }finally{f.close();}
+});

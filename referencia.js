@@ -613,12 +613,27 @@
       vence=sellos.size ? Math.min(...[...sellos.values()].map(s => Date.parse(s) + 300000)) : 0;
       arrancarReloj(); guardar(); pintarSeleccion();
     }
+    const estiloSeleccion=document.createElement('style');
+    estiloSeleccion.textContent='#contenedor-cartones .carton.seleccionado{background:linear-gradient(145deg,#168443,#0c6631);border-color:#b5f5c7;color:#fff;box-shadow:0 0 16px #16844366;opacity:1;filter:none}#contenedor-cartones .carton.bloqueado{pointer-events:none}';
+    document.head.appendChild(estiloSeleccion);
     function pintarSeleccion() {
       const elegidos = numeros();
+      const limite=modoCartones==='fijo'?cantidadFijaCartones:cantidadPermitida;
+      const completa=limite>0 && elegidos.length>=limite;
       document.querySelectorAll('#contenedor-cartones .carton').forEach(nodo => {
         const numero=Number(nodo.textContent);
-        if (elegidos.includes(numero)) { nodo.classList.remove('ocupado','bloqueado'); nodo.classList.add('seleccionado'); nodo.onclick=()=>global.toggleCarton(numero,nodo); }
-        else nodo.classList.remove('seleccionado');
+        if (elegidos.includes(numero)) {
+          nodo.classList.remove('ocupado','bloqueado'); nodo.classList.add('seleccionado');
+          nodo.setAttribute('aria-disabled','false'); nodo.onclick=()=>global.toggleCarton(numero,nodo);
+        } else {
+          nodo.classList.remove('seleccionado');
+          const ocupado=nodo.classList.contains('ocupado') || (typeof cartonesOcupados!=='undefined' && cartonesOcupados.map(Number).includes(numero));
+          nodo.classList.toggle('ocupado',ocupado);
+          nodo.classList.toggle('bloqueado',completa && !ocupado);
+          nodo.setAttribute('aria-disabled',String(ocupado || completa));
+          if(ocupado || completa)nodo.onclick=null;
+          else if(typeof global.abrirModalCarton==='function')nodo.onclick=()=>global.abrirModalCarton(numero,nodo);
+        }
       });
       global.actualizarMonto?.();
     }
@@ -635,7 +650,7 @@
     function programar() { global.clearTimeout(demora); demora=global.setTimeout(sincronizar,350); }
     for (const nombre of ['toggleCarton','seleccionarAleatorioSeguro']) {
       const original=global[nombre]; if (typeof original!=='function') continue;
-      global[nombre]=async function(...args) { const resultado=await original.apply(this,args); envioIntentado=false; trabajando=true; guardar(); programar(); return resultado; };
+      global[nombre]=async function(...args) { const resultado=await original.apply(this,args); envioIntentado=false; trabajando=true; pintarSeleccion(); guardar(); programar(); return resultado; };
     }
     const cargar=global.cargarCartones;
     if(typeof cargar==='function') global.cargarCartones=async function(...args){const resultado=await cargar.apply(this,args);pintarSeleccion();return resultado;};
