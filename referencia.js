@@ -261,6 +261,7 @@
   detalle.textContent = `de ${config.total} cartones disponibles`;
   texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
+  contenedor.dataset.nivel = porcentaje > 50 ? 'alto' : porcentaje > 20 ? 'medio' : porcentaje > 10 ? 'bajo' : 'critico';
   relleno.parentElement.setAttribute('role', 'progressbar');
   relleno.parentElement.setAttribute('aria-label', 'Cartones disponibles');
   relleno.parentElement.setAttribute('aria-valuemin', '0');

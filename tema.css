@@ -174,3 +174,12 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida .barra-progreso-contenedor{height:5px;background:#eee7ef;box-shadow:none}
 #bienvenida .barra-progreso-relleno{background:#c1a05b;box-shadow:none}
 @media(max-width:360px){#bienvenida .disponibles-numero{font-size:28px}}
+
+/* El color expresa la disponibilidad real, sin animaciones continuas. */
+#bienvenida .barra-progreso-inicio[data-nivel=alto]{--disponibilidad-color:#26976b;--disponibilidad-luz:#66c88d}
+#bienvenida .barra-progreso-inicio[data-nivel=medio]{--disponibilidad-color:#c99c23;--disponibilidad-luz:#edca57}
+#bienvenida .barra-progreso-inicio[data-nivel=bajo]{--disponibilidad-color:#dc7d2d;--disponibilidad-luz:#f1aa54}
+#bienvenida .barra-progreso-inicio[data-nivel=critico]{--disponibilidad-color:#cd4d58;--disponibilidad-luz:#ed7b7a}
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:9px;background:color-mix(in srgb,var(--disponibilidad-color) 13%,#fffdf8)}
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-relleno{background:linear-gradient(90deg,var(--disponibilidad-color),var(--disponibilidad-luz))}
+#bienvenida .barra-progreso-inicio[data-nivel]::after{color:var(--disponibilidad-color)}
