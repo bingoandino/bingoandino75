@@ -1,0 +1,94 @@
+--- a/index.html
++++ b/index.html
+@@ -19 +19 @@
+-  <link rel="stylesheet" href="styles.css">
++  <link rel="stylesheet" href="styles.css?v=20261024-referencia-completa">
+@@ -245 +245,9 @@
+-    <input type="text" id="referencia4dig" maxlength="4" placeholder="Últimos 4 dígitos de la referencia">
++    <div class="referencia-bancaria">
++      <label for="referencia4dig">Referencia bancaria</label>
++      <div class="referencia-bancaria-fila">
++        <input type="text" id="referencia4dig" inputmode="numeric" autocomplete="off" maxlength="64" pattern="[0-9]{4,64}" aria-describedby="referencia-ayuda referencia-estado" placeholder="Referencia completa o últimos 4 dígitos">
++        <button type="button" id="btnPegarReferencia" onclick="pegarReferenciaBancaria()">📋 Pegar</button>
++      </div>
++      <p id="referencia-ayuda">Puedes ingresar la referencia completa. Usaremos sus últimos 4 dígitos para verificar el pago.</p>
++      <p id="referencia-estado" role="status" aria-live="polite"></p>
++    </div>
+@@ -704 +712,2 @@
+-<script src="script.js?v=20261020-resultados-4"></script>
++<script src="referencia.js?v=20261024-1"></script>
++<script src="script.js?v=20261024-referencia-completa"></script>
+--- a/script.js
++++ b/script.js
+@@ -2637,4 +2637 @@
+-    const referencia4dig = document.getElementById('referencia4dig').value.trim();
+-    if (!/^\d{4}$/.test(referencia4dig)) {
+-      throw new Error('Debes ingresar los últimos 4 dígitos de la referencia bancaria.');
+-    }
++    const referencia4dig = ReferenciaBancaria.ultimos4(document.getElementById('referencia4dig').value);
+--- a/styles.css
++++ b/styles.css
+@@ -2770,0 +2771,11 @@
++
++/* Referencia completa con pegado explícito del cliente. */
++.referencia-bancaria{width:100%;max-width:400px;margin:18px auto;text-align:left}
++.referencia-bancaria>label{display:block;font-weight:700;margin-bottom:8px}
++.referencia-bancaria-fila{display:flex;align-items:stretch;gap:8px}
++.referencia-bancaria-fila input{flex:1;min-width:0;width:0;max-width:none;margin:0;padding:14px 12px}
++.referencia-bancaria-fila button{flex:0 0 auto;width:auto;max-width:none;margin:0;padding:12px 15px;white-space:nowrap}
++#referencia-ayuda,#referencia-estado{font-size:14px;line-height:1.45;margin:8px 0 0}
++#referencia-estado:empty{display:none}
++#referencia-estado{color:#ffe36b}
++@media(max-width:400px){.referencia-bancaria-fila{flex-wrap:wrap}.referencia-bancaria-fila input{flex-basis:100%;width:100%}.referencia-bancaria-fila button{width:100%}}
+--- /dev/null
++++ b/referencia.js
+@@ -0,0 +1,38 @@
++(function (global) {
++  'use strict';
++  function normalizar(valor) {
++    const referencia = String(valor || '').trim().replace(/[\s.\-]/g, '');
++    if (!/^\d{4,64}$/.test(referencia)) {
++      throw new Error('Ingresa la referencia bancaria completa o sus últimos 4 dígitos, solo números.');
++    }
++    return referencia;
++  }
++  global.ReferenciaBancaria = {
++    normalizar,
++    ultimos4: valor => normalizar(valor).slice(-4)
++  };
++  global.pegarReferenciaBancaria = async function () {
++    const campo = document.getElementById('referencia4dig');
++    const boton = document.getElementById('btnPegarReferencia');
++    const estado = document.getElementById('referencia-estado');
++    if (!campo || !boton || !estado) return;
++    estado.textContent = '';
++    boton.disabled = true;
++    try {
++      if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
++        throw new Error('Mantén pulsado el campo y elige «Pegar», o usa Ctrl+V en tu computadora.');
++      }
++      let texto;
++      try { texto = await navigator.clipboard.readText(); }
++      catch { throw new Error('No se pudo acceder al portapapeles. Mantén pulsado el campo y elige «Pegar», o usa Ctrl+V.'); }
++      campo.value = normalizar(texto);
++      campo.dispatchEvent(new Event('input', {bubbles: true}));
++      estado.textContent = 'Referencia pegada.';
++    } catch (error) {
++      estado.textContent = error.message || 'No se pudo pegar la referencia. Puedes ingresarla directamente.';
++    } finally {
++      boton.disabled = false;
++      campo.focus();
++    }
++  };
++})(window);
+--- /dev/null
++++ b/tests/referencia.test.cjs
+@@ -0,0 +1,7 @@
++const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const {JSDOM}=require('jsdom');
++const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
++function fixture(){const dom=new JSDOM(read('index.html'),{runScripts:'outside-only',url:'https://bingoandino75.com'});dom.window.eval(read('referencia.js'));return dom;}
++test('acepta la referencia completa sin perder ceros ni precisión y mantiene compatibilidad de cuatro dígitos',()=>{const dom=fixture();try{const api=dom.window.ReferenciaBancaria;for(const value of ['0000123456789007','123456789012345678901234567890','0000','1234']){assert.equal(api.normalizar(value),value);assert.equal(api.ultimos4(value),value.slice(-4));}assert.equal(api.normalizar(' 0000-1234 5678.9007 '),'0000123456789007');for(const value of ['', '123', 'referencia 123456', '12/34', '1'.repeat(65)])assert.throws(()=>api.normalizar(value));}finally{dom.window.close();}});
++test('Pegar lee solo al pulsar y conserva la referencia completa',async()=>{const dom=fixture(),w=dom.window;try{let reads=0,inputs=0;Object.defineProperty(w.navigator,'clipboard',{value:{readText:async()=>{reads++;return '0000123456789007';}}});const campo=w.document.getElementById('referencia4dig');campo.addEventListener('input',()=>inputs++);assert.equal(reads,0);await w.pegarReferenciaBancaria();assert.equal(reads,1);assert.equal(campo.value,'0000123456789007');assert.equal(inputs,1);assert.match(w.document.getElementById('referencia-estado').textContent,/pegada/);assert.equal(w.document.getElementById('btnPegarReferencia').disabled,false);}finally{w.close();}});
++test('si no hay permiso, no hay portapapeles o el contenido es inválido no borra lo escrito',async()=>{for(const clipboard of [undefined,{readText:async()=>{throw Error('denied');}},{readText:async()=>''},{readText:async()=>'<img src=x>1234'}]){const dom=fixture(),w=dom.window;try{Object.defineProperty(w.navigator,'clipboard',{value:clipboard});const campo=w.document.getElementById('referencia4dig');campo.value='00001234';await w.pegarReferenciaBancaria();assert.equal(campo.value,'00001234');assert.equal(w.document.getElementById('btnPegarReferencia').disabled,false);assert.ok(w.document.getElementById('referencia-estado').textContent.length>0);}finally{w.close();}}});
++test('la validación real del envío deriva los últimos cuatro y rechaza referencias incompletas',()=>{const dom=fixture(),w=dom.window;try{const source=read('script.js');const start=source.indexOf('    const referencia4dig =',source.indexOf('async function enviarComprobante()'));const end=source.indexOf('const PagoBanco',start);w.eval('function referenciaParaEnvio(){'+source.slice(start,end)+'return referencia4dig;}');w.document.getElementById('referencia4dig').value='0000123456789007';assert.equal(w.referenciaParaEnvio(),'9007');w.document.getElementById('referencia4dig').value='123';assert.throws(()=>w.referenciaParaEnvio());assert.match(source,/referencia4dig: referencia4dig/);}finally{w.close();}});
+
