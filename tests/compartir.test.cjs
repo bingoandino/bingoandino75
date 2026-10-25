@@ -2,7 +2,8 @@ const {test}=require('node:test');const assert=require('node:assert/strict');con
 const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
 function fixture(query=''){
  const dom=new JSDOM('<section id="bienvenida"></section><section id="ganadores" class="oculto"><div id="listaGanadores"></div></section><div id="modal-terminos" class="oculto"></div><div id="overlay-carga"></div>',{url:'https://bingoandino75.com/'+query,runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window;w.scrollTo=()=>{};
- w.HTMLCanvasElement.prototype.getContext=()=>({font:'',measureText:t=>({width:t.length*16}),beginPath(){},roundRect(){},fill(){},fillRect(){},fillText(){}});w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob(['PNG'],{type:'image/png'}));};
+ w.HTMLCanvasElement.prototype.getContext=()=>({font:'',measureText:t=>({width:t.length*16}),beginPath(){},roundRect(){},fill(){},fillRect(){},fillText(){},drawImage(){}});w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob(['PNG'],{type:'image/png'}));};
+ w.Image=class {set src(value){this.source=value;queueMicrotask(()=>this.onload());}};
  const consulted=[],opened=[];let fail=false;w.mostrarSeccion=id=>{opened.push(id);w.document.getElementById(id).classList.remove('oculto');w.document.getElementById('bienvenida').classList.add('oculto');};
  w.supabase={from:table=>{assert.equal(table,'resultados_publicos_con_nombres');return {select:()=>({order:()=>({limit:async()=>({data:[{fecha:'2026-10-24'},{fecha:'2026-10-23'}]})}),eq:(key,date)=>({single:async()=>{consulted.push(date);return fail?{error:{message:'red'}}:{data:{resultado:{fecha:date,nombres:{'3':'Ana'},grupos:[{tipo:'final',orden:1,ganadores:[{carton:3,premio_centimos:100}]}],pago_banco:'PRIVADO',telefono:'NO-COPIAR'}}};}})})}}};
  w.eval(read('publicacion.js'));const source=read('script.js');w.eval('var supabase=window.supabase;'+source.slice(source.indexOf('async function cargarGanadores()'),source.indexOf('\nfunction toggleFormularioGanador')));
@@ -30,9 +31,16 @@ test('comparte un archivo PNG y el enlace de la misma fecha con una sola pulsaci
 test('sin soporte para compartir archivos ofrece descargar y copiar sin enviar solo texto por error',async()=>{
  const f=fixture();try{let called=false;Object.defineProperty(f.w.navigator,'canShare',{value:()=>false});Object.defineProperty(f.w.navigator,'share',{value:async()=>{called=true;}});await f.w.cargarGanadores();const caja=f.w.document.querySelector('.ganadores-compartir');await caja.preparacion();await caja.querySelector('[data-accion=imagen]').onclick();assert.equal(called,false);assert.match(caja.querySelector('[role="status"]').textContent,/Descargar imagen/);assert.equal(caja.querySelector('.compartir-opciones').disabled,false);}finally{f.close();}
 });
-test('la imagen incluye todos los grupos y ganadores, envuelve nombres largos y excluye datos adicionales',async()=>{
- const f=fixture();try{const painted=[];const ctx={font:'',measureText:t=>({width:t.length*16}),beginPath(){},roundRect(){},fill(){},fillRect(){},fillText:t=>painted.push(t)};f.w.HTMLCanvasElement.prototype.getContext=()=>ctx;
+test('la imagen rasteriza la misma composición pública que muestra la página, sin datos adicionales',async()=>{
+ const f=fixture();try{
+ let source,drawn=false;f.w.Image=class {set src(value){source=decodeURIComponent(value.split(',').slice(1).join(','));queueMicrotask(()=>this.onload());}};
+ f.w.HTMLCanvasElement.prototype.getContext=()=>({font:'',measureText:t=>({width:t.length*16}),drawImage(){drawn=true;}});
  const nombres={};const grupos=Array.from({length:5},(_,i)=>({tipo:'ronda',orden:i+1,ganadores:[{carton:i+1,premio_centimos:1000}]}));grupos.push({tipo:'final',ganadores:[{carton:6,premio_centimos:5000},{carton:7,premio_centimos:5000}]},{tipo:'consolacion',ganadores:[{carton:8,premio_centimos:100},{carton:9,premio_centimos:100}]},{tipo:'pozo',ganadores:[{carton:10,premio_centimos:9000}]});for(let i=1;i<=10;i++)nombres[i]='Ganador Prueba '+i;nombres[7]='Nombre Largo '.repeat(15);
- await f.w.ResultadosPublicos.crearImagen({fecha:'2026-10-23',grupos,nombres,telefono:'PRIVADO',pago_banco:'PRIVADO'});const all=painted.join(' ');for(let i=1;i<=10;i++)assert.match(all,new RegExp('Cartón '+i+'(?: |$)'));assert.match(all,/5ª ronda/);assert.match(all,/Cartón lleno final/);assert.match(all,/Consolación/);assert.match(all,/Pozo acumulado/);assert.doesNotMatch(all,/PRIVADO/);assert.ok(painted.filter(t=>t.includes('Nombre')||t.includes('Largo')).length>2);
+ const payload={fecha:'2026-10-23',grupos,nombres,telefono:'PRIVADO',pago_banco:'PRIVADO'};
+ const target=f.w.document.createElement('div');f.w.ResultadosPublicos.mostrar(target,payload);
+ await f.w.ResultadosPublicos.crearImagen(payload);
+ assert.equal(source,new f.w.XMLSerializer().serializeToString(target.querySelector('svg')));assert.ok(drawn);
+ for(let i=1;i<=10;i++)assert.match(source,new RegExp('Cartón '+i+'<'));
+ assert.match(source,/5ª ronda/);assert.match(source,/Cartón lleno final/);assert.match(source,/Consolación/);assert.match(source,/Pozo acumulado/);assert.doesNotMatch(source,/PRIVADO/);assert.ok(target.querySelectorAll('.ganadores-nombre tspan').length>15);
  }finally{f.close();}
 });
