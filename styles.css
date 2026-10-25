@@ -2767,3 +2767,15 @@ input:checked + .toggle-slider:before {
 
 
 .resultado-publico{border:1px solid #58b7cb;border-radius:12px;padding:10px;margin:8px 0;background:#effcff;color:#143b4b}.resultado-publico strong{display:block;margin-bottom:5px}#listaGanadores{max-width:680px;margin:auto;text-align:left}
+
+
+/* Referencia completa con pegado explícito del cliente. */
+.referencia-bancaria{width:100%;max-width:400px;margin:18px auto;text-align:left}
+.referencia-bancaria>label{display:block;font-weight:700;margin-bottom:8px}
+.referencia-bancaria-fila{display:flex;align-items:stretch;gap:8px}
+.referencia-bancaria-fila input{flex:1;min-width:0;width:0;max-width:none;margin:0;padding:14px 12px}
+.referencia-bancaria-fila button{flex:0 0 auto;width:auto;max-width:none;margin:0;padding:12px 15px;white-space:nowrap}
+#referencia-ayuda,#referencia-estado{font-size:14px;line-height:1.45;margin:8px 0 0}
+#referencia-estado:empty{display:none}
+#referencia-estado{color:#ffe36b}
+@media(max-width:400px){.referencia-bancaria-fila{flex-wrap:wrap}.referencia-bancaria-fila input{flex-basis:100%;width:100%}.referencia-bancaria-fila button{width:100%}}

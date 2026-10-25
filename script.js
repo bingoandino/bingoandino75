@@ -2634,10 +2634,7 @@ async function enviarComprobante() {
       throw new Error('Debes completar primero los datos de inscripción');
     }
 
-    const referencia4dig = document.getElementById('referencia4dig').value.trim();
-    if (!/^\d{4}$/.test(referencia4dig)) {
-      throw new Error('Debes ingresar los últimos 4 dígitos de la referencia bancaria.');
-    }
+    const referencia4dig = ReferenciaBancaria.ultimos4(document.getElementById('referencia4dig').value);
 const PagoBanco = document.getElementById('pago_banco').value.trim();
 const PagoTelefono = document.getElementById('pago_telefono').value.trim();
 const PagoCedula = document.getElementById('pago_cedula').value.trim();
@@ -5137,3 +5134,4 @@ window.forzarCerrarSesionRemota = forzarCerrarSesionRemota;
 window.recuperarPasswordAdmin = recuperarPasswordAdmin;
 
 console.log('✅ Sistema de sesión única configurado correctamente');
+

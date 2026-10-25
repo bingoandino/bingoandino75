@@ -16,7 +16,7 @@
   <meta property="og:url" content="https://BingoAndino75/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://i.postimg.cc/wj0b7wG6/bingo-andino75.png" />
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261024-referencia-completa">
   <link rel="stylesheet" href="publicacion.css?v=2">
 </head>
 <body>
@@ -242,7 +242,15 @@
     </div>
 <h2>💳 Sube tu comprobante</h2>
     <input type="file" accept="image/jpeg,image/png,image/webp" id="comprobante">
-    <input type="text" id="referencia4dig" maxlength="4" placeholder="Últimos 4 dígitos de la referencia">
+    <div class="referencia-bancaria">
+      <label for="referencia4dig">Referencia bancaria</label>
+      <div class="referencia-bancaria-fila">
+        <input type="text" id="referencia4dig" inputmode="numeric" autocomplete="off" maxlength="64" pattern="[0-9]{4,64}" aria-describedby="referencia-ayuda referencia-estado" placeholder="Referencia completa o últimos 4 dígitos">
+        <button type="button" id="btnPegarReferencia" onclick="pegarReferenciaBancaria()">📋 Pegar</button>
+      </div>
+      <p id="referencia-ayuda">Puedes ingresar la referencia completa. Usaremos sus últimos 4 dígitos para verificar el pago.</p>
+      <p id="referencia-estado" role="status" aria-live="polite"></p>
+    </div>
 
     <button id="btnEnviarComprobante" onclick="enviarComprobante()">Enviar comprobante</button>
     <button onclick="mostrarVentana('bienvenida')">Inicio</button>
@@ -701,7 +709,9 @@
 
 
 <script src="publicacion.js?v=3"></script>
-<script src="script.js?v=20261020-resultados-4"></script>
+<script src="referencia.js?v=20261024-1"></script>
+<script src="script.js?v=20261024-referencia-completa"></script>
 
 </body>
 </html>
+
