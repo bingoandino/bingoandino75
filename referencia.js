@@ -253,7 +253,13 @@
         const porcentaje = config.total ? Math.min(100, disponibles / config.total * 100) : 0;
         const totalVendidos = document.getElementById('total-vendidos');
         if (totalVendidos) totalVendidos.textContent = String(vendidos);
-        texto.textContent = `${disponibles} de ${config.total} cartones disponibles`;
+        const cantidad = document.createElement('span');
+  cantidad.className = 'disponibles-numero';
+  cantidad.textContent = String(disponibles);
+  const detalle = document.createElement('span');
+  detalle.className = 'disponibles-detalle';
+  detalle.textContent = `de ${config.total} cartones disponibles`;
+  texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
   relleno.parentElement.setAttribute('role', 'progressbar');
   relleno.parentElement.setAttribute('aria-label', 'Cartones disponibles');

@@ -4758,7 +4758,13 @@ async function cargarBarraProgresoInicio() {
     ? Math.min(100, (disponibles / totalCartones) * 100)
     : 0;
 
-  texto.textContent = `${disponibles} de ${totalCartones} cartones disponibles`;
+  const cantidad = document.createElement('span');
+  cantidad.className = 'disponibles-numero';
+  cantidad.textContent = String(disponibles);
+  const detalle = document.createElement('span');
+  detalle.className = 'disponibles-detalle';
+  detalle.textContent = `de ${totalCartones} cartones disponibles`;
+  texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
   relleno.parentElement.setAttribute('role', 'progressbar');
   relleno.parentElement.setAttribute('aria-label', 'Cartones disponibles');

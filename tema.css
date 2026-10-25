@@ -152,3 +152,14 @@ body #contenedor-cartones .carton.seleccionado{background:#4b174f;border-color:#
 #bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:auto;bottom:12px;right:14px;padding:4px 8px;border-radius:8px;background:#f3ebf5;color:#6b3b75;font-size:11px;line-height:1.4;font-weight:700;min-width:44px;text-align:center}
 #bienvenida .barra-progreso-contenedor{width:calc(100% - 62px);height:10px;background:#eee7f0;border-radius:999px;box-shadow:inset 0 1px 2px #4b174f0a;overflow:hidden}
 #bienvenida .barra-progreso-relleno{background:linear-gradient(90deg,#4b174f,#95609c);box-shadow:inset 0 0 0 1px #ffffff20}
+
+/* Disponibilidad: cifra protagonista y acabado ciruela/dorado. */
+#bienvenida .barra-progreso-inicio{background:linear-gradient(120deg,#521b59,#321037);border:1px solid #c5a355;border-radius:18px;padding:16px 18px 18px;box-shadow:0 5px 16px #4b174f12;text-align:left;overflow:hidden}
+#bienvenida .barra-progreso-inicio::before{content:'DISPONIBILIDAD';display:block;color:#e2c77e;font-size:10px;font-weight:600;letter-spacing:.14em}
+#bienvenida #textoProgresoCartones{display:flex;align-items:baseline;gap:8px;padding-right:67px;margin:5px 0 16px;color:#fff9ed;text-align:left;line-height:1.2}
+#bienvenida .disponibles-numero{font-size:36px;font-weight:800;letter-spacing:-.04em;color:#fff6d9;line-height:1}
+#bienvenida .disponibles-detalle{font-size:12px;font-weight:400;color:#eadced;max-width:145px;line-height:1.45}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{top:36px;bottom:auto;right:17px;padding:6px 9px;min-width:47px;background:#ffffff0c;border:1px solid #c5a35566;border-radius:10px;color:#f1d58c;font-size:13px;font-weight:700;line-height:1.3}
+#bienvenida .barra-progreso-contenedor{width:100%;height:9px;background:#ffffff19;box-shadow:inset 0 1px 2px #18051f55;border-radius:999px}
+#bienvenida .barra-progreso-relleno{background:linear-gradient(90deg,#c8a34f,#f2d88c);box-shadow:none}
+@media(max-width:360px){#bienvenida .disponibles-numero{font-size:32px}#bienvenida .disponibles-detalle{font-size:11px}}
