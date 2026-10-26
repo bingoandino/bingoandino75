@@ -7,7 +7,7 @@ function fixture(options={}){
  w.eval('var usuario={nombre:"Prueba",telefono:"00000000000",cedula:"12345678",referido:"",cartones:[]},cantidadPermitida=1,versionCartones="1",precioPorCarton=10,totalCartones=100,sistemaListo=true,modoCartones="libre",cantidadFijaCartones=1,timerReserva=null;');
  for(const id of ['nombre','telefono','cedula','referido'])w.document.getElementById(id).value=w.usuario[id];
  const rows=options.rows||[{numero:12,cedula:'12345678',reserved_at:new Date(now-60000).toISOString(),partida_id:null}];
- w.supabase={from(table){let cedula,selection;return{select(){return this;},eq(_,value){cedula=value;return this;},in(field,value){if(field==='numero')selection=value;calls.reads++;if(options.error)return Promise.resolve({error:{}});return Promise.resolve({data:table==='cartones'?rows.filter(r=>r.cedula===cedula&&selection.includes(r.numero)):(options.enviadas||[])});}};},rpc(){calls.rpc++;throw Error('No debe modificar reservas durante la recuperación');}};
+ w.supabase={from(table){let cedula,selection;return{select(){return this;},eq(_,value){cedula=value;return this;},in(field,value){if(field==='numero')selection=value;calls.reads++;if(options.error)return Promise.resolve({error:{}});const data=table==='cartones'?rows.filter(r=>r.cedula===cedula&&selection.includes(r.numero)):(options.enviadas||[]);if(options.consultar)return options.consultar(table,data);return Promise.resolve({data});}};},rpc(){calls.rpc++;throw Error('No debe modificar reservas durante la recuperación');}};
  w.mostrarVentana=async id=>{w.document.querySelectorAll('section').forEach(s=>s.classList.toggle('oculto',s.id!==id));if(id==='pago')w.iniciarContadorReserva(5);};
  w.iniciarContadorReserva=()=>{};w.toggleCarton=async numero=>{w.usuario.cartones=w.usuario.cartones.includes(numero)?w.usuario.cartones.filter(n=>n!==numero):[...w.usuario.cartones,numero];};w.cargarCartones=async()=>{};w.actualizarMonto=()=>{};w.enviarComprobante=async()=>{calls.send++;};
  if(options.draft)w.sessionStorage.setItem(key,options.draft);
@@ -123,4 +123,13 @@ test('después de vencer se puede empezar una nueva selección y guardar su nuev
 });
 test('un avance vacío guardado en Inicio por una versión anterior no muestra el anuncio',()=>{
  const draft=JSON.stringify({schema:1,guardado:Date.now(),campos:{cedula:'12345678'},reservas:[],etapa:'bienvenida'});const f=fixture({draft});try{assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);}finally{f.close();}
+});
+
+test('continuar con dos cartones espera y vuelve a comprobar una validación antigua de un solo cartón',async()=>{
+ let release;let defer=true;const now=Date.now();const f=fixture({rows:[12,13].map(numero=>({numero,cedula:'12345678',reserved_at:new Date(now).toISOString(),partida_id:null})),consultar:(table,data)=>{if(table==='cartones'&&defer){defer=false;return new Promise(resolve=>release=()=>resolve({data}));}return Promise.resolve({data});}});
+ try{f.w.cantidadPermitida=2;await f.w.toggleCarton(12);await new Promise(resolve=>setTimeout(resolve,400));assert.equal(typeof release,'function');await f.w.toggleCarton(13);const opening=f.w.mostrarVentana('pago');release();await opening;assert.equal(f.w.document.querySelector('section:not(.oculto)').id,'pago');assert.deepEqual(Array.from(f.w.usuario.cartones),[12,13]);assert.equal(f.calls.rpc,0);}finally{f.close();}
+});
+test('dos cartones elegidos no habilitan pago si uno ya no pertenece a la persona',async()=>{
+ const now=Date.now();const f=fixture({rows:[{numero:12,cedula:'12345678',reserved_at:new Date(now).toISOString(),partida_id:null},{numero:13,cedula:'87654321',reserved_at:new Date(now).toISOString(),partida_id:null}]});
+ try{f.w.cantidadPermitida=2;await f.w.toggleCarton(12);await f.w.toggleCarton(13);await f.w.mostrarVentana('pago');assert.notEqual(f.w.document.querySelector('section:not(.oculto)').id,'pago');assert.deepEqual(Array.from(f.w.usuario.cartones),[12]);assert.equal(f.calls.rpc,0);}finally{f.close();}
 });

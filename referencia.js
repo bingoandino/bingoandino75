@@ -935,12 +935,18 @@
     }
     function sincronizar() {
       if (sincronizando) return sincronizando;
-      const cedula=String(usuario.cedula || '').trim(), seleccion=numeros();
-      if (!cedula || !seleccion.length) { sellos.clear(); vence=0; arrancarReloj(); guardar(); return Promise.resolve(false); }
-      sincronizando=consultar(cedula,seleccion).then(({filas,enviadas})=>{
-        if (String(usuario.cedula || '').trim() !== cedula || numeros().join(',') !== seleccion.join(',')) { programar(); return false; }
-        aplicar(validar(filas,enviadas,seleccion)); return numeros().length === seleccion.length;
-      }).catch(()=>{ avisar('No se pudo comprobar tu reserva. Revisa tu conexión antes de continuar.'); return false; }).finally(()=>{sincronizando=null;});
+      sincronizando=(async()=>{
+        for (;;) {
+          const cedula=String(usuario.cedula || '').trim(), seleccion=numeros();
+          if (!cedula || !seleccion.length) { sellos.clear(); vence=0; arrancarReloj(); guardar(); return false; }
+          const {filas,enviadas}=await consultar(cedula,seleccion);
+          if (String(usuario.cedula || '').trim() !== cedula) return false;
+          // Si eligió otro cartón mientras llegaba la respuesta, comprobar la selección actual.
+          if (numeros().join(',') !== seleccion.join(',')) continue;
+          aplicar(validar(filas,enviadas,seleccion));
+          return numeros().length === seleccion.length;
+        }
+      })().catch(()=>{ avisar('No se pudo comprobar tu reserva. Revisa tu conexión antes de continuar.'); return false; }).finally(()=>{sincronizando=null;});
       return sincronizando;
     }
     function programar() { global.clearTimeout(demora); demora=global.setTimeout(sincronizar,350); }
