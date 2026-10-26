@@ -909,23 +909,26 @@
     estiloSeleccion.textContent='#contenedor-cartones .carton.seleccionado{background:linear-gradient(145deg,#168443,#0c6631);border-color:#b5f5c7;color:#fff;box-shadow:0 0 16px #16844366;opacity:1;filter:none}#contenedor-cartones .carton.bloqueado{pointer-events:none}';
     document.head.appendChild(estiloSeleccion);
     function pintarSeleccion() {
-      const elegidos = numeros();
-      const limite=modoCartones==='fijo'?cantidadFijaCartones:cantidadPermitida;
-      const completa=limite>0 && elegidos.length>=limite;
+      const elegidos = new Set(numeros());
+      const ocupados = new Set(typeof cartonesOcupados !== 'undefined' ? cartonesOcupados.map(Number) : []);
+      const limite = modoCartones === 'fijo' ? cantidadFijaCartones : cantidadPermitida;
+      const completa = limite > 0 && elegidos.size >= limite;
+      function clase(nodo, nombre, activa) {
+        if (nodo.classList.contains(nombre) !== activa) nodo.classList.toggle(nombre, activa);
+      }
       document.querySelectorAll('#contenedor-cartones .carton').forEach(nodo => {
-        const numero=Number(nodo.textContent);
-        if (elegidos.includes(numero)) {
-          nodo.classList.remove('ocupado','bloqueado'); nodo.classList.add('seleccionado');
-          nodo.setAttribute('aria-disabled','false'); nodo.onclick=()=>global.toggleCarton(numero,nodo);
-        } else {
-          nodo.classList.remove('seleccionado');
-          const ocupado=nodo.classList.contains('ocupado') || (typeof cartonesOcupados!=='undefined' && cartonesOcupados.map(Number).includes(numero));
-          nodo.classList.toggle('ocupado',ocupado);
-          nodo.classList.toggle('bloqueado',completa && !ocupado);
-          nodo.setAttribute('aria-disabled',String(ocupado || completa));
-          if(ocupado || completa)nodo.onclick=null;
-          else if(typeof global.abrirModalCarton==='function')nodo.onclick=()=>global.abrirModalCarton(numero,nodo);
-        }
+        const numero = Number(nodo.textContent);
+        const elegido = elegidos.has(numero);
+        const ocupado = !elegido && (nodo.classList.contains('ocupado') || ocupados.has(numero));
+        const bloqueado = !elegido && completa && !ocupado;
+        clase(nodo, 'seleccionado', elegido);
+        clase(nodo, 'ocupado', ocupado);
+        clase(nodo, 'bloqueado', bloqueado);
+        const deshabilitado = String(!elegido && (ocupado || completa));
+        if (nodo.getAttribute('aria-disabled') !== deshabilitado) nodo.setAttribute('aria-disabled', deshabilitado);
+        if (elegido) nodo.onclick = () => global.toggleCarton(numero, nodo);
+        else if (ocupado || completa) nodo.onclick = null;
+        else if (typeof global.abrirModalCarton === 'function') nodo.onclick = () => global.abrirModalCarton(numero, nodo);
       });
       global.actualizarMonto?.();
     }
