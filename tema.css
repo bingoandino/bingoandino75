@@ -309,3 +309,9 @@ body::before{opacity:.42}
 @media(max-width:360px){#bienvenida .disponibles-numero{font-size:17px!important}#bienvenida>button.inicio-enlace:not(#boton-admin-oculto){font-size:17px}}
 
 #bienvenida>button:not(#boton-admin-oculto){transition:background-color .15s ease;transform:none}
+
+/* Dos líneas exactas: fecha completa y hora, sin separar el año. */
+#bienvenida #hora-venezuela{container-type:inline-size;min-height:64px;padding:10px!important;gap:4px}
+#hora-venezuela .fecha-icono{display:none}
+#hora-venezuela .fecha-dia{display:block;max-width:100%;white-space:nowrap;font-size:clamp(11px,4.3cqw,16px);font-weight:750;letter-spacing:-.02em;line-height:1.35}
+#hora-venezuela .fecha-hora{display:block;white-space:nowrap;font-size:16px;font-weight:700;line-height:1.3}
