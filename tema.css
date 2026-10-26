@@ -279,3 +279,33 @@ body::before{display:block;position:fixed;inset:0;z-index:-1;pointer-events:none
 #bienvenida .imagen-premios-inicio{max-width:min(100%,calc(100svh - 480px))}
 #bienvenida .flyer-ayuda{font-size:12px;font-weight:600;color:#6d5075}
 @media(max-width:360px){#bienvenida>button.inicio-enlace:not(#boton-admin-oculto){font-size:17px}#bienvenida>button.inicio-verificar:not(#boton-admin-oculto){font-size:18px}#bienvenida .disponibles-numero{font-size:18px!important}}
+
+/* Un solo ancho, eje central y ritmo para el inicio. */
+body::before{opacity:.42}
+#bienvenida{--inicio-ancho:min(100%,max(240px,calc(100svh - 440px)),360px);max-width:440px;padding:8px 14px 24px}
+#bienvenida .logo{width:110px;margin:0 auto 6px}
+#bienvenida .imagen-premios-inicio{width:var(--inicio-ancho);max-width:var(--inicio-ancho);height:auto;margin:0 auto 4px;border-radius:14px}
+#bienvenida .flyer-ayuda{font-size:11px;font-weight:500;margin:0 auto 6px}
+#bienvenida #hora-venezuela{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;width:var(--inicio-ancho)!important;max-width:var(--inicio-ancho)!important;min-height:66px;margin:8px auto!important;padding:9px 40px!important;gap:2px;background:#fffdf8ed!important;border:1px solid #e6dce8!important;border-radius:14px!important;box-shadow:none!important;text-align:center!important}
+#hora-venezuela .fecha-icono{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:27px;height:32px}
+#hora-venezuela .fecha-icono svg{width:27px;height:32px}
+#hora-venezuela .fecha-icono span{top:15px;font-size:11px}
+#hora-venezuela .fecha-dia{font-size:16px;font-weight:700;line-height:1.3;text-align:center}
+#hora-venezuela .fecha-hora{font-size:15px;font-weight:600;line-height:1.3;text-align:center}
+#bienvenida .barra-progreso-inicio{width:var(--inicio-ancho);max-width:var(--inicio-ancho);margin:8px auto;padding:12px 14px 14px;background:#f6f0f7;border:1px solid #e6dce8;border-radius:14px;box-shadow:none}
+#bienvenida .barra-progreso-inicio::before{left:12px;top:15px;width:26px;height:26px}
+#bienvenida #textoProgresoCartones{display:block;padding:0 27px;margin:0 0 10px;text-align:center}
+#bienvenida .disponibles-numero{font-size:18px!important;font-weight:750;line-height:1.3;text-align:center}
+#bienvenida .disponibles-detalle{margin-top:3px;font-size:14px!important;font-weight:500;line-height:1.3;text-align:center}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{right:14px;bottom:13px;font-size:15px;font-weight:700;line-height:1}
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:13px;width:calc(100% - 54px)}
+#bienvenida>button.inicio-comprar:not(#boton-admin-oculto),#bienvenida>button.inicio-verificar:not(#boton-admin-oculto),#bienvenida>button.inicio-enlace:not(#boton-admin-oculto){width:var(--inicio-ancho);max-width:var(--inicio-ancho);margin:8px auto;border-radius:14px;line-height:1.25}
+#bienvenida>button.inicio-comprar:not(#boton-admin-oculto){min-height:54px;font-size:22px;padding:12px;font-weight:800}
+#bienvenida>button.inicio-verificar:not(#boton-admin-oculto){min-height:52px;font-size:18px;padding:12px;font-weight:750}
+#bienvenida>button.inicio-enlace:not(#boton-admin-oculto){min-height:56px;padding:12px 40px;font-size:18px;font-weight:750;border-color:#e6dce8;box-shadow:none}
+#bienvenida .inicio-icono{left:10px;width:28px;height:28px}
+#bienvenida .inicio-icono svg{width:20px;height:20px}
+#bienvenida .inicio-flecha{right:11px;font-size:23px}
+@media(max-width:360px){#bienvenida .disponibles-numero{font-size:17px!important}#bienvenida>button.inicio-enlace:not(#boton-admin-oculto){font-size:17px}}
+
+#bienvenida>button:not(#boton-admin-oculto){transition:background-color .15s ease;transform:none}

@@ -258,7 +258,7 @@
   cantidad.textContent = disponibles + ' cartones disponibles';
   const detalle = document.createElement('span');
   detalle.className = 'disponibles-detalle';
-  detalle.textContent = `De ${config.total} cartones · ${new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje)}% disponibles`;
+  detalle.textContent = `De ${config.total} cartones`;
   texto.replaceChildren(cantidad, document.createTextNode(' '), detalle);
   contenedor.dataset.porcentaje = new Intl.NumberFormat('es-VE', {maximumFractionDigits:1}).format(porcentaje) + '%';
   contenedor.dataset.nivel = porcentaje > 50 ? 'alto' : porcentaje > 20 ? 'medio' : porcentaje > 10 ? 'bajo' : 'critico';
