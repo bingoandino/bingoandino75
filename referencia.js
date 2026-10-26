@@ -833,7 +833,7 @@
         if (!valor || valor.schema !== 1 || !Number.isFinite(valor.guardado) || Date.now() - valor.guardado > vigencia || valor.guardado > Date.now() + 60000) return null;
         if (!valor.campos || !Array.isArray(valor.reservas) || valor.reservas.length > 10000) return null;
         if (!valor.reservas.length && ['bienvenida','cartones','pago'].includes(valor.etapa)) return null;
-        if (valor.reservas.length && caducidad(valor) <= Date.now()) return null;
+        if (caducidad(valor) <= Date.now()) return null;
         return valor;
       } catch { return null; }
     }
@@ -1013,11 +1013,11 @@
       finally{restaurando=false;retomar.disabled=false;retomar.textContent='Retomar compra';if(recuperado && document.getElementById('retomar-compra'))guardar();}
     };
     document.getElementById('bienvenida')?.prepend(caja);
-    if(borrador.reservas.length) {
+    {
       const retirarVencido=()=>{
         const vigente=leer();
         if(!vigente){borrar();return;}
-        if(vigente.reservas.length)global.setTimeout(retirarVencido,Math.max(1,caducidad(vigente)-Date.now()));
+        global.setTimeout(retirarVencido,Math.max(1,caducidad(vigente)-Date.now()));
       };
       global.setTimeout(retirarVencido,Math.max(1,caducidad(borrador)-Date.now()));
     }

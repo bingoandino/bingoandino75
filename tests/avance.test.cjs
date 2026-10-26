@@ -113,6 +113,11 @@ test('el temporizador retira el aviso al vencer aunque el cliente no cambie de p
  const first=fixture();let draft;try{draft=await selected(first);}finally{first.close();}
  const f=fixture({draft,holdLongTimeouts:true});try{assert.equal(f.longTimeouts.length,1);f.setNow(f.now+300000);f.longTimeouts[0]();assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);}finally{f.close();}
 });
+test('un avance sin cartones también desaparece exactamente a los cinco minutos',()=>{
+ const first=fixture();let draft;try{first.w.document.getElementById('nombre').dispatchEvent(new first.w.Event('input',{bubbles:true}));draft=JSON.parse(first.save());draft.etapa='inscripcion';}finally{first.close();}
+ const f=fixture({draft:JSON.stringify(draft),holdLongTimeouts:true});try{assert.ok(f.w.document.getElementById('retomar-compra'));assert.equal(f.longTimeouts.length,1);f.setNow(draft.guardado+300000);f.longTimeouts[0]();assert.equal(f.w.document.getElementById('retomar-compra'),null);assert.equal(f.save(),null);assert.equal(f.calls.rpc,0);assert.equal(f.calls.send,0);}finally{f.close();}
+ const old=fixture({draft:JSON.stringify({...draft,guardado:Date.now()-300001})});try{assert.equal(old.w.document.getElementById('retomar-compra'),null);assert.equal(old.save(),null);}finally{old.close();}
+});
 test('después de vencer se puede empezar una nueva selección y guardar su nueva reserva',async()=>{
  const f=fixture();try{await selected(f);f.setNow(f.now+300000);f.w.document.dispatchEvent(new f.w.Event('visibilitychange'));assert.equal(f.save(),null);f.rows[0].reserved_at=new Date(f.now).toISOString();await f.w.toggleCarton(12);await f.w.mostrarVentana('pago');assert.deepEqual(Array.from(f.w.usuario.cartones),[12]);assert.ok(f.save());assert.match(f.w.document.getElementById('contadorReserva').textContent,/5:00/);}finally{f.close();}
 });
