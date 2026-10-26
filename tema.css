@@ -337,3 +337,8 @@ body::before{opacity:.42}
 @keyframes disponibilidad-brillo{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
 @keyframes disponibilidad-reflejo{0%,20%{transform:translateX(-110%)}70%,100%{transform:translateX(110%)}}
 @media(prefers-reduced-motion:reduce){#bienvenida .barra-progreso-relleno,#bienvenida .barra-progreso-relleno::after{animation:none!important;filter:none!important}}
+
+/* Estados de cartones con contraste claro y sin efectos pesados. */
+body #contenedor-cartones .carton.ocupado:not(.seleccionado){background:#6b3a70;border-color:#4b174f;color:#fff;opacity:1;filter:none;box-shadow:none;font-weight:800;cursor:not-allowed;transform:none}
+body #contenedor-cartones .carton.seleccionado{background:#087f4b;border-color:#065f38;color:#fff;opacity:1;filter:none;box-shadow:0 0 0 2px #087f4b25;font-weight:800;transform:none}
+body #contenedor-cartones .carton.ocupado::before,body #contenedor-cartones .carton.seleccionado::before{display:none}
