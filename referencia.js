@@ -545,6 +545,7 @@
         ayuda(cont); return;
       }
       texto(cont, 'p', `${compras.length === 1 ? '1 compra encontrada' : `${compras.length} compras encontradas`} · Revisa el estado y toca un cartón para ampliarlo.`).className = 'consulta-resumen';
+      if (typeof global.agregarAccesoJuego === 'function') global.agregarAccesoJuego(cont, campo.value, compras);
       for (const compra of compras) {
         const estado = Object.hasOwn(estados, compra.estado) ? compra.estado : 'otro';
         const info = estados[estado];
