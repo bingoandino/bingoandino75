@@ -2117,13 +2117,10 @@ async function cargarCartones() {
     contenedor.appendChild(carton);
   }
 
-  await contarCartonesVendidos();
-
-  actualizarContadorCartones(
-    totalCartones,
-    Number(document.getElementById('total-vendidos').textContent) || cartonesOcupados.length,
-    usuario.cartones.length
-  );
+  const ocupadosValidos = cartonesOcupados.filter(n => n >= 1 && n <= totalCartones).length;
+  const vendidos = document.getElementById('total-vendidos');
+  if (vendidos) vendidos.textContent = String(ocupadosValidos);
+  actualizarContadorCartones(totalCartones, ocupadosValidos, usuario.cartones.length);
 
   actualizarMonto();
 }
@@ -3273,10 +3270,23 @@ img.alt = `Cartón ${numero}`;
   document.getElementById('modal-carton').classList.remove('oculto');
 
   const btn = document.getElementById('btnSeleccionarCarton');
+  btn.disabled = false;
   btn.onclick = async () => {
-  await toggleCarton(cartonSeleccionadoTemporal, cartonElementoTemporal);
-  cerrarModalCarton();
-};
+    if (btn.disabled) return;
+    const numero = cartonSeleccionadoTemporal, elemento = cartonElementoTemporal;
+    const texto = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Confirmando selección…';
+    btn.setAttribute('aria-busy', 'true');
+    try {
+      await toggleCarton(numero, elemento);
+      if (cartonSeleccionadoTemporal === numero) cerrarModalCarton();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = texto;
+      btn.removeAttribute('aria-busy');
+    }
+  };
 }
 
 function cerrarModalCarton() {
@@ -3819,37 +3829,14 @@ function buildWhatsAppLink(rawPhone, presetMsg = '') {
 
 async function fetchTodosLosOcupados() {
   const pageSize = 1000;
-  let from = 0;
-  let todos = [];
-
-  const { count, error: countErr } = await supabase
-    .from('cartones')
-    .select('numero', { count: 'exact', head: true });
-
-  if (countErr) {
-    console.error('Error contando cartones:', countErr);
-    return [];
+  const todos = [];
+  for (let desde = 0; ; desde += pageSize) {
+    const {data, error} = await supabase.from('cartones').select('numero')
+      .order('numero', {ascending: true}).range(desde, desde + pageSize - 1);
+    if (error || !Array.isArray(data)) throw new Error('No se pudo comprobar la disponibilidad. Intenta nuevamente.');
+    todos.push(...data.map(fila => Number(fila.numero)));
+    if (data.length < pageSize) return todos;
   }
-
-  const total = count || 0;
-  while (from < total) {
-    const to = Math.min(from + pageSize - 1, total - 1);
-    const { data, error } = await supabase
-      .from('cartones')
-      .select('numero')
-      .order('numero', { ascending: true })
-      .range(from, to);
-
-    if (error) {
-      console.error('Error paginando cartones:', error);
-      break;
-    }
-
-    todos = todos.concat(data || []);
-    from += pageSize;
-  }
-
-  return todos.map(r => Number(r.numero));
 }
 
 function restringirSolo4Digitos(input) {
