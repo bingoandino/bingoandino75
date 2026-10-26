@@ -7,7 +7,7 @@ const source=fs.readFileSync(path.join(__dirname,'..','referencia.js'),'utf8');
 function fixture(response,opciones={}){
   const dom=new JSDOM('<div id="redes-sociales"><a href="https://wa.me/580000000000">Contacto ficticio</a></div><section><h2>Consultar cartones</h2><input id="consulta-cedula"><button onclick="consultarCartones()">Consultar</button><div id="cartones-usuario"></div></section>',{runScripts:'outside-only',url:'https://example.test'});
   const w=dom.window, calls=[];
-  w.supabase={from(table){const call={table};calls.push(call);return {select(fields){call.fields=fields;return this;},eq(key,value){call.key=key;call.value=value;return this;},order(){return typeof response==='function'?response(call):Promise.resolve(response);}};}};
+  w.supabase={rpc(name,args){const call={rpc:name,key:'cedula',value:args._cedula};calls.push(call);return typeof response==='function'?response(call):Promise.resolve(response);},from(table){const call={table};calls.push(call);return {select(fields){call.fields=fields;return this;},eq(key,value){call.key=key;call.value=value;return this;},order(){return typeof response==='function'?response(call):Promise.resolve(response);}};}};
   w.createImageBitmap=async()=>({width:240,height:320,close(){}});
   w.HTMLCanvasElement.prototype.getContext=()=>({fillRect(){},drawImage(){}});w.HTMLCanvasElement.prototype.toBlob=function(fn){fn(new Blob(['PNG'],{type:'image/png'}));};
   w.urlCartonWebP=n=>`https://example.test/carton-${n}.webp`;
@@ -24,7 +24,7 @@ test('compras mixtas se muestran por separado con instrucciones y cartones de ca
     assert.match(cards[1].textContent,/30 minutos/);assert.match(cards[1].textContent,/todavía no están aprobados/);
     assert.match(cards[2].textContent,/No vuelvas a pagar/);assert.equal(cards[2].querySelectorAll('img').length,0);
     assert.equal(cards[0].querySelectorAll('img').length,1);assert.equal(cards[1].querySelectorAll('img').length,1);
-    assert.equal(f.calls[0].fields,'id,cartones,estado');assert.equal(f.calls[0].key,'cedula');
+    assert.equal(f.calls[0].rpc,'rpc_consultar_cartones_cedula');assert.equal(f.calls[0].key,'cedula');
     assert.equal(cards[1].querySelector('a').hostname,'wa.me');assert.equal(cards[1].querySelector('a').href.includes('12345678'),false);
   }finally{f.close();}
 });
@@ -99,3 +99,7 @@ test('usa la cédula del registro la primera vez y funciona con almacenamiento b
  const bloqueada=fixture({data:[]},{bloqueado:true});try{await bloqueada.w.consultarCartones();assert.equal(bloqueada.calls.length,1);assert.match(bloqueada.cont.textContent,/No encontramos/);}finally{bloqueada.close();}
 });
 
+
+ test('consultar acepta puntos y espacios, normaliza la búsqueda y recuerda los dígitos',async()=>{
+ const f=fixture({data:[{id:1,estado:'aprobado',cartones:[12]}]});try{f.input.value=' 14.072.273 ';await f.w.consultarCartones();assert.equal(f.calls[0].value,'14072273');assert.equal(f.input.value,'14072273');assert.match(f.cont.textContent,/Compra aprobada/);assert.equal(f.w.localStorage.getItem('bingo_consulta_cedula_v1'),'14072273');}finally{f.close();}
+ });

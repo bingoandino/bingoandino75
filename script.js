@@ -2041,7 +2041,10 @@ requestAnimationFrame(() => {
 function guardarDatosInscripcion() {
   usuario.nombre = document.getElementById('nombre').value;
   usuario.telefono = document.getElementById('telefono').value;
-  usuario.cedula = document.getElementById('cedula').value;
+  const cedulaNormalizada = document.getElementById('cedula').value.replace(/[.\s]/g, '').trim();
+  if (!/^\d{5,12}$/.test(cedulaNormalizada)) { alert('Ingresa una cédula válida, solo números (puedes usar puntos).'); return; }
+  document.getElementById('cedula').value = cedulaNormalizada;
+  usuario.cedula = cedulaNormalizada;
   usuario.referido = document.getElementById('referido').value;
   usuario.cartones = [];
   mostrarVentana('cantidad')
