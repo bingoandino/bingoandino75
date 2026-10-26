@@ -3266,9 +3266,11 @@ function abrirModalCarton(numero, elemento) {
   cartonSeleccionadoTemporal = numero;
   cartonElementoTemporal = elemento;
   const img = document.getElementById('imagen-carton-modal');
+  img.loading = 'eager';
+  img.fetchPriority = 'high';
+  img.decoding = 'async';
+  img.alt = `Cartón ${numero}`;
   img.src = urlCartonWebP(numero);
-img.loading = 'lazy';
-img.alt = `Cartón ${numero}`;
 
   document.getElementById('modal-carton').classList.remove('oculto');
 
