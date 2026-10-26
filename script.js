@@ -2631,8 +2631,8 @@ async function enviarComprobante() {
 
     const referencia4dig = ReferenciaBancaria.ultimos4(document.getElementById('referencia4dig').value);
 const PagoBanco = document.getElementById('pago_banco').value.trim();
-const PagoTelefono = document.getElementById('pago_telefono').value.trim();
-const PagoCedula = document.getElementById('pago_cedula').value.trim();
+const PagoTelefono = document.getElementById('pago_telefono').value.replace(/\D/g, '');
+const PagoCedula = document.getElementById('pago_cedula').value.replace(/\D/g, '');
 
 if (!PagoBanco || !PagoTelefono || !PagoCedula) {
   throw new Error('Debes registrar tu Pago Móvil para el pago ganador.');
@@ -4961,8 +4961,8 @@ function cargarDatosPagoCliente() {
   if (!banco || !telefono || !cedula) return;
 
   banco.value = datos.banco || '';
-  telefono.value = datos.telefono || '';
-  cedula.value = datos.cedula || '';
+  telefono.value = String(datos.telefono || '').replace(/\D/g, '');
+  cedula.value = String(datos.cedula || '').replace(/\D/g, '');
 
   [banco, telefono, cedula].forEach(input => {
     input.addEventListener('input', guardarDatosPagoClienteAutomatico);
@@ -4970,6 +4970,10 @@ function cargarDatosPagoCliente() {
 }
 
 function guardarDatosPagoClienteAutomatico() {
+  for (const id of ['pago_telefono', 'pago_cedula']) {
+    const campo = document.getElementById(id);
+    campo.value = campo.value.replace(/\D/g, '');
+  }
   const datos = {
     banco: document.getElementById('pago_banco').value.trim(),
     telefono: document.getElementById('pago_telefono').value.trim(),
