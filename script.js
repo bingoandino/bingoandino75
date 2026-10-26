@@ -2039,7 +2039,15 @@ requestAnimationFrame(() => {
 
 // Guardar datos del formulario
 function guardarDatosInscripcion() {
-  usuario.nombre = document.getElementById('nombre').value;
+  const campoNombre = document.getElementById('nombre');
+  const nombreCompleto = campoNombre.value.trim().replace(/\s+/g, ' ');
+  if (nombreCompleto.split(' ').filter(palabra => /\p{L}/u.test(palabra)).length < 2) {
+    alert('Escribe tu nombre y apellido');
+    campoNombre.focus();
+    return;
+  }
+  campoNombre.value = nombreCompleto;
+  usuario.nombre = nombreCompleto;
   usuario.telefono = document.getElementById('telefono').value;
   const cedulaNormalizada = document.getElementById('cedula').value.replace(/[.\s]/g, '').trim();
   if (!/^\d{5,12}$/.test(cedulaNormalizada)) { alert('Ingresa una cédula válida, solo números (puedes usar puntos).'); return; }
