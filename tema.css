@@ -328,3 +328,12 @@ body::before{opacity:.42}
 #bienvenida .inicio-icono{width:28px;height:28px;left:11px}
 #bienvenida .inicio-icono svg{width:20px;height:20px}
 #bienvenida .inicio-flecha{right:12px;font-size:23px}
+
+/* Barra más gruesa con brillo sutil; conserva la anchura real disponible. */
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-contenedor{height:21px;border-radius:999px}
+#bienvenida .barra-progreso-inicio[data-nivel] .barra-progreso-relleno{position:relative;overflow:hidden;animation:disponibilidad-brillo 3.2s ease-in-out infinite}
+#bienvenida .barra-progreso-relleno::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 10%,#ffffff55 50%,transparent 90%);transform:translateX(-110%);animation:disponibilidad-reflejo 3.2s ease-in-out infinite;pointer-events:none}
+#bienvenida .barra-progreso-inicio[data-porcentaje]::after{bottom:16px}
+@keyframes disponibilidad-brillo{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
+@keyframes disponibilidad-reflejo{0%,20%{transform:translateX(-110%)}70%,100%{transform:translateX(110%)}}
+@media(prefers-reduced-motion:reduce){#bienvenida .barra-progreso-relleno,#bienvenida .barra-progreso-relleno::after{animation:none!important;filter:none!important}}
