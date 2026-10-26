@@ -1,0 +1,19 @@
+const{test}=require('node:test');const assert=require('node:assert/strict');const{JSDOM}=require('jsdom');const fs=require('node:fs');const path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'../enlaces-inicio.js'),'utf8');
+async function setup(fail=false){
+ const w=new JSDOM('<div id="redes-sociales"><a title="WhatsApp" href="https://wa.me/58000"></a><a title="YouTube" href="https://www.youtube.com/@old"></a><a title="Facebook" href="https://www.facebook.com/old"></a><a title="Instagram" href="https://www.instagram.com/old"></a><a id="btnWhatsapp"></a></div><div id="tab-config"><div class="panel-section"><input id="inputWhatsapp"><input id="inputYoutube"></div></div>',{url:'https://example.test',runScripts:'outside-only'}).window;
+ const writes=[];let reads=0;w.cambiarTab=()=>{};w.alert=()=>{};w.invalidarConfiguracionInicio=()=>{};w.leerConfiguracionInicio=async()=>{reads++;return new Map([['inicio_instagram','https://www.instagram.com/new'],['link_whatsapp','https://whatsapp.com/channel/test']]);};w.supabase={from:()=>({upsert:async rows=>{writes.push(rows);return{error:fail?{message:'denied'}:null}},select(){return this},eq(){return this},maybeSingle:async()=>({data:{valore:'https://youtu.be/live'}})})};
+ w.eval(src);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));return{w,writes,reads:()=>reads};
+}
+test('home links share startup data and editor loads saved links only when Configuration opens',async()=>{
+ const {w,reads}=await setup();try{assert.equal(reads(),0);assert.equal(w.document.querySelectorAll('#enlaces-botones-inicio form').length,4);w.cambiarTab('tab-config');await new Promise(r=>setImmediate(r));assert.equal(reads(),1);assert.equal(w.document.querySelector('a[title=Instagram]').href,'https://www.instagram.com/new');assert.equal(w.document.getElementById('enlace-inicio_instagram').value,'https://www.instagram.com/new');assert.equal(w.document.getElementById('inputWhatsapp').value,'https://whatsapp.com/channel/test');}finally{w.close();}
+});
+test('saving a social link persists only that key and immediately updates the correct icon',async()=>{
+ const {w,writes}=await setup();try{const field=w.document.getElementById('enlace-inicio_youtube');field.value='https://www.youtube.com/@nuevo';field.closest('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setImmediate(r));assert.equal(writes.length,1);assert.equal(writes[0][0].clave,'inicio_youtube');assert.equal(w.document.querySelector('a[title=YouTube]').href,field.value);assert.equal(w.document.querySelector('a[title=Instagram]').href,'https://www.instagram.com/old');}finally{w.close();}
+});
+test('unsafe URLs and lookalike social domains are rejected before saving',async()=>{
+ const {w,writes}=await setup();try{const f=w.document.getElementById('enlace-inicio_instagram');for(const value of ['javascript:alert(1)','http://instagram.com/x','https://instagram.com.attacker.test/x','https://me:password@instagram.com/x']){f.value=value;f.closest('form').dispatchEvent(new w.Event('submit',{cancelable:true}));}assert.equal(writes.length,0);}finally{w.close();}
+});
+test('failed save keeps published icon and unsaved typed input intact',async()=>{
+ const {w}=await setup(true);try{const f=w.document.getElementById('enlace-inicio_facebook');f.value='https://www.facebook.com/new';f.dispatchEvent(new w.Event('input'));f.closest('form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setImmediate(r));assert.equal(w.document.querySelector('a[title=Facebook]').href,'https://www.facebook.com/old');w.aplicarEnlacesInicio(new Map([['inicio_facebook','https://www.facebook.com/remote']]));assert.equal(f.value,'https://www.facebook.com/new');assert.match(w.document.getElementById('enlaces-botones-inicio').textContent,/No se pudo guardar/);}finally{w.close();}
+});

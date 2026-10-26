@@ -338,7 +338,7 @@
 (function (global) {
   'use strict';
   let instalado = false;
-    const claves = ['total_cartones', 'precio_carton', 'modo_cartones', 'cartones_obligatorios', 'link_whatsapp', 'version_cartones', 'imagen_premios_inicio', 'mostrar_barra_progreso'];
+    const claves = ['total_cartones', 'precio_carton', 'modo_cartones', 'cartones_obligatorios', 'link_whatsapp', 'version_cartones', 'imagen_premios_inicio', 'mostrar_barra_progreso', 'inicio_whatsapp', 'inicio_youtube', 'inicio_facebook', 'inicio_instagram'];
     let cache = null, peticion = null, version = 0;
     function invalidar() { cache = null; version++; }
     async function leer(fresca = false) {
@@ -360,6 +360,7 @@
     if (instalado || !global.supabase || typeof global.cargarPromocionesConfig !== 'function' || typeof global.cargarPrecioPorCarton !== 'function') return;
     instalado = true;
     global.invalidarConfiguracionInicio = invalidar;
+    global.leerConfiguracionInicio = leer;
     const getOriginal = global.getConfigValue;
     if (typeof getOriginal === 'function') global.getConfigValue = async function (clave, fallback = null) {
       if (!claves.includes(clave)) return getOriginal(clave, fallback);
@@ -396,7 +397,9 @@
     global.renderizarBotonesPromociones = desactivarPromocionesPublicas;
     desactivarPromocionesPublicas();
     global.cargarLinkWhatsapp = async function () {
-      const link = (await leer()).get('link_whatsapp');
+      const valores = await leer();
+      global.aplicarEnlacesInicio?.(valores);
+      const link = valores.get('link_whatsapp');
       const boton = document.getElementById('btnWhatsapp');
       if (boton && link) { boton.href = link; boton.style.display = 'inline-block'; }
     };
