@@ -1,5 +1,5 @@
 function escaparHTML(valor) { return String(valor ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function comprobanteURLSegura(valor) { try { const url=new URL(String(valor)); return url.protocol==='https:' && url.hostname==='dbkixcpwirjwjvjintkr.supabase.co' && url.pathname.startsWith('/storage/v1/object/public/comprobantes/') ? url.href : ''; } catch { return ''; } }
+function comprobanteURLSegura(valor) { try { const url=new URL(String(valor)); return url.protocol==='https:' && url.hostname==='dbkixcpwirjwjvjintkr.supabase.co' && /^\/storage\/v1\/object\/(public|sign)\/comprobantes\//.test(url.pathname) ? url.href : ''; } catch { return ''; } }
 var supabase = window.supabase;
 // Configuración del amin
 let sistemaListo = false;
@@ -1725,7 +1725,7 @@ async function contarCartonesVendidos() {
   await obtenerTotalCartones();
 
   const { count, error } = await supabase
-    .from('cartones')
+    .from('cartones_disponibilidad')
     .select('numero', { count: 'exact', head: true })
     .gte('numero', 1)
     .lte('numero', totalCartones);
@@ -2670,7 +2670,7 @@ const idArchivo = crypto.randomUUID
   : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const nombreArchivo =
-  `${cedulaArchivo}-${Date.now()}-${idArchivo}.${extensionFinal}`;
+  `${Date.now()}-${idArchivo}.${extensionFinal}`;
 
 boton.textContent = 'Subiendo comprobante...';
 
@@ -2888,21 +2888,15 @@ img.alt = `Cartón ${num}`;
 }
 
 async function elegirMasCartones() {
-  const cedula = document.getElementById('consulta-cedula').value;
-  const { data, error } = await supabase.from('inscripciones').select('*').eq('cedula', cedula);
-
-  if (error || data.length === 0) {
-    return alert('No se encontró ningún usuario con esa cédula');
+  const cedula = document.getElementById('consulta-cedula').value.replace(/[.\s]/g,'');
+  const coincide = String(usuario.cedula || '') === cedula;
+  if (!coincide || !usuario.nombre || !usuario.telefono) {
+    document.getElementById('cedula').value=cedula;
+    await mostrarVentana('inscripcion');
+    return;
   }
-
-  const inscripcion = data[0];
-  usuario.nombre = inscripcion.nombre;
-  usuario.telefono = inscripcion.telefono;
-  usuario.cedula = inscripcion.cedula;
-  usuario.referido = inscripcion.referido;
-  usuario.cartones = [];
-
-  mostrarVentana('cantidad');
+  usuario.cartones=[];
+  await mostrarVentana('cantidad');
   actualizarPreseleccion();
 }
 
@@ -3203,7 +3197,7 @@ async function eliminarInscripcion(item, fila) {
     if (error) throw error;
 
     if (item.comprobante) {
-      const nombreArchivo = item.comprobante.split('/').pop();
+      const nombreArchivo = new URL(item.comprobante).pathname.split('/comprobantes/')[1];
       await supabase.storage.from('comprobantes').remove([nombreArchivo]);
     }
 
@@ -3489,10 +3483,7 @@ function mostrarSeccion(id) {
 }
 
 async function cargarListaAprobadosSeccion() {
-  const { data, error } = await supabase
-    .from('inscripciones')
-    .select('*')
-    .eq('estado', 'aprobado');
+  const { data, error } = await supabase.rpc('rpc_aprobados_publicos');
 
   const contenedor = document.getElementById('contenedor-aprobados');
   contenedor.innerHTML = '';
@@ -3844,7 +3835,7 @@ async function fetchTodosLosOcupados() {
   const pageSize = 1000;
   const todos = [];
   for (let desde = 0; ; desde += pageSize) {
-    const {data, error} = await supabase.from('cartones').select('numero')
+    const {data, error} = await supabase.from('cartones_disponibilidad').select('numero')
       .order('numero', {ascending: true}).range(desde, desde + pageSize - 1);
     if (error || !Array.isArray(data)) throw new Error('No se pudo comprobar la disponibilidad. Intenta nuevamente.');
     todos.push(...data.map(fila => Number(fila.numero)));
@@ -4532,10 +4523,7 @@ async function liberarReservaPorTiempo() {
   }
 }
 async function cargarTopCompradores() {
-  const { data, error } = await supabase
-    .from('inscripciones')
-    .select('nombre, cedula, telefono, cartones, estado')
-    .in('estado', ['aprobado']);
+  const { data, error } = await supabase.rpc('rpc_top_publico');
 
   const cont = document.getElementById('listaTopCompradores');
   cont.innerHTML = '';
@@ -4546,27 +4534,7 @@ async function cargarTopCompradores() {
     return;
   }
 
-  const ranking = {};
-
-  (data || []).forEach(item => {
-    const cedula = item.cedula || 'sin-cedula';
-    const cantidad = Array.isArray(item.cartones) ? item.cartones.length : 0;
-
-    if (!ranking[cedula]) {
-      ranking[cedula] = {
-        nombre: item.nombre || 'Sin nombre',
-        cedula,
-        telefono: item.telefono || '',
-        total: 0
-      };
-    }
-
-    ranking[cedula].total += cantidad;
-  });
-
-  const top = Object.values(ranking)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
+  const top = data || [];
 
   if (!top.length) {
     cont.innerHTML = '<p>No hay compradores todavía.</p>';
@@ -5146,5 +5114,6 @@ window.forzarCerrarSesionRemota = forzarCerrarSesionRemota;
 window.recuperarPasswordAdmin = recuperarPasswordAdmin;
 
 console.log('✅ Sistema de sesión única configurado correctamente');
+
 
 

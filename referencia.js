@@ -22,6 +22,21 @@
   const from=cliente.from.bind(cliente);
   cliente.from=function(tabla){
    const constructor=from(tabla);
+   if(['inscripciones','cartones'].includes(tabla) && typeof constructor.select==='function'){
+    const seleccionar=constructor.select.bind(constructor);
+    constructor.select=function(...args){
+     const consulta=seleccionar(...args);
+     if(typeof consulta?.setHeader==='function')consulta.setHeader('x-bingo-reserva',token);
+     if(tabla==='inscripciones' && typeof consulta?.then==='function'){
+      const esperar=consulta.then.bind(consulta);
+      consulta.then=function(resolve,reject){return esperar(async resultado=>{
+       if(!resultado.error && Array.isArray(resultado.data))await global.prepararComprobantesPrivados(resultado.data);
+       return resultado;
+      }).then(resolve,reject);};
+     }
+     return consulta;
+    };
+   }
    if(tabla==='inscripciones' && typeof constructor.insert==='function'){
     const insertar=constructor.insert.bind(constructor);
     constructor.insert=function(...args){
@@ -34,6 +49,17 @@
    return constructor;
   };
  }
+ global.prepararComprobantesPrivados=async function(filas){
+  const prefijo='https://dbkixcpwirjwjvjintkr.supabase.co/storage/v1/object/public/comprobantes/';
+  const privadas=filas.filter(f=>typeof f.comprobante==='string' && f.comprobante.startsWith(prefijo));
+  if(!privadas.length)return;
+  const rutas=privadas.map(f=>f.comprobante.slice(prefijo.length));
+  try{
+   const {data,error}=await cliente.storage.from('comprobantes').createSignedUrls(rutas,3600);
+   if(error)throw error;
+   privadas.forEach((fila,i)=>{fila.comprobante=data?.[i]?.signedUrl||'';});
+  }catch{privadas.forEach(fila=>{fila.comprobante='';});}
+ };
  if(typeof global.fetch==='function'){
   const original=global.fetch.bind(global);
   global.fetch=async function(entrada,opciones){
@@ -246,7 +272,7 @@
         if (!contenedor || !texto || !relleno) return;
         const config = await configuracionBarra();
         if (!config.mostrar) { contenedor.classList.add('oculto'); return; }
-        const {count, error} = await cliente.from('cartones').select('numero', {count: 'exact', head: true}).gte('numero', 1).lte('numero', config.total);
+        const {count, error} = await cliente.from('cartones_disponibilidad').select('numero', {count: 'exact', head: true}).gte('numero', 1).lte('numero', config.total);
         if (error) throw error;
         if (typeof totalCartones !== 'undefined') totalCartones = config.total;
         const vendidos = Number(count) || 0, disponibles = Math.max(config.total - vendidos, 0);
@@ -1103,4 +1129,5 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarHistorialCompra,{once:true});else instalarHistorialCompra();
 })(window);
+
 

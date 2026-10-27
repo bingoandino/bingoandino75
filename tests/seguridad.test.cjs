@@ -9,7 +9,7 @@ test('un nombre malicioso se muestra como texto en la fila real del administrado
 });
 test('lista pública y Top muestran los nombres sin ejecutar HTML',async()=>{
  const w=new JSDOM('<div id="contenedor-aprobados"></div><div id="listaTopCompradores"></div>',{runScripts:'dangerously',url:'https://example.test'}).window;
- try{w.eval(utility);w.supabase={from:()=>({select(){return this},eq:async()=>({data:[{nombre:'<img src=x onerror="window.ataque=1">',cedula:'00000000',cartones:[1]}]}),in:async()=>({data:[{nombre:'<svg onload="window.ataque=2">',cedula:'00000000',cartones:[1]}]})})};w.eval(main.slice(main.indexOf('async function cargarListaAprobadosSeccion()'),main.indexOf('function actualizarHoraVenezuela()')));await w.cargarListaAprobadosSeccion();
+ try{w.eval(utility);w.supabase={rpc:async name=>({data:[{nombre:'<img src=x onerror="window.ataque=1">',cedula:'****0000',cartones:[1],total:1}]})};w.eval(main.slice(main.indexOf('async function cargarListaAprobadosSeccion()'),main.indexOf('function actualizarHoraVenezuela()')));await w.cargarListaAprobadosSeccion();
   w.eval(main.slice(main.indexOf('async function cargarTopCompradores()'),main.indexOf('let canalTopCompradores')));await w.cargarTopCompradores();assert.equal(w.document.querySelector('img'),null);assert.equal(w.document.querySelector('svg'),null);assert.equal(w.ataque,undefined);
  }finally{w.close();}
 });
@@ -28,3 +28,4 @@ test('la credencial de reserva se añade al RPC y al envío sin cambiar lecturas
  const w=new JSDOM('',{runScripts:'outside-only',url:'https://example.test'}).window;const requests=[];
  try{const builder=()=>({setHeader(k,v){requests.push({k,v});return this;}});w.supabase={auth:{},rpc:()=>builder(),from:()=>({select:()=>42,insert:()=>builder()})};w.eval(read('referencia.js').split('(function (global) {')[0]);w.supabase.rpc('rpc_reservar_carton',{_numero:1});w.supabase.from('inscripciones').insert([{}]);assert.equal(requests.length,2);assert.equal(requests[0].k,'x-bingo-reserva');assert.equal(requests[0].v,requests[1].v);assert.equal(w.supabase.from('inscripciones').select(),42);assert.equal(w.location.href,'https://example.test/');assert.ok(w.sessionStorage.getItem('bingo_reserva_credencial_v1'));}finally{w.close();}
 });
+
