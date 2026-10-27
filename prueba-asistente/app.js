@@ -1,5 +1,5 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js';
+import {Assistant,CONFIG,money} from './engine.js?v=20261027-consultas-1';
 const $=id=>document.getElementById(id);let assistant=new Assistant(),queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
