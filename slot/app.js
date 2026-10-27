@@ -1,4 +1,4 @@
-import {spinCylinder} from './spin-cylinder.js';
+import {spinCylinder} from './spin-cylinder.js?v=1.0.7';
 import {uuid} from './uuid.js';
 import {api,startLogin,verifyCode,hasSession,clearSession} from './auth.js';
 import {celebrate} from './confetti.js';
