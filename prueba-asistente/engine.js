@@ -1,4 +1,4 @@
-export const CONFIG=Object.freeze({price:400,total:1200,max:100,bank:'Mercantil · 0105',phone:'0412-0000000',id:'V-00000000',site:'https://bingoandino75.com/'});
+export const CONFIG=Object.freeze({price:400,total:1200,max:100,bank:'Mercantil · 0105',phone:'0412-0000000',id:'V-00000000',site:'https://bingoandino75.com/',verify:'https://bingoandino75.com/?verificar=1'});
 const banks={'mercantil':'Mercantil','banesco':'Banesco','venezuela':'Venezuela','provincial':'Provincial','bnc':'BNC','bancamiga':'Bancamiga','bancaribe':'Bancaribe','tesoro':'Tesoro','bfc':'BFC','banplus':'Banplus','0105':'Mercantil','0134':'Banesco','0102':'Venezuela','0108':'Provincial','0191':'BNC','0172':'Bancamiga','0114':'Bancaribe','0163':'Tesoro','0151':'BFC','0174':'Banplus'};
 const words={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,quince:15,veinte:20,treinta:30,cuarenta:40,cincuenta:50,cien:100};
 export const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -13,7 +13,7 @@ function faq(input){const n=norm(input);
  if(/(?:donde|por donde|como).*(?:ver|transmi|vivo)|(?:canal|youtube).*(?:sorteo|bingo|vivo)/.test(n))return [text('La transmisión es por YouTube 😊 El enlace del sorteo real lo encontrarás en BingoAndino75.'),{type:'link',url:CONFIG.site,label:'Ver la página del bingo'}];
  if(/como (?:se )?juega|como funciona (?:el )?bingo|(?:un|mismo|solo) carton.*(?:todas|rondas)/.test(n))return [text('Con un solo cartón participas en todas las rondas 🎟️ Las bolitas se extraen del bombo y el sistema detecta el cartón ganador.')];
  if(/cuantas rondas|cuales (?:son los )?premios|cuanto.*(?:premio|reparte)/.test(n))return [text('Los premios y las rondas dependen del sorteo del día 😊 Esta demo todavía no consulta ese anuncio.'),{type:'link',url:CONFIG.site,label:'Consultar el anuncio del bingo'}];
- if(/(?:donde|como).*(?:mi carton|mis cartones|mi compra)|(?:verificar|consultar|buscar).*(?:mi compra|mis cartones)/.test(n))return [text('Puedes consultar tu compra en la página con tu cédula 😊 Esta demo no busca compras reales.'),{type:'link',url:CONFIG.site,label:'Consultar en BingoAndino75'}];
+ if(/(?:donde|como).*(?:mi carton|mis cartones|mi compra)|(?:verificar|consultar|buscar).*(?:mi compra|mis cartones)|^(?:mis cartones|mi carton|mi compra)$/.test(n))return [text('Puedes consultar tu compra en la página con tu cédula 😊 Esta demo no busca compras reales.'),{type:'link',url:CONFIG.verify,label:'Verificar mi compra y ver mis cartones'}];
  if(/como.*(?:comprobante|captura|imagen)|donde.*(?:adjunt|subo|comprobante)/.test(n))return [text('Toca el clip 📎 junto al mensaje y selecciona una imagen de prueba. Después escríbeme la referencia.')];
  return null;
 }
@@ -65,7 +65,7 @@ export class Assistant{
  const extracted=dataLike?details(raw,s.step==='paymentData',s.step==='data'):{};
  // Un cambio nunca equivale a confirmar ni a enviar una compra.
  if(Object.keys(extracted).length){Object.assign(s.data,extracted);s.confirmed=false;}
- if(s.step==='final'&&yes(n)){s.submitted=true;s.step='done';return [{type:'success',quantity:s.quantity,cards:[...s.cards],total:s.quantity*CONFIG.price},text('Es una simulación: no se creó una compra real ni se verificó ningún pago.')];}
+ if(s.step==='final'&&yes(n)){s.submitted=true;s.step='done';return [{type:'success',quantity:s.quantity,cards:[...s.cards],total:s.quantity*CONFIG.price},text('Es una simulación: no se creó una compra real ni se verificó ningún pago.'),{type:'link',url:CONFIG.verify,label:'Verificar mi compra y ver mis cartones'}];}
  if(s.step==='confirm'&&yes(n)&&!Object.keys(extracted).length){s.confirmed=true;return this.advance();}
  const q=quantity(raw,s.step==='quantity');if(q!==null){if(!Number.isInteger(q)||q<1||q>CONFIG.max)return [text('Puedes probar con una cantidad de 1 a 100 cartones.')];if(q!==s.quantity){s.quantity=q;s.cards=[];s.confirmed=false;return [this.payment(),...this.advance()];}}
  if(s.quantity&&/azar|escoge|escoja|eligelos|elige tu|cualquiera/.test(n)){const candidates=[...this.available];for(let i=candidates.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}return this.choose(candidates.slice(0,s.quantity));}
