@@ -90,3 +90,32 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
 .slot-area .slot-frame .lights{inset:15px 45px;opacity:.6;}
 .cylinder-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:none;}
 @media(max-width:700px){.slot-area .slot-frame{padding:10px 34px;border-radius:14% / 50%;}.slot-area .slot-frame .drum-side{width:58px;top:-9px;bottom:-9px;border-radius:50%;}.slot-area .slot-frame .drum-left{left:-5px;}.slot-area .slot-frame .drum-right{right:-5px;}.slot-area .slot-frame .reel{border-radius:9% / 50%;}.slot-area .slot-frame .slot-center{padding-inline:10px;}.slot-area .slot-frame .lights{inset:13px 28px;}.slot-area .slot-frame .neighbor{font-size:11px;}}
+
+/* Compact barrel: keep controls and recent winners within laptop view. */
+.slot-area .slot-frame{width:100%;max-width:880px;margin:12px auto 0;padding-block:8px}
+.slot-area .slot-frame .slot-center{min-height:172px;padding:12px 16px}
+.slot-area .slot-frame .neighbor{min-height:32px;padding:6px 12px;font-size:15px}
+.slot-area .slot-frame .drum-side{width:76px;top:-8px;bottom:-8px}
+.slot-area .slot-frame{padding-inline:43px}
+.slot-area .slot-frame .slot-name{font-size:clamp(30px,3.7vw,51px)}
+.slot-area .slot-frame .slot-ticket{font-size:clamp(32px,4vw,54px)}
+.slot-area .slot-frame.ready .slot-name{font-size:clamp(27px,3.2vw,43px)}
+.slot-area .slot-frame.ready .slot-ticket{font-size:13px;line-height:1.5}
+.slot-area .slot-frame .eyebrow{font-size:11px;letter-spacing:2px;margin-bottom:5px}
+.slot-area .slot-frame .prize-badge{font-size:17px;margin-top:8px;padding:6px 21px}
+@media(max-width:700px){
+ .slot-area .slot-frame{padding:8px 29px}
+ .slot-area .slot-frame .drum-side{width:50px;top:-6px;bottom:-6px}
+ .slot-area .slot-frame .slot-center{min-height:205px;padding:14px 9px}
+ .slot-area .slot-frame .neighbor{min-height:30px;font-size:10px;padding:7px 5px}
+ .slot-area .slot-frame .slot-name{font-size:clamp(29px,8vw,43px)}
+ .slot-area .slot-frame .slot-ticket{font-size:clamp(31px,8.5vw,46px)}
+ .slot-area .slot-frame.ready .slot-name{font-size:30px}
+}
+@media(min-width:701px) and (max-height:800px){
+ main{padding-top:12px}
+ .brand svg{height:28px}
+ h1{font-size:30px}
+ nav{margin-block:9px}
+ .slot-actions{margin-top:14px}
+}
