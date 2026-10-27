@@ -119,3 +119,76 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
  nav{margin-block:9px}
  .slot-actions{margin-top:14px}
 }
+
+/* Results belong to the slot column, independently of the sidebar height. */
+.slot-area{min-width:0}
+.slot-area .session-winners{margin-top:12px;padding:12px;border-radius:16px}
+.slot-area .session-heading{gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.slot-area .session-heading h2{font-size:16px}
+.slot-area .session-buttons button{padding:7px 9px;min-height:30px;font-size:9px}
+@media(min-width:701px){
+ main{max-width:1440px;padding:10px 24px}
+ .brand svg{height:27px;width:68px}
+ h1{font-size:29px}
+ nav{margin:8px auto 10px}
+ .workspace{grid-template-columns:245px minmax(0,1fr);gap:18px}
+ .control-panel{padding:12px}
+ .participant-list{height:70px}
+ .toggle-option{margin-block:10px}
+ .panel-prizes{margin-top:8px;padding-top:8px}
+ .slot-heading{padding-bottom:5px}
+ .slot-area .slot-frame{margin-top:7px;padding-block:6px}
+ .slot-area .slot-frame .slot-center{min-height:130px;padding:9px 12px}
+ .slot-area .slot-frame .neighbor{min-height:26px;padding:4px 10px;font-size:12px}
+ .slot-area .slot-frame .slot-name{font-size:clamp(30px,3vw,44px)}
+ .slot-area .slot-frame .slot-ticket{font-size:clamp(33px,3.3vw,47px)}
+ .slot-area .slot-frame.ready .slot-name{font-size:34px}
+ .slot-area .slot-frame .eyebrow{font-size:10px;margin-bottom:3px}
+ .slot-area .slot-frame .prize-badge{font-size:15px;margin-top:5px;padding:4px 17px}
+ .slot-area .bottom-actions{margin:10px 0 4px}
+ .slot-area .bottom-actions>.gold,.slot-area .bottom-actions>.secondary{min-height:39px;padding:9px 20px;font-size:15px}
+ .slot-area .status{margin:4px 0;font-size:10px}
+ .slot-area .live-grid,.slot-area .live-grid:has(> :only-child),.slot-area .live-grid:has(> :nth-child(2):last-child),.slot-area .live-grid:has(> :nth-child(3):last-child){grid-template-columns:repeat(4,minmax(0,1fr));max-width:none;gap:8px}
+ .slot-area .live-grid .winner-card{min-height:112px;padding:8px 6px;gap:4px;border-radius:11px}
+ .slot-area .live-grid .winner-name,.slot-area .live-grid:has(> :only-child) .winner-name,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-name{font-size:clamp(18px,1.65vw,24px);letter-spacing:-.4px;line-height:1.08;min-height:0}
+ .slot-area .live-grid .winner-ticket,.slot-area .live-grid:has(> :only-child) .winner-ticket,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-ticket{font-size:clamp(18px,1.6vw,23px);padding-top:4px}
+ .slot-area .live-grid .prize-badge{font-size:12px;padding:4px 9px;margin-top:1px}
+ .slot-area .live-grid .card-label{font-size:8px;letter-spacing:.4px}
+ .slot-area .live-grid .trophy{width:13px;height:15px}
+ .slot-area .live-grid .live-empty{padding:15px}
+}
+@media(max-width:700px){
+ .slot-area .session-heading{align-items:stretch}
+ .slot-area .session-winners{margin-top:13px}
+}
+
+@media(min-width:701px){
+ .slot-area .slot-frame .slot-center{padding-block:6px}
+ .slot-area .slot-frame .slot-name{font-size:38px}
+ .slot-area .slot-frame .slot-ticket{font-size:42px}
+ .slot-area .slot-frame .neighbor{min-height:22px;font-size:11px;padding-block:2px}
+ .slot-area .slot-frame .prize-badge{font-size:14px;padding-block:3px}
+ .slot-area .session-heading{margin-bottom:7px}
+ .slot-area .session-heading p{margin-top:3px}
+ .slot-area .live-grid .winner-card{min-height:108px;padding:6px;gap:3px}
+ .slot-area .live-grid .winner-name,.slot-area .live-grid:has(> :only-child) .winner-name,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-name{font-size:20px}
+ .slot-area .live-grid .winner-ticket,.slot-area .live-grid:has(> :only-child) .winner-ticket,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-ticket{font-size:20px;padding-top:2px}
+ .slot-area .live-grid .prize-badge{font-size:11px;padding:3px 8px}
+ .slot-area .live-grid .trophy{height:12px}
+}
+
+@media(min-width:701px) and (max-height:800px){
+ main{padding-top:5px}
+ .brand svg{height:22px}h1{font-size:25px}
+ nav{margin:5px auto 7px}nav button{padding-block:7px}
+ .slot-area .slot-frame{margin-top:5px}
+ .slot-area .slot-frame .slot-center{min-height:108px;padding-block:4px}
+ .slot-area .slot-frame .neighbor{min-height:18px;padding-block:0;font-size:10px}
+ .slot-area .slot-frame .slot-name{font-size:34px}
+ .slot-area .slot-frame .slot-ticket{font-size:37px}
+ .slot-area .slot-frame.ready .slot-name{font-size:30px}
+ .slot-area .session-winners{padding:9px;margin-top:8px}
+ .slot-area .live-grid .winner-card{min-height:96px;padding:5px;gap:2px}
+ .slot-area .live-grid .winner-name,.slot-area .live-grid:has(> :only-child) .winner-name,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-name{font-size:18px}
+ .slot-area .live-grid .winner-ticket,.slot-area .live-grid:has(> :only-child) .winner-ticket,.slot-area .live-grid:has(> :nth-child(2):last-child) .winner-ticket{font-size:18px}
+}
