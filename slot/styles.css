@@ -75,3 +75,18 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
 .cylinder-prize{font:bold 17px Georgia,serif;text-align:center;padding:6px 20px;border-radius:30px;border:1px solid #b88b34;background:linear-gradient(110deg,#e1b152,#f9e3a7,#d8a846);max-width:95%;overflow-wrap:anywhere;}
 .spinning .reel>.neighbor,.spinning .reel>.slot-center{visibility:hidden;}
 @media(max-width:700px){.cylinder-face{padding:13px 12px;gap:10px}.cylinder-name{font-size:clamp(29px,8vw,48px);letter-spacing:-.6px}.cylinder-ticket{font-size:clamp(29px,8.5vw,49px);letter-spacing:-1px}.cylinder-prize{font-size:15px;padding:6px 15px}}
+
+/* Continuous barrel surface and genuinely elliptical end discs. */
+.slot-area .slot-frame{padding:12px 56px;border-radius:12% / 50%;background:linear-gradient(180deg,#4e2c15,#f9df8b 2%,#8e6424 5%,#d4a64a 8%,#37202a 17%,#27112b 50%,#3d2428 84%,#c2933b 94%,#fff0ae 97%,#6f461c);box-shadow:0 17px 30px #100319a6,inset 0 2px 2px #fff3ba,inset 0 -3px 4px #39221a;}
+.slot-area .slot-frame .drum-side{width:102px;top:-12px;bottom:-12px;border-radius:50%;background:radial-gradient(ellipse at 43% 46%,#f7d986 0%,#c99a40 41%,#8b5d20 48%,#ffedaa 52%,#ac7a2b 58%,#5a3516 64%,#d2a34a 72%,#fff0b1 78%,#b4812c 85%,#694019 92%,#ead186 98%);box-shadow:inset 5px 0 7px #fff0b9,inset -7px 0 9px #352015,0 4px 9px #0008;}
+.slot-area .slot-frame .drum-left{left:-7px;}
+.slot-area .slot-frame .drum-right{right:-7px;}
+.slot-area .slot-frame .drum-side::before{left:27%;right:27%;top:7%;bottom:7%;border-radius:50%;background-color:#d9ad56;background-size:100% auto;box-shadow:inset 4px 0 7px #754c2188,inset -4px 0 8px #ffe8a188;}
+.slot-area .slot-frame .drum-side::after{top:3%;bottom:3%;right:10%;width:66%;border:2px solid #f3d590;border-right-color:#70471b;border-radius:50%;box-shadow:2px 0 3px #f3d899,5px 0 5px #49301e;}
+.slot-area .slot-frame .reel{border-radius:9% / 50%;background:linear-gradient(180deg,#14071e 0%,#59334f 13%,#d6c095 23%,#fff7e5 36%,#fffdf2 53%,#f9edce 69%,#b69b74 79%,#4c2c42 90%,#16071f 100%);box-shadow:inset 0 14px 20px -10px #000b,inset 0 -14px 20px -10px #000b;}
+.slot-area .slot-frame .slot-center{background:transparent;border:0;border-radius:0;box-shadow:none;}
+.slot-area .slot-frame .neighbor,.slot-area .slot-frame .neighbor:last-child{background:transparent;color:#e6d5e7;text-shadow:0 2px 3px #16071a;}
+.slot-area .slot-frame.winner .slot-center{animation:none;}
+.slot-area .slot-frame .lights{inset:15px 45px;opacity:.6;}
+.cylinder-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:none;}
+@media(max-width:700px){.slot-area .slot-frame{padding:10px 34px;border-radius:14% / 50%;}.slot-area .slot-frame .drum-side{width:58px;top:-9px;bottom:-9px;border-radius:50%;}.slot-area .slot-frame .drum-left{left:-5px;}.slot-area .slot-frame .drum-right{right:-5px;}.slot-area .slot-frame .reel{border-radius:9% / 50%;}.slot-area .slot-frame .slot-center{padding-inline:10px;}.slot-area .slot-frame .lights{inset:13px 28px;}.slot-area .slot-frame .neighbor{font-size:11px;}}
