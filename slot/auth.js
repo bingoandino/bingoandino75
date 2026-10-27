@@ -1,0 +1,12 @@
+import {uuid} from './uuid.js';
+import {SUPABASE_URL,PUBLIC_KEY,API_URL} from './config.js';
+const AUTH_STORAGE='andino_slot_auth_v1';let auth;try{auth=JSON.parse(sessionStorage.getItem(AUTH_STORAGE)||'null')}catch{}
+let refreshing;
+function remember(data){auth={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+Number(data.expires_in||3600)*1000};sessionStorage.setItem(AUTH_STORAGE,JSON.stringify(auth));}
+async function request(path,body){const r=await fetch(SUPABASE_URL+path,{method:'POST',headers:{apikey:PUBLIC_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.msg||data.error_description||data.error||'No se pudo verificar el acceso.');return data;}
+export async function startLogin(email,password){const deviceId=localStorage.getItem('admin_device_id')||'slot_'+uuid();const result=await request('/functions/v1/admin-auth',{action:'verify_credentials',email:email.toLowerCase().trim(),password,deviceId});if(result.error)throw new Error(result.error);await request('/auth/v1/otp',{email:email.toLowerCase().trim(),create_user:false});}
+export async function verifyCode(email,token){const data=await request('/auth/v1/verify',{email:email.toLowerCase().trim(),token,type:'email'});if(data.user?.id!=='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5')throw new Error('Acceso exclusivo del administrador.');remember(data);}
+export function hasSession(){return !!auth?.access_token;}
+export function clearSession(){auth=null;sessionStorage.removeItem(AUTH_STORAGE);}
+async function accessToken(){if(!auth)throw Object.assign(new Error('Inicia sesión para continuar.'),{status:401});if(auth.expires_at<Date.now()+60000){if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token',{refresh_token:auth.refresh_token}).then(remember).finally(()=>refreshing=null);await refreshing;}return auth.access_token;}
+export async function api(action,payload={}){let token;try{token=await accessToken()}catch(e){clearSession();throw Object.assign(e,{status:401})}const r=await fetch(API_URL,{method:'POST',headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action,...payload}),cache:'no-store'});const data=await r.json();if(!r.ok)throw Object.assign(new Error(data.error||'No se pudo completar la operación.'),{status:r.status});return data;}
