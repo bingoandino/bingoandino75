@@ -30,7 +30,7 @@ export function crearConsultasGenerales(fetcher = (...args) => globalThis.fetch(
       } catch { /* El respaldo local permite continuar sin bloquear el chat. */ }
     }
     const messages = [{type: 'text', text}];
-    if (topic === 'soporte') messages.push({type: 'link', url: 'tel:+584247221608', label: 'Llamar a soporte: 0424-7221608'});
+    if (topic === 'soporte') messages.push({type: 'link', url: 'https://wa.me/584247221608', label: 'Escribir a soporte por WhatsApp'});
     return messages;
   };
 }

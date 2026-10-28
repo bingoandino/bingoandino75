@@ -1,5 +1,5 @@
 import {validateFile} from './files.js';
-import {responderConsultaGeneral} from './generales-cliente.js?v=20261028-ia-general-2';
+import {responderConsultaGeneral} from './generales-cliente.js?v=20261028-soporte-whatsapp-1';
 import {Assistant,CONFIG,money} from './engine.js?v=20261028-ia-general-2';
 import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-ia-general-2';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];

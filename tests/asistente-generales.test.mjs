@@ -39,7 +39,7 @@ test('fallos y respuestas peligrosas mantienen respaldo local, soporte tiene con
   for (const fetcher of [async () => {throw Error('offline');}, async () => new Response(null, {status: 429}), async () => Response.json({answer: '<script>x</script>'})]) {
     const answer = crearConsultasGenerales(fetcher);
     assert.equal((await answer('Quien eres?', 'welcome'))[0].text, GENERALES.identidad);
-    const support = await answer('Quiero hablar con soporte', 'welcome'); assert.equal(support[1].url, 'tel:+584247221608');
+    const support = await answer('Quiero hablar con soporte', 'welcome'); assert.equal(support[1].url, 'https://wa.me/584247221608'); assert.equal(support[1].label, 'Escribir a soporte por WhatsApp');
   }
 });
 test('privacidad se explica sin llamar a terceros y ventas nunca invocan IA', async () => {
