@@ -1,6 +1,6 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-11';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-11';
+import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-12';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-12';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}

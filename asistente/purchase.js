@@ -1,5 +1,5 @@
 import {SUPABASE_URL,PUBLIC_KEY} from '../slot/config.js';
-import {Assistant,norm,wantsRandom,conversationText,wantsCancellation} from './engine.js?v=20261028-real-11';
+import {Assistant,norm,wantsRandom,conversationText,wantsCancellation} from './engine.js?v=20261028-real-12';
 import {validateFile} from './files.js';
 const text=text=>({type:'text',text});
 export class PurchaseAPI{
@@ -18,9 +18,9 @@ export class PurchaseAPI{
  async question(){return 'No entendí bien esa pregunta 😊 ¿Me la dices de otra forma? Puedo ayudarte con el bingo, tus cartones y la compra.';}
 }
 export class Conversation{
- constructor(engine,api){this.engine=engine;this.api=api;this.held=null;this.file=null;this.url=null;this.uncertain=false;this.busy=false;}
+ constructor(engine,api){this.engine=engine;this.api=api;this.held=null;this.file=null;this.url=null;this.uncertain=false;this.busy=false;this.lastUnknown=null;}
  async refresh(){const busy=new Set(await this.api.available());this.engine.available=new Set(Array.from({length:this.engine.config.total},(_,i)=>i+1).filter(n=>!busy.has(n)||this.held?.cards.includes(n)));}
- async reset(){if(this.uncertain)throw Error('El envío está por confirmar. Consulta tu compra antes de iniciar otra.');if(this.held&&!this.engine.state.submitted)await this.api.release(this.held.ced);this.engine=new Assistant(this.engine.config);this.held=null;this.file=null;this.url=null;await this.refresh();}
+ async reset(){if(this.uncertain)throw Error('El envío está por confirmar. Consulta tu compra antes de iniciar otra.');if(this.held&&!this.engine.state.submitted)await this.api.release(this.held.ced);this.engine=new Assistant(this.engine.config);this.held=null;this.file=null;this.url=null;this.lastUnknown=null;await this.refresh();}
  async attach(file){await validateFile(file);if(this.engine.state.step==='paused')return [text('Dejamos esa compra hasta aquí 😊 Si quieres empezar otra, dime «quiero comprar».')];if(this.engine.state.submitted)return [text('Tu compra ya fue enviada. Consulta su estado en Verificar tu compra.')];this.file=file;this.url=null;return this.engine.attach(file);}
  async choose(cards){return this.run(()=>this.chooseInternal(cards));}
  async chooseInternal(cards){const s=this.engine.state;if(s.step==='paused')return [text('Dejamos esa compra hasta aquí 😊 Si quieres empezar otra, dime «quiero comprar».')];if(!s.confirmed)return [text('Primero revisemos tu nombre, cédula y datos para premios.'),...this.engine.advance()];if(this.held)return [text('Tus cartones ya están reservados. Completa esta compra o inicia una nueva conversación.')];await this.refresh();const before=[...s.cards];const output=this.engine.choose(cards);if(s.cards.length!==s.quantity||s.cards.every((n,i)=>n===before[i]))return output;try{const c=await this.api.config();if(!c.open)throw Error('Las ventas están cerradas. No realices una transferencia.');if(c.price!==this.engine.config.price)throw Error('El precio cambió. Recarga la página para consultar el monto actual antes de pagar.');await this.api.reserve(s.cards,s.data.id);this.held={ced:s.data.id,cards:[...s.cards]};await this.checkHeld();return [text('Te guardé los cartones por 5 minutos 😊 Copia los datos, haz el Pago Móvil y mándame el capture antes de que se acabe el tiempo.'),this.engine.payment(),...output];}catch(e){s.cards=[];s.step='cards';this.held=null;return [text(e.message)];}}
@@ -29,7 +29,7 @@ export class Conversation{
  if(s.submitted)return [text('Tu compra ya fue enviada. Si necesitas cancelarla, escríbele a soporte al 0424-7221608 para que revise el caso.'),{type:'link',url:this.engine.config.verify,label:'Verificar mi compra'}];
  const hadPayment=!!(this.file||s.ref);let releaseFailed=false;
  if(this.held){try{await this.api.release(this.held.ced);}catch{releaseFailed=true;}}
- this.held=null;this.file=null;this.url=null;
+ this.held=null;this.file=null;this.url=null;this.lastUnknown=null;
  this.engine.state={step:'paused',quantity:0,data:{},confirmed:false,cards:[],file:null,ref:'',submitted:false};
  const output=[text('Está bien, no hay problema 😊 Dejamos la compra hasta aquí. Si después necesitas algo, me escribes.')];
  if(releaseFailed)output.push(text('No pude confirmar que se liberaran los cartones. La reserva vence a los 5 minutos de haberlos escogido.'));
@@ -47,7 +47,8 @@ export class Conversation{
  if(!s.submitted&&!this.held&&s.cards.length){const cards=[...s.cards];s.cards=[];return this.chooseInternal(cards);}
  if(s.quantity&&this.engine.config.mode==='fijo'&&s.quantity!==this.engine.config.fixed){Object.assign(s,old);return [text(`Este sorteo requiere ${this.engine.config.fixed} cartones por compra.`)];}
  if(result.some(m=>m.type==='submit'))return this.commit();
- if(result.some(m=>m.type==='question'))return [text(await this.api.question(raw))];
+ if(result.some(m=>m.type==='question')){const key=conversationText(raw).replace(/[.!?]+$/,'').trim();if(this.lastUnknown===key)return this.engine.guidance();this.lastUnknown=key;return [text(await this.api.question(raw))];}
+ this.lastUnknown=null;
  return result;
  });}
  async reconcile(){const found=await this.api.find(this.engine.state);if(found)return this.success(found.id);return [text('No pude confirmar que el envío se registrara. Revisa Verificar tu compra o contacta a soporte antes de volver a enviar o pagar.'),{type:'link',url:this.engine.config.verify,label:'Verificar mi compra'}];}

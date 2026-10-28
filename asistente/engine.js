@@ -3,7 +3,7 @@ const banks={'mercantil':'Mercantil','banesco':'Banesco','venezuela':'Venezuela'
 const words={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintiun:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100};
 export const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 // Conversación venezolana cotidiana; se aplica a intenciones, nunca altera los datos enviados.
-export const conversationText=s=>norm(s).replace(/^[¿¡]+/,'').replace(/\bq\b|\bk\b/g,'que').replace(/\bkiero\b/g,'quiero').replace(/\bnesecito\b/g,'necesito').replace(/\bpa\b/g,'para').replace(/^(?:(?:y|pero|mira|mire|oye|epa|aja|hola|buenas(?: tardes| noches| dias)?|por favor)[,!.\s]+)+/,'').trim();
+export const conversationText=s=>norm(s).replace(/^[¿¡]+/,'').replace(/([a-z])\s*[.,;:!?]+\s*(?=[a-z])/g,'$1 ').replace(/\bq\b|\bk\b/g,'que').replace(/\bkiero\b/g,'quiero').replace(/\bnesecito\b/g,'necesito').replace(/\bpa\b/g,'para').replace(/^(?:(?:y|pero|mira|mire|oye|epa|aja|hola|buenas(?: tardes| noches| dias)?|por favor)[,!.\s]+)+/,'').replace(/\s+/g,' ').trim();
 export function websiteIntent(input){const n=conversationText(input).replace(/[.!?]+$/,'').trim();
  if(/^(?:(?:por|en|desde) (?:la )?|(?:mejor|prefiero) (?:por |en )?(?:la )?|la )?(?:pagina|web)(?: por favor)?$/.test(n)||/^(?:lo hago yo|yo sol[oa]|yo mism[oa])$/.test(n))return 'choice';
  return /\b(?:pagina|web)\b/.test(n)&&/como|compr|jugar|hago|hacer|pasos/.test(n)?'instructions':null;
@@ -30,6 +30,7 @@ export function openingIntent(input){const n=conversationText(input);
 }
 export function isQuestion(input){return /[¿?]/.test(String(input))||/^(?:(?:hola|disculpa|oye)[,\s]+)?(?:a\s+q(?:ue)?\s+hora|que|q\s|como|donde|cuando|cual(?:es)?|cuanto(?:s)?|por\s+que|puedo|se\s+puede|hay|sabes|me\s+puedes|tengo\s+(?:una\s+)?(?:duda|pregunta))\b/.test(conversationText(input));}
 function faq(input,CONFIG){const n=conversationText(input);
+ if(/(?:^|\b)como funciona(?: (?:esto|eso|el bingo|el juego|la pagina|el asistente|la compra|las compras))?[.!?\s]*$/.test(n))return [text('Compras tu cartón por la página o con mi ayuda 😊 Cuando aprueban el pago, participas en todas las rondas del en vivo por YouTube.')];
  if(/^(?:que es (?:esto|eso|esta pagina|este sitio|bingoandino75|el bingo andino)|para que (?:es|sirve) (?:esto|eso|esta pagina)|de que (?:se )?trata (?:esto|esta pagina)|que (?:hacen|se hace) aqui)[.!?\s]*$/.test(n))return [text('Este es el asistente de BingoAndino75 😊 Te ayudo a comprar cartones y a revisar tu compra, paso a paso.')];
  if(/quien eres|eres (?:un |una )?(?:bot|robot|persona|asistente)|con quien (?:hablo|estoy hablando)|que eres/.test(n))return [text('Soy el asistente virtual de BingoAndino75 😊 Te ayudo con tus cartones y te voy guiando en la compra.')];
  if(/hablar.*(?:persona|alguien|soporte|operador)|(?:quiero|necesito|comunicarme).*soporte|(?:ayude|atienda).*persona|^soporte[.!?\s]*$/.test(n))return [text('Claro 😊 Puedes escribirle a soporte al 0424-7221608, de lunes a sábado de 9 a. m. a 8 p. m.')];
