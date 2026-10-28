@@ -1,9 +1,9 @@
 import {SUPABASE_URL,PUBLIC_KEY} from '../slot/config.js';
-import {Assistant,norm} from './engine.js?v=20261028-real-1';
+import {Assistant,norm} from './engine.js?v=20261028-real-2';
 import {validateFile} from './files.js';
 const text=text=>({type:'text',text});
 export class PurchaseAPI{
- constructor(fetcher=globalThis.fetch,token){this.fetcher=fetcher;this.token=token||this.newToken();}
+ constructor(fetcher=(...args)=>globalThis.fetch(...args),token){this.fetcher=fetcher;this.token=token||this.newToken();}
  newToken(){let t;try{t=sessionStorage.getItem('bingo_asistente_reserva_v1');}catch{}if(!/^[a-f0-9]{64}$/.test(t||'')){t=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');try{sessionStorage.setItem('bingo_asistente_reserva_v1',t);}catch{}}return t;}
  async request(path,body,options={}){const response=await this.fetcher(SUPABASE_URL+path,{method:body===undefined?'GET':'POST',headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+PUBLIC_KEY,'x-bingo-reserva':this.token,...(body!==undefined?{'Content-Type':'application/json'}:{}),...options.headers},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});const data=await response.json();if(!response.ok)throw Error(data.message||data.error||'No se pudo conectar. Verifica tu compra antes de volver a pagar.');return data;}
  rpc(name,args){return this.request('/rest/v1/rpc/'+name,args);}
