@@ -1,6 +1,6 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-12';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-12';
+import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-13';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-13';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
@@ -45,3 +45,4 @@ async function boot(){try{const config=await api.config();assistant=new Assistan
 boot();
 
 setInterval(()=>{const foot=document.querySelector('.chat-foot');if(!conversation?.held||assistant?.state.submitted){foot.textContent='Asistente virtual · Compras pendientes de verificación';return;}const left=Math.max(0,Math.ceil((conversation.held.expires-Date.now())/1000));foot.textContent=left?`Reserva: ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} · Completa el envío antes de vencer`:'Reserva vencida · Si ya pagaste, contacta a soporte';},1000);
+
