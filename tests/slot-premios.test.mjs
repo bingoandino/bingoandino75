@@ -5,7 +5,40 @@ test('one opportunity per person chooses among people then exact owned ticket',(
 test('exclusion removes all tickets belonging to prior winner only in person mode',()=>{assert.equal(chooseWinner(people,[people[0]],{uniquePerson:true},()=>0).name,'Luis');assert.equal(chooseWinner(people,[people[0]],{uniquePerson:false},()=>0).ticket,'2');assert.throws(()=>chooseWinner([people[0]],[people[0]],{uniquePerson:true}));});
 test('unbiased selection rejects the top incomplete range and invalid pools',()=>{let calls=0;assert.equal(randomIndex(3,a=>a[0]=calls++===0?4294967295:4),1);assert.equal(calls,2);assert.throws(()=>randomIndex(0))});
 test('changed source or withdrawn approval blocks drawing',()=>{assert.throws(()=>assertSameSource('1','2'));assert.throws(()=>assertSameSource('1',null));assert.throws(()=>validateSnapshot(people,people.slice(1)));assert.doesNotThrow(()=>validateSnapshot(people,[...people,{personId:'c',ticket:'5'}]));assert.throws(()=>validatePrize(' '));assert.equal(validatePrize(' 10 USD '),'10 USD')});
-function setup(){let state=null,mutations=[],anchor='80',user=owner;const registrations=[{id:80,nombre:'Ana',cedula:'V-123',cartones:[1,2]},{id:81,nombre:'Luis',cedula:'456',cartones:[4]}];const fetcher=async(url,options={})=>{const path=new URL(url).pathname,q=new URL(url).searchParams;if(path==='/auth/v1/user')return Response.json(options.headers.Authorization==='Bearer good'?{id:user,email_confirmed_at:'2026-10-01'}:{},{status:options.headers.Authorization==='Bearer good'?200:401});if(path==='/rest/v1/inscripciones'){assert.equal(options.method,'GET','purchases must only be read');return Response.json(q.get('select')==='id'?(anchor?[{id:anchor}]:[]):registrations);}if(path==='/rest/v1/slot_premios_sesiones'){if(options.method==='POST'){state={...JSON.parse(options.body),created_at:'2026-10-27T18:00:00Z',updated_at:'2026-10-27T18:00:00Z'};mutations.push('history:insert');return Response.json([structuredClone(state)])}if(options.method==='PATCH'){if(q.get('version')!=='eq.'+state.version)return Response.json([]);Object.assign(state,JSON.parse(options.body));mutations.push('history:update');return Response.json([structuredClone(state)])}return Response.json(state?[structuredClone(state)]:[]);}throw Error('Unexpected URL '+url)};const handler=createHandler({url:'https://example.supabase.co',key:'server-test-key',fetcher,pick:()=>0,now:()=>new Date('2026-10-27T18:00:00Z').toISOString()});async function call(body,token='good',origin='https://bingoandino75.com'){const r=await handler(new Request('https://example.supabase.co/functions/v1/slot-premios',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,Origin:origin},body:JSON.stringify(body)}));return {status:r.status,body:await r.json()}}return {call,mutations,setAnchor:a=>anchor=a,setUser:u=>user=u,getState:()=>structuredClone(state)}}
+function setup(){
+ let state=null,mutations=[],anchor='80',user=owner,time=Date.parse('2026-10-27T18:00:00Z'),proof=null;
+ const accesses=new Map(),sid='10000000-0000-4000-8000-000000000001',sid2='10000000-0000-4000-8000-000000000002';
+ const registrations=[{id:80,nombre:'Ana',cedula:'V-123',cartones:[1,2]},{id:81,nombre:'Luis',cedula:'456',cartones:[4]}];
+ const tokenFor=t=>['good','second','old','password'].includes(t)?'test.'+Buffer.from(JSON.stringify({sub:owner,role:'authenticated',session_id:t==='second'?sid2:sid,amr:[{method:t==='password'?'password':'otp',timestamp:Math.floor(Date.parse('2026-10-27T18:00:00Z')/1000)-(t==='old'?60:0)}]})).toString('base64url')+'.mock':t;
+ const validTokens=new Set(['good','second','old','password'].map(tokenFor));
+ const fetcher=async(url,options={})=>{
+  const path=new URL(url).pathname,q=new URL(url).searchParams;
+  if(path==='/auth/v1/user')return Response.json(validTokens.has(options.headers.Authorization.replace('Bearer ',''))?{id:user,email_confirmed_at:'2026-10-01'}:{},{status:validTokens.has(options.headers.Authorization.replace('Bearer ',''))?200:401});
+  if(path==='/functions/v1/admin-auth'){const b=JSON.parse(options.body);return Response.json({valid:b.password==='correct'&&b.email==='admin@example.org'},{status:b.password==='correct'&&b.email==='admin@example.org'?200:401});}
+  if(path==='/rest/v1/slot_accesos'){
+   if(options.method==='POST'){const r=JSON.parse(options.body);accesses.set(r.proof_hash,r);return Response.json([r]);}
+   const r=accesses.get((q.get('proof_hash')||'').replace('eq.',''));
+   if(!r||q.get('owner_id')!=='eq.'+r.owner_id)return Response.json([]);
+   if(options.method==='PATCH'){if(q.get('auth_session_id')==='is.null'&&r.auth_session_id)return Response.json([]);Object.assign(r,JSON.parse(options.body));}
+   return Response.json([structuredClone(r)]);
+  }
+  if(path==='/rest/v1/inscripciones'){assert.equal(options.method,'GET','purchases must only be read');return Response.json(q.get('select')==='id'?(anchor?[{id:anchor}]:[]):registrations);}
+  if(path==='/rest/v1/slot_premios_sesiones'){
+   if(options.method==='POST'){state={...JSON.parse(options.body),created_at:'2026-10-27T18:00:00Z',updated_at:'2026-10-27T18:00:00Z'};mutations.push('history:insert');return Response.json([structuredClone(state)])}
+   if(options.method==='PATCH'){if(q.get('version')!=='eq.'+state.version)return Response.json([]);Object.assign(state,JSON.parse(options.body));mutations.push('history:update');return Response.json([structuredClone(state)])}
+   return Response.json(state?[structuredClone(state)]:[]);
+  }
+  throw Error('Unexpected URL '+url)
+ };
+ const handler=createHandler({url:'https://example.supabase.co',key:'server-test-key',fetcher,pick:()=>0,now:()=>new Date(time).toISOString()});
+ async function raw(body,token='good',origin='https://bingoandino75.com'){const r=await handler(new Request('https://example.supabase.co/functions/v1/slot-premios',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tokenFor(token),Origin:origin},body:JSON.stringify(body)}));return {status:r.status,body:await r.json()}}
+ async function password(){return raw({action:'password-check',email:'admin@example.org',password:'correct'},'anon');}
+ async function call(body,token='good',origin='https://bingoandino75.com'){
+  if(token==='good'&&!proof){const p=await password();if(p.status!==200)return p;proof=p.body.passwordProof;const a=await raw({action:'authorize',passwordProof:proof});if(a.status!==200)return a;}
+  return raw({...body,slotAccess:proof},token,origin);
+ }
+ return {call,raw,password,mutations,setAnchor:a=>anchor=a,setUser:u=>user=u,setTime:t=>time=t,getState:()=>structuredClone(state)};
+}
 test('API rejects unauthenticated and nonadmin users before reading data',async()=>{const f=setup();assert.equal((await f.call({action:'load'},'bad')).status,401);f.setUser('someone-else');assert.equal((await f.call({action:'load'})).status,403);assert.deepEqual(f.mutations,[])});
 test('API loads only approvals, returns no cedula, and persists only isolated history',async()=>{const f=setup(),r=await f.call({action:'load'});assert.equal(r.status,200);assert.equal(r.body.session.participants.length,3);assert.equal(JSON.stringify(r.body).includes('cedula'),false);assert.deepEqual(f.mutations,['history:insert']);assert.notEqual(r.body.session.participants[0].personId,'123')});
 test('server draw is idempotent and preserves exact ticket ownership',async()=>{const f=setup(),s=(await f.call({action:'load'})).body.session;const request={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true};const a=await f.call(request),b=await f.call(request);assert.equal(a.status,200);assert.deepEqual(a.body.winner,b.body.winner);assert.equal(f.getState().state.winners.length,1);assert.equal(a.body.winner.name,'Ana');assert.equal(a.body.winner.ticket,'1');assert.deepEqual(f.mutations,['history:insert','history:update']);const c=await f.call({...request,drawId:crypto.randomUUID()});assert.equal(c.body.winner.name,'Luis')});
@@ -33,5 +66,39 @@ test('concurrent draw and removal cannot overwrite either update silently',async
  const f=setup(),s=(await f.call({action:'load'})).body.session,draw={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true};
  await f.call(draw);
  const r=await Promise.all([f.call({action:'remove-winner',sessionId:s.id,drawId:draw.drawId}),f.call({...draw,drawId:crypto.randomUUID()})]);
- assert.deepEqual(r.map(x=>x.status).sort(),[200,409]);
+ assert.ok(r.every(x=>x.status===200||x.status===409));assert.ok(r.some(x=>x.status===200));if(r.every(x=>x.status===200)){assert.equal(f.getState().state.winners.length,1);assert.equal(f.getState().state.removedWinners[0].drawId,draw.drawId);}
+});
+
+test('email OTP alone cannot load, read history, draw, remove or sign out slot',async()=>{
+ const f=setup();for(const action of ['load','session','history','draw','remove-winner','sign-out'])assert.equal((await f.raw({action})).status,401,action);
+ assert.equal((await f.raw({action:'authorize'})).status,401);assert.deepEqual(f.mutations,[]);
+});
+test('wrong password produces no usable challenge; fake proof rejected',async()=>{
+ const f=setup();assert.equal((await f.raw({action:'password-check',email:'admin@example.org',password:'wrong'},'anon')).status,401);
+ assert.equal((await f.raw({action:'authorize',passwordProof:'a'.repeat(64)})).status,401);
+});
+test('password then fresh email OTP grants only that auth session; refresh session identity remains valid',async()=>{
+ const f=setup(),p=(await f.password()).body.passwordProof;
+ assert.equal((await f.raw({action:'authorize',passwordProof:p},'old')).status,401);
+ assert.equal((await f.raw({action:'authorize',passwordProof:p},'password')).status,401);
+ assert.equal((await f.raw({action:'authorize',passwordProof:p},'bad')).status,401);
+ assert.equal((await f.raw({action:'authorize',passwordProof:p})).status,200);
+ assert.equal((await f.raw({action:'history',slotAccess:p})).status,200);
+ assert.equal((await f.raw({action:'authorize',passwordProof:p},'second')).status,401);
+ assert.equal((await f.raw({action:'history',slotAccess:p},'second')).status,401);
+ assert.equal((await f.raw({action:'history',slotAccess:p})).status,200);
+});
+test('unredeemed password expires; granted session expires and sign out revokes it',async()=>{
+ const f=setup(),p=(await f.password()).body.passwordProof;f.setTime(Date.parse('2026-10-27T18:11:00Z'));
+ assert.equal((await f.raw({action:'authorize',passwordProof:p})).status,401);
+ const g=setup(),q=(await g.password()).body.passwordProof;await g.raw({action:'authorize',passwordProof:q});
+ assert.equal((await g.raw({action:'sign-out',slotAccess:q})).status,200);
+ assert.equal((await g.raw({action:'history',slotAccess:q})).status,401);
+ const h=setup(),z=(await h.password()).body.passwordProof;await h.raw({action:'authorize',passwordProof:z});h.setTime(Date.parse('2026-10-28T03:00:00Z'));
+ assert.equal((await h.raw({action:'history',slotAccess:z})).status,401);
+});
+test('password challenge cannot be redeemed concurrently by two auth sessions',async()=>{
+ const f=setup(),p=(await f.password()).body.passwordProof;
+ const r=await Promise.all([f.raw({action:'authorize',passwordProof:p}),f.raw({action:'authorize',passwordProof:p},'second')]);
+ assert.equal(r.filter(x=>x.status===200).length,1);assert.equal(r.filter(x=>x.status!==200).length,1);
 });
