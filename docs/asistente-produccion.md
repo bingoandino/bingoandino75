@@ -31,3 +31,9 @@ Pruebas de motor, interfaz DOM, reservas rechazadas/vencidas, precio cambiado, c
 El lenguaje usa expresiones habituales en Venezuela (capture, por aquí, porfa) con trato respetuoso. No deduce edad ni capacidad del cliente. Reconoce intención de jugar/participar/comprar, abreviaturas habituales y conectores al principio del mensaje. Acepta cantidades en letras y respuestas corteses. Las ayudas de cada etapa explican solo el paso que falta, y las preguntas no se convierten en datos del registro.
 
 Se puede enviar el registro junto o por partes; Enter conserva saltos de línea. El cliente puede pedir que se escojan cartones o elegir los suyos; ambas opciones conservan las reservas del servidor. Pedir los datos para pagar vuelve a mostrar la misma tarjeta únicamente si la reserva sigue vigente. Las mejoras son reglas de conversación; la IA generativa sigue desactivada.
+
+## Rechazar o detener la compra
+
+Un «no quiero», «no gracias», «déjalo así» o cancelación explícita detiene el flujo. Se libera mediante el RPC seguro únicamente la reserva de esta conversación que no esté registrada. El formulario y archivo se eliminan de la memoria del flujo, se bloquean botones de copiar anteriores y se mantiene un estado en pausa; saludos, agradecimientos, fotos o números no reanudan una compra por accidente. Una nueva intención expresa de comprar permite empezar de nuevo.
+
+Un «no» en la confirmación sigue permitiendo corregir datos. Las compras enviadas no se borran ni se liberan desde el chat. Un envío incierto se reconcilia antes de cualquier cancelación. Si ya se recibió capture o referencia, se orienta al cliente a soporte en caso de haber pagado. Un fallo al liberar se informa sin afirmar que la reserva quedó libre.

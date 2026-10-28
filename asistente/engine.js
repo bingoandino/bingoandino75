@@ -4,6 +4,13 @@ const words={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:
 export const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 // Conversación venezolana cotidiana; se aplica a intenciones, nunca altera los datos enviados.
 export const conversationText=s=>norm(s).replace(/^[¿¡]+/,'').replace(/\bq\b|\bk\b/g,'que').replace(/\bkiero\b/g,'quiero').replace(/\bnesecito\b/g,'necesito').replace(/\bpa\b/g,'para').replace(/^(?:(?:y|pero|mira|mire|oye|epa|aja|hola|buenas(?: tardes| noches| dias)?|por favor)[,!.\s]+)+/,'').trim();
+export function wantsCancellation(input,step){let n=conversationText(input).replace(/[,;:]/g,' ').replace(/[.!?]+$/,'').replace(/\s+/g,' ').trim();
+ if(n==='no gracias')return true;
+ n=n.replace(/ (?:gracias|porfa|por favor)$/,'');
+ if(/^(?:no quiero|ya no quiero)(?: (?:comprar|jugar|participar|seguir|continuar|enviar|nada|nada mas|ayuda|tu ayuda|que me ayudes|cartones|la compra|comprar cartones))?$/.test(n))return true;
+ if(/^(?:no necesito ayuda|no necesito tu ayuda|no me ayudes|no voy a comprar|ya no voy a comprar|ahorita no|no por ahora|no me interesa|otro dia|despues compro|me arrepenti|mejor no|olvidalo|cancelalo|cancela eso|cancelar|cancelar compra|cancelar la compra|cancelar mi compra|cancela(?: la compra| mi compra| todo)?|dejalo(?: asi)?|no gracias)$/.test(n))return true;
+ return n==='no'&&!['confirm','final'].includes(step);
+}
 export function wantsRandom(input){const n=conversationText(input);if(/yo.*(?:escojo|escoger|elijo|elegir)|no.*(?:azar|aleatori)/.test(n))return false;return /\b(?:azar|aleatorios|aleatorio|escoge|escoja|eligelos|elige tu|elija|cualquiera|cualesquiera|agarralos)\b|los que (?:tu )?(?:quieras|salgan|sean)|como sea/.test(n);}
 const digits=s=>String(s||'').replace(/\D/g,'');
 export const money=n=>new Intl.NumberFormat('es-VE',{maximumFractionDigits:2}).format(n);
@@ -73,9 +80,11 @@ export class Assistant{
  choose(cards){const s=this.state;if(s.submitted)return [text('Esta compra ya está registrada. Puedes iniciar otra con «Nueva conversación».')];const unique=[...new Set(cards.map(Number))];if(unique.length!==s.quantity)return [text(`Necesito ${s.quantity} cartones distintos. Llevas ${unique.length}.`)];const busy=unique.filter(n=>!this.available.has(n));if(busy.length)return [text(`Estos no están disponibles: ${busy.join(', ')}. Dime otros números o pídemelos al azar.`)];s.cards=unique;return [text(`Listo 🎟️ Tus cartones: ${unique.join(', ')}.`),...this.advance()];}
  attach(file){if(this.state.submitted)return [text('La compra ya está registrada. No necesitas reenviar la imagen.')];this.state.file={name:file.name,size:file.size};return [text('Comprobante recibido 📎'),...this.advance()];}
  receive(input){const raw=String(input).trim(),n=conversationText(raw),s=this.state;if(!raw)return [];if(raw.length>2000)return [text('Envíame un mensaje más corto, por favor 😊')];
+ if(wantsCancellation(raw,s.step))return [{type:'cancel'}];
  const answer=faq(raw,this.config);if(answer)return answer;
- if(/^(?:hola+|holi|buenas(?: tardes| noches| dias)?|buenos dias|buen dia|epa)[!.,\s]*$/.test(norm(raw)))return s.step==='welcome'?[text('¡Hola! 😊 Cuéntame, ¿qué necesitas?')]:[text('¡Hola! 😊 Seguimos donde íbamos.'),...this.advance()];
+ if(/^(?:hola+|holi|buenas(?: tardes| noches| dias)?|buenos dias|buen dia|epa)[!.,\s]*$/.test(norm(raw)))return ['welcome','paused'].includes(s.step)?[text('¡Hola! 😊 Cuéntame, ¿qué necesitas?')]:[text('¡Hola! 😊 Seguimos donde íbamos.'),...this.advance()];
  if(/^(?:gracias|muchas gracias|mil gracias|ok gracias)[!.,\s]*$/.test(n))return [text('A la orden 😊 Aquí sigo pendiente.')];
+ if(s.step==='paused'){if(openingIntent(raw)==='purchase'||quantity(raw)!==null||/ayudame|necesito ayuda|me ayudas|quiero seguir|quiero continuar|seguir comprando/.test(n))s.step='welcome';else return [text('Está bien 😊 Aquí estoy si después necesitas algo.')];}
  if(/no entiendo|no entendi|no comprendo|me enrede|me cuesta|no puedo|no se usar|primera vez|soy nuev[oa]|estoy perdid[oa]|no se (?:como|que)|^no se$|explicame|mas facil|paso a paso/.test(n))return this.guidance();
  if(s.submitted)return [text('Tu compra ya quedó registrada como pendiente ✅ No se enviará otra vez. Para comenzar otra, usa «Nueva conversación».')];
  if(/ignora|aprueb|gratis|borr|elimin.*sorteo|reinicia.*sorteo|clave.*admin|datos de otro|service.role/.test(n))return [text('Puedo ayudarte a preparar una compra. La aprobación del pago corresponde a la verificación bancaria.')];
