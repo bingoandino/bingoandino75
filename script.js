@@ -288,6 +288,7 @@ function clearAdminSession() {
   
   // Limpiar sessionStorage (lo que TÚ usas)
   sessionStorage.removeItem('admin_session_token');
+  sessionStorage.removeItem('admin_vista_panel_v1');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('session_expires');
   sessionStorage.removeItem('device_id');
@@ -1303,14 +1304,21 @@ async function verificarSesionInicial() {
       iniciarDetectorActividad();
       resetInactivityTimer();
 
-      // **IMPORTANTE:** No abrir el panel automáticamente
-      // Solo deja la sesión activa lista para cuando el usuario haga clic en Admin
+      // Restore only after server verification; preserve public navigation chosen in this tab.
+      if (sessionStorage.getItem('admin_vista_panel_v1') !== 'publica' &&
+          !document.querySelector('section:not(.oculto):not(#bienvenida):not(#admin-panel)')) {
+        document.querySelectorAll('section').forEach(sec => sec.classList.add('oculto'));
+        document.getElementById('admin-panel')?.classList.remove('oculto');
+        document.getElementById('modal-terminos')?.classList.add('oculto');
+        sessionStorage.setItem('admin_vista_panel_v1','panel');
+      }
       return;
 
     } else {
   console.log('⚠️ Sesión inválida, limpiando...');
 
   sessionStorage.removeItem('admin_session_token');
+  sessionStorage.removeItem('admin_vista_panel_v1');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('session_expires');
   sessionStorage.removeItem('device_id');
@@ -1330,6 +1338,7 @@ async function verificarSesionInicial() {
   console.error('❌ Error verificando sesión inicial:', error);
 
   sessionStorage.removeItem('admin_session_token');
+  sessionStorage.removeItem('admin_vista_panel_v1');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('session_expires');
   sessionStorage.removeItem('device_id');
@@ -2009,7 +2018,10 @@ async function mostrarVentana(id) {
   // 3) Mostrar la ventana solicitada
   document.querySelectorAll('section').forEach(s => s.classList.add('oculto'));
   const target = document.getElementById(id);
-  if (target) target.classList.remove('oculto');
+  if (target) {
+    target.classList.remove('oculto');
+    if (sessionStorage.getItem('admin_session_token')) sessionStorage.setItem('admin_vista_panel_v1',id==='admin-panel'?'panel':'publica');
+  }
 requestAnimationFrame(() => {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -3469,7 +3481,10 @@ function mostrarSeccion(id) {
   const secciones = document.querySelectorAll('section');
   secciones.forEach(sec => sec.classList.add('oculto'));
   const target = document.getElementById(id);
-  if (target) target.classList.remove('oculto');
+  if (target) {
+    target.classList.remove('oculto');
+    if (sessionStorage.getItem('admin_session_token')) sessionStorage.setItem('admin_vista_panel_v1',id==='admin-panel'?'panel':'publica');
+  }
   // El botón está al pie del inicio; cada sección se abre desde arriba.
   window.scrollTo({top:0,left:0,behavior:'instant'});
   requestAnimationFrame(()=>{document.documentElement.scrollTop=0;document.body.scrollTop=0;});
@@ -5124,3 +5139,12 @@ function filtrarOrigenInscripciones(){const origen=document.getElementById('filt
 
 
 function coincideOrigenInscripcion(filtro,origen){return filtro==='todos'||(filtro==='compra'?(origen==='compra'||origen==='bot'):filtro===origen);}
+
+// Keep the administrator's view in this tab without storing any new credentials.
+window.addEventListener('pagehide',()=>{
+ try{
+  if(!sessionStorage.getItem('admin_session_token')){sessionStorage.removeItem('admin_vista_panel_v1');return;}
+  if(document.getElementById('admin-panel')?.classList.contains('oculto')===false)sessionStorage.setItem('admin_vista_panel_v1','panel');
+  else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
+ }catch{/* An unavailable view bookmark never grants access. */}
+});
