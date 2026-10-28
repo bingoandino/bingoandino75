@@ -3025,6 +3025,7 @@ btnRechazar.onclick = () => procesarEstadoUnaVez(
     tbody.appendChild(tr);
   });
 
+  aplicarOrdenInscripciones();
   document.getElementById('contador-clientes').textContent = data.length;
   document.getElementById('contadorCartones').innerText = 
     `Cartones disponibles: ${totalCartones - cartonesOcupados.length} de ${totalCartones}`;
@@ -3035,31 +3036,26 @@ document.getElementById('btn-recargar-panel').addEventListener('click', () => {
   cargarPanelAdmin();  // Llama directamente a la función que refresca el contenido
 });
 function ordenarPendientesArriba() {
-  const tbody = document.querySelector('#tabla-comprobantes tbody');
-  if (!tbody) return;
+  const tbody=document.querySelector('#tabla-comprobantes tbody');if(!tbody)return;
+  tbody.dataset.adminOrden='pendientes';
+  aplicarOrdenInscripciones();
+}
 
-  const prioridad = {
-    pendiente: 0,
-    rechazado: 1,
-    aprobado: 2
-  };
-
-  const filas = Array.from(tbody.querySelectorAll('tr')).map((fila, index) => ({
-    fila,
-    index
-  }));
-
-  filas.sort((a, b) => {
-    const estadoA = obtenerEstadoFila(a.fila);
-    const estadoB = obtenerEstadoFila(b.fila);
-
-    const prioridadA = prioridad[estadoA] ?? 99;
-    const prioridadB = prioridad[estadoB] ?? 99;
-
-    return prioridadA - prioridadB || a.index - b.index;
+// The tbody survives row refreshes; its selected order and direction survive too.
+function aplicarOrdenInscripciones() {
+  const tbody=document.querySelector('#tabla-comprobantes tbody'),modo=tbody?.dataset.adminOrden;
+  if(!modo)return;
+  const asc=tbody.dataset.adminOrdenAsc==='true',prioridad={pendiente:0,rechazado:1,aprobado:2};
+  const filas=Array.from(tbody.rows).map((fila,index)=>({fila,index}));
+  const numero=(fila,columna)=>parseInt((columna===5?fila.cells[columna].querySelector('.ref-text')?.textContent:null)||fila.cells[columna].textContent.trim())||0;
+  filas.sort((a,b)=>{
+    let diferencia=0;
+    if(modo==='pendientes')diferencia=(prioridad[obtenerEstadoFila(a.fila)]??99)-(prioridad[obtenerEstadoFila(b.fila)]??99);
+    else if(modo==='nombre')diferencia=a.fila.cells[0].textContent.trim().toLowerCase().localeCompare(b.fila.cells[0].textContent.trim().toLowerCase());
+    else if(modo==='cedula'||modo==='referencia'){const columna=modo==='cedula'?2:5;diferencia=(numero(a.fila,columna)-numero(b.fila,columna))*(asc?1:-1);}
+    return diferencia||a.index-b.index;
   });
-
-  filas.forEach(({ fila }) => tbody.appendChild(fila));
+  filas.forEach(({fila})=>tbody.appendChild(fila));
 }
 
 function obtenerEstadoFila(fila) {
@@ -3778,52 +3774,22 @@ async function activarCohetes() {
 }
 
 function ordenarInscripcionesPorNombre() {
-  const tabla = document.querySelector('#tabla-comprobantes tbody');
-  const filas = Array.from(tabla.rows);
-
-  filas.sort((a, b) => {
-    const nombreA = a.cells[0].textContent.trim().toLowerCase();
-    const nombreB = b.cells[0].textContent.trim().toLowerCase();
-    return nombreA.localeCompare(nombreB);
-  });
-
-  tabla.innerHTML = '';
-  filas.forEach(fila => tabla.appendChild(fila));
+  const tbody=document.querySelector('#tabla-comprobantes tbody');if(!tbody)return;
+  tbody.dataset.adminOrden='nombre';aplicarOrdenInscripciones();
 }
 
 let ordenCedulaAscendente = true;
-
 function ordenarPorCedula() {
-  const tabla = document.querySelector('#tabla-comprobantes tbody');
-  const filas = Array.from(tabla.rows);
-
-  filas.sort((a, b) => {
-    const cedulaA = parseInt(a.cells[2].textContent.trim());
-    const cedulaB = parseInt(b.cells[2].textContent.trim());
-    return ordenCedulaAscendente ? cedulaA - cedulaB : cedulaB - cedulaA;
-  });
-
-  tabla.innerHTML = '';
-  filas.forEach(fila => tabla.appendChild(fila));
-  ordenCedulaAscendente = !ordenCedulaAscendente;
+  const tbody=document.querySelector('#tabla-comprobantes tbody');if(!tbody)return;
+  tbody.dataset.adminOrden='cedula';tbody.dataset.adminOrdenAsc=String(ordenCedulaAscendente);
+  aplicarOrdenInscripciones();ordenCedulaAscendente=!ordenCedulaAscendente;
 }
 
 let ordenReferenciaAscendente = false;
 function ordenarPorReferencia() {
-  const tabla = document.querySelector('#tabla-comprobantes tbody');
-  const filas = Array.from(tabla.rows);
-
-  filas.sort((a, b) => {
-    const refA = a.cells[5].textContent.trim();
-    const refB = b.cells[5].textContent.trim();
-    const numA = parseInt(refA) || 0;
-    const numB = parseInt(refB) || 0;
-    return ordenReferenciaAscendente ? numA - numB : numB - numA;
-  });
-
-  tabla.innerHTML = '';
-  filas.forEach(fila => tabla.appendChild(fila));
-  ordenReferenciaAscendente = !ordenReferenciaAscendente;
+  const tbody=document.querySelector('#tabla-comprobantes tbody');if(!tbody)return;
+  tbody.dataset.adminOrden='referencia';tbody.dataset.adminOrdenAsc=String(ordenReferenciaAscendente);
+  aplicarOrdenInscripciones();ordenReferenciaAscendente=!ordenReferenciaAscendente;
 }
 
 function buildWhatsAppLink(rawPhone, presetMsg = '') {
