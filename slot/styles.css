@@ -238,3 +238,10 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
 .winner-card .remove-winner:disabled{opacity:.4}
 .winner-card:has(.remove-winner) .card-label{padding-inline:25px}
 @media(max-width:700px){.winner-card .remove-winner{width:30px;height:30px}}
+
+.delivered-badge{font:700 10px system-ui;color:#5a4521;background:#e7d7ad;border-radius:6px;padding:4px 6px;margin-top:2px;max-width:100%;overflow-wrap:anywhere}
+#awardDialog{width:min(620px,94vw);max-height:90dvh;overflow:auto}
+#awardDialog h2{font-size:26px}
+.award-row{display:flex;flex-direction:column;gap:5px;padding:12px;margin:8px 0;background:#ffffff09;border:1px solid #dbba6344;border-radius:10px}
+.award-row span{font-size:14px}.award-row small{font-size:11px;color:#dccade}.award-row.assigned{border-color:#e6c577}
+#assignAwards{white-space:normal}
