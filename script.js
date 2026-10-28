@@ -489,8 +489,8 @@ async function loginAdmin() {
       // MANEJO DE ERRORES ESPECÍFICOS
       if (result.error === "SESION_ACTIVA_OTRO_DISPOSITIVO") {
         errorDiv.innerHTML = `
-          ⚠️ <strong>¡Ya tienes una sesión activa!</strong><br><br>
-          No puedes iniciar sesión en múltiples dispositivos/navegadores.<br><br>
+          ⚠️ <strong>¡Ya hay 2 sesiones activas!</strong><br><br>
+          Se permiten hasta 2 dispositivos/navegadores al mismo tiempo.<br><br>
           <strong>Solución:</strong><br>
           1. Ve al otro dispositivo/navegador<br>
           2. Cierra sesión allí primero<br>
@@ -498,7 +498,7 @@ async function loginAdmin() {
         `;
         errorDiv.className = 'warning';
       } else if (result.error === "SESION_ACTIVA") {
-        errorDiv.innerHTML = '⚠️ Ya tienes una sesión activa en otro lugar';
+        errorDiv.innerHTML = '⚠️ Ya hay 2 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.';
         errorDiv.className = 'warning';
       } else {
         errorDiv.textContent = result.error || 'Error de autenticación';
@@ -712,7 +712,7 @@ async function verificarOTP() {
     
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Error creando sesión');
+      throw new Error(errorData.message || errorData.error || 'Error creando sesión');
     }
     
     const result = await response.json();
@@ -1162,8 +1162,8 @@ async function mostrarPanelAdminOTP(sessionToken) {
   sessionInfo.style.color = '#155724';
   sessionInfo.style.border = '1px solid #c3e6cb';
   sessionInfo.innerHTML = `
-    ✅ <strong>SESIÓN ÚNICA ACTIVA</strong><br>
-    <small>Solo tú puedes acceder hasta que cierres sesión.</small><br>
+    ✅ <strong>SESIÓN ACTIVA · MÁXIMO 2</strong><br>
+    <small>Para abrir una tercera sesión, primero cierra una de las otras dos.</small><br>
   `;
   
   const panel = document.getElementById('admin-panel');
@@ -5121,3 +5121,4 @@ console.log('✅ Sistema de sesión única configurado correctamente');
 
 
 function filtrarOrigenInscripciones(){const origen=document.getElementById('filtroOrigenSlot')?.value||'todos';document.querySelectorAll('#tabla-comprobantes tbody tr').forEach(tr=>{tr.hidden=origen!=='todos'&&tr.dataset.origenRegistro!==origen;});}
+
