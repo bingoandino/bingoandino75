@@ -1,10 +1,18 @@
 // Solo servidor. Piloto sin HTTP público ni entrada libre de clientes.
+import {contextoInformativo} from '../../asistente/informacion.js';
+export const DEFAULT_CASE_IDS = Object.freeze(['saludo', 'identidad', 'paciencia', 'sencillo', 'humano']);
+export const INFO_CASE_IDS = Object.freeze(['horario', 'bombo', 'ganador', 'precio', 'domingo']);
 export const CASES = Object.freeze({
   saludo: Object.freeze(['Hola, buenas.']),
   identidad: Object.freeze(['Hola', 'Q es esto?']),
   paciencia: Object.freeze(['No entiendo nada de esto', 'Explícame despacito, por favor']),
   sencillo: Object.freeze(['Me cuesta leer mensajes largos', 'Dímelo cortico y sencillo']),
   humano: Object.freeze(['Prefiero hablar con una persona']),
+  horario: Object.freeze(['A q hora y q dias transmiten?']),
+  bombo: Object.freeze(['Como sacan las bolitas, eso es por computadora?']),
+  ganador: Object.freeze(['Y como saben quien gana?']),
+  precio: Object.freeze(['Cuanto cuesta un carton?']),
+  domingo: Object.freeze(['Y los domingos tambien transmiten?']),
 });
 
 const INSTRUCTIONS = `Eres un asistente virtual de atención general en una prueba ficticia.
@@ -18,9 +26,12 @@ Si pide atención humana, reconoce la preferencia y termina sin preguntas ni ofr
 atendiéndolo tú. No inventes teléfonos, enlaces ni funciones.
 No ofrezcas ventas, apuestas, compras, premios, transferencias ni acciones sobre cuentas.
 No pidas ni reproduzcas datos personales, bancarios, contraseñas o códigos de acceso.
+Usa solo los datos confirmados del contexto para consultas informativas del negocio.
+Puedes informar el precio consultado, sin promover la compra ni explicar cómo apostar.
+Si falta el precio, explica que no pudiste consultarlo. No asumas transmisiones los domingos.
 Devuelve únicamente JSON con un campo answer que contenga tu respuesta.`;
 
-export function createPilot({key, model, enabled = false, fetcher = (...args) => globalThis.fetch(...args), timeoutMs = 12000, maxCalls = 5} = {}) {
+export function createPilot({key, model, enabled = false, fetcher = (...args) => globalThis.fetch(...args), timeoutMs = 12000, maxCalls = 5, price} = {}) {
   let calls = 0;
   const limit = Number.isInteger(maxCalls) ? Math.min(5, Math.max(0, maxCalls)) : 0;
   return async function run(caseId) {
@@ -31,7 +42,7 @@ export function createPilot({key, model, enabled = false, fetcher = (...args) =>
     calls++;
     // Solo salen frases sintéticas inmutables. No se aceptan historial, archivos ni texto externo.
     const body = {
-      systemInstruction: {parts: [{text: INSTRUCTIONS}]},
+      systemInstruction: {parts: [{text: INSTRUCTIONS + '\nContexto confirmado: ' + JSON.stringify(contextoInformativo(price))}]},
       contents: [{role: 'user', parts: [{text: JSON.stringify(CASES[caseId])}]}],
       generationConfig: {
         maxOutputTokens: 512,
@@ -72,7 +83,9 @@ export function createPilot({key, model, enabled = false, fetcher = (...args) =>
         if (!answer || typeof answer !== 'string' || Object.keys(result).length !== 1 || answer.length > 350 || answer.trim().split(/\s+/).length > 30) return {ok: false, reason: 'invalid_response'};
         if (caseId === 'humano' && /[¿?]/.test(answer)) return {ok: false, reason: 'unsafe_response'};
         // Barrera adicional de presentación, no una garantía semántica de seguridad.
-        if (/[\d<>]|https?:|www\.|\[[^\]]*\]\(|contraseñ|password|c[oó]digo de acceso|pago m[oó]vil|\b(?:compra|apuesta|transfiere|deposit[ae])\b/i.test(answer)) return {ok: false, reason: 'unsafe_response'};
+        const allowedNumbers = new Set(['8', '00', ...(typeof price === 'number' && Number.isFinite(price) && price > 0 ? String(price).split('.') : [])]);
+        const unknownNumber = (answer.match(/\d+/g) || []).some(number => !allowedNumbers.has(number));
+        if (unknownNumber || /[<>]|https?:|www\.|\[[^\]]*\]\(|contraseñ|password|c[oó]digo de acceso|pago m[oó]vil|\b(?:compra|apuesta|transfiere|deposit[ae])\b/i.test(answer)) return {ok: false, reason: 'unsafe_response'};
         return {ok: true, answer: answer.trim()};
       };
       return await Promise.race([operation(), deadline]);

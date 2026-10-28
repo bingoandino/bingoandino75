@@ -49,3 +49,7 @@ de condiciones para cada uso ni una prueba real desde la cuenta del titular.
 ## Protección del diagnóstico temporal
 
 `piloto-protegido.mjs` admite solo un POST vacío, autenticado mediante una capacidad aleatoria de 256 bits cuyo hash se incluye en el despliegue temporal. Se mantiene la verificación JWT del gateway. No se pasan datos de clientes, claves de base de datos ni archivos al modelo. No se lee ni escribe la base de datos. Cada instancia permite un solo lote; este límite no es global entre instancias, por lo que la capacidad no se distribuye, caduca y el diagnóstico se reemplaza por un handler cerrado después de la prueba. No hay CORS para el navegador.
+
+## Contexto del negocio
+
+El piloto comparte los hechos de `asistente/informacion.js` con las respuestas informativas del chat. `contextoInformativo` acepta solo un precio numérico, positivo y finito leído por el servidor; cualquier ausencia o error obliga a indicar que no se pudo consultar. El precio no se toma del texto de la pregunta. Los cinco casos informativos se seleccionan en código, no desde la solicitud HTTP. La prueba temporal del 28 de octubre leyó únicamente `configuracion.precio_carton` y se cerró al terminar.

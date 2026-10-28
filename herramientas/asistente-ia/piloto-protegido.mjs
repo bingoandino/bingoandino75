@@ -1,8 +1,8 @@
-import {CASES, createPilot} from './gemini-prueba.mjs';
+import {CASES, DEFAULT_CASE_IDS, createPilot} from './gemini-prueba.mjs';
 
 // Autorización temporal de 256 bits, solo su hash se incluye en el despliegue.
 // No usar en el widget. No acepta mensajes, archivos ni datos de clientes.
-export function createProtectedPilot({tokenHash = '', expiresAt = 0, env = () => undefined, now = Date.now, fetcher, model = 'gemini-3.5-flash-lite'} = {}) {
+export function createProtectedPilot({tokenHash = '', expiresAt = 0, env = () => undefined, now = Date.now, fetcher, model = 'gemini-3.5-flash-lite', caseIds = DEFAULT_CASE_IDS, loadPrice} = {}) {
   let consumed = false;
   const json = (status, data) => Response.json(data, {status, headers: {'Cache-Control': 'no-store'}});
   return async function handler(req) {
@@ -28,14 +28,17 @@ export function createProtectedPilot({tokenHash = '', expiresAt = 0, env = () =>
     consumed = true; // Bloquea concurrencia en esta instancia; caducidad y cierre protegen el resto.
     const key = env('GEMINI_API_KEY');
     if (!key) return json(503, {ok: false, reason: 'not_configured'});
-    const run = createPilot({key, model, enabled: true, fetcher});
+    if (!Array.isArray(caseIds) || caseIds.length < 1 || caseIds.length > 5 || caseIds.some(id => typeof id !== 'string' || !Object.hasOwn(CASES, id))) return json(503, {ok: false, reason: 'invalid_cases'});
+    let price;
+    try {price = await loadPrice?.();} catch {price = undefined;}
+    const run = createPilot({key, model, enabled: true, fetcher, price});
     const results = [];
-    for (const id of Object.keys(CASES)) {
+    for (const id of caseIds) {
       const start = now();
       const result = await run(id);
       results.push({case: id, elapsedMs: now() - start, ...result});
       if (!result.ok) break;
     }
-    return json(200, {ok: results.length === Object.keys(CASES).length && results.every(x => x.ok), model, results});
+    return json(200, {ok: results.length === caseIds.length && results.every(x => x.ok), model, priceLoaded: typeof price === 'number' && Number.isFinite(price) && price > 0, results});
   };
 }
