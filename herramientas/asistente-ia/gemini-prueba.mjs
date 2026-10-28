@@ -83,7 +83,9 @@ export function createPilot({key, model, enabled = false, fetcher = (...args) =>
         if (!answer || typeof answer !== 'string' || Object.keys(result).length !== 1 || answer.length > 350 || answer.trim().split(/\s+/).length > 30) return {ok: false, reason: 'invalid_response'};
         if (caseId === 'humano' && /[¿?]/.test(answer)) return {ok: false, reason: 'unsafe_response'};
         // Barrera adicional de presentación, no una garantía semántica de seguridad.
-        const allowedNumbers = new Set(['8', '00', ...(typeof price === 'number' && Number.isFinite(price) && price > 0 ? String(price).split('.') : [])]);
+        const allowedNumbers = new Set(caseId === 'precio'
+          ? (typeof price === 'number' && Number.isFinite(price) && price > 0 ? String(price).split('.') : [])
+          : (['horario', 'domingo'].includes(caseId) ? ['8', '00'] : []));
         const unknownNumber = (answer.match(/\d+/g) || []).some(number => !allowedNumbers.has(number));
         if (unknownNumber || /[<>]|https?:|www\.|\[[^\]]*\]\(|contraseñ|password|c[oó]digo de acceso|pago m[oó]vil|\b(?:compra|apuesta|transfiere|deposit[ae])\b/i.test(answer)) return {ok: false, reason: 'unsafe_response'};
         return {ok: true, answer: answer.trim()};

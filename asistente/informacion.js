@@ -15,7 +15,10 @@ export function contextoInformativo(price) {
 
 // Recibe texto ya normalizado por el motor; nunca interpreta datos de registro.
 export function respuestaInformativa(n) {
-  if (/a\s+q(?:ue)?\s+h?ora|^(?:el )?horario[.!?\s]*$|(?:hora|horario).*(?:sorteo|bingo|vivo)|(?:cambi|hoy).*(?:hora|horario|transmi)|cuando.*(?:sorteo|bingo|empieza|comienza|juegan|juega)|(?:que|cuales|todos los).*dias.*(?:jueg|transmi|bingo|sorteo|vivo)|\b(?:lunes|martes|miercoles|jueves|viernes|sabados?|domingos?)\b/.test(n)) {
+  const day = '(?:lunes|martes|miercoles|jueves|viernes|sabados?|domingos?)';
+  const dayQuestion = new RegExp('\\b' + day + '\\b').test(n) &&
+    (new RegExp('^(?:(?:el|los) )?' + day + '[.!?\\s]*$').test(n) || /[?]|jueg|transmi|sorteo|horario|bingo/.test(n));
+  if (dayQuestion || /a\s+q(?:ue)?\s+h?ora|^(?:el )?horario[.!?\s]*$|(?:hora|horario).*(?:sorteo|bingo|vivo)|(?:cambi|hoy).*(?:hora|horario|transmi)|cuando.*(?:sorteo|bingo|empieza|comienza|juegan|juega)|(?:que|cuales|todos los).*dias.*(?:jueg|transmi|bingo|sorteo|vivo)/.test(n)) {
     const habitual = 'Nuestro horario habitual es de lunes a sábado, a las 8:00 p. m., hora de Venezuela, en vivo por YouTube 😊';
     return /domingo|cambi|extra|hoy|feriado/.test(n) ? habitual + ' Cualquier cambio se anuncia en la página.' : habitual;
   }

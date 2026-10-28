@@ -11,7 +11,9 @@ test('Gemini recibe solo los hechos permitidos y el precio inyectado por el serv
   assert.doesNotMatch(JSON.stringify(body), /test-key|service_role|nombre.*cédula/i);
 });
 test('un precio inventado por Gemini se rechaza', async () => {
+ for (const invented of [400, 8]) {
   const run = createPilot({key: 'test-key', model: 'gemini-test', enabled: true, price: 939,
-    fetcher: async () => Response.json({candidates: [{finishReason: 'STOP', content: {parts: [{text: JSON.stringify({answer: 'El precio es de 400 Bs.'})}]}}]})});
+    fetcher: async () => Response.json({candidates: [{finishReason: 'STOP', content: {parts: [{text: JSON.stringify({answer: `El precio es de ${invented} Bs.`})}]}}]})});
   assert.deepEqual(await run('precio'), {ok: false, reason: 'unsafe_response'});
+ }
 });
