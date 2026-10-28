@@ -1,6 +1,6 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-13';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-13';
+import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-14';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-14';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
@@ -9,17 +9,18 @@ const scroll=()=>$('messages').scrollTo({top:$('messages').scrollHeight,behavior
 function row(parent,label,value){const line=el('div','data-line');line.append(el('span','',label),el('b','',value));parent.append(line);}
 function pills(parent,cards){if(!cards.length)return;const p=el('div','card-pills');for(const c of cards)p.append(el('span','',c));parent.append(p);}
 async function copyAll(value,button){try{await navigator.clipboard.writeText(value);button.textContent='✓ Datos copiados';setTimeout(()=>{if(button.isConnected)button.textContent='Copiar datos de pago';},2200);}catch{const area=el('textarea');area.value=value;area.readOnly=true;const d=el('dialog');const h=el('h2','','Copia los datos juntos');const p=el('p','','Mantén presionado el texto y elige Copiar.');const close=el('button','inline-button','Cerrar');close.onclick=()=>d.close();d.append(h,p,area,close);document.body.append(d);d.showModal();area.focus();area.select();d.onclose=()=>d.remove();}}
+function termsNotice(){const notice=el('p','card-foot','Al enviar el capture y la referencia aceptas los ');const terms=el('a','','Términos');terms.href='/terminos.html';terms.target='_blank';terms.rel='noopener';const privacy=el('a','','Política de Privacidad');privacy.href='/privacidad.html';privacy.target='_blank';privacy.rel='noopener';notice.append(terms,document.createTextNode(' y la '),privacy,document.createTextNode('. La compra se envía automáticamente para verificar el pago.'));return notice;}
 function bubble(message,user=false){const wrap=el('div','message'+(user?' user':''));if(!user)wrap.append(el('div','mini-avatar','75'));const b=el('div','bubble'+(message.type!=='text'?' card-bubble':''));let content=b;
  if(message.type==='text')b.append(document.createTextNode(message.text));
  else if(message.type==='payment'){
  const top=el('div','payment-top');top.append(el('p','card-label','TOTAL A PAGAR'));const amount=el('strong','amount',money(message.total)+' ');amount.append(el('small','','Bs'));top.append(amount,el('div','caption',`${message.quantity} cartones × ${money(assistant.config.price)} Bs`));b.append(top);content=el('div','card-content');b.append(content);
  for(const [label,value] of [['Banco',assistant.config.bank],['Teléfono',assistant.config.phone],['Cédula',assistant.config.id]]){const r=el('div','payment-row');r.append(el('span','',label),el('strong','',value));content.append(r);}
- const button=el('button','copy-all','Copiar datos de pago');button.type='button';button.onclick=()=>copyAll(message.copy,button);content.append(button,el('p','card-foot','Copia banco, teléfono, cédula y monto juntos.'));
+ const button=el('button','copy-all','Copiar datos de pago');button.type='button';button.onclick=()=>copyAll(message.copy,button);content.append(button,el('p','card-foot','Copia banco, teléfono, cédula y monto juntos.'),termsNotice());
  }else if(message.type==='summary'){
  content=el('div','card-content');b.append(content);content.append(el('h3','summary-title','Vamos a revisar tus datos 📝'));const d=message.data;content.append(el('p','summary-group','Registro'));row(content,'Nombre',d.name);row(content,'Cédula',d.id);row(content,'Teléfono',d.phone);content.append(el('p','summary-group','Pago Móvil para recibir premios'));row(content,'Banco',d.bank);row(content,'Cédula',d.payId);row(content,'Teléfono',d.payPhone);
- }else if(message.type==='review'||message.type==='success'){
- content=el('div','card-content');b.append(content);if(message.type==='success'){content.append(el('div','success-icon','✓'),el('h3','success-text','Compra registrada'),el('span','state-badge','PENDIENTE DE VERIFICACIÓN'));}else content.append(el('p','card-label','ANTES DE REGISTRAR'),el('h3','summary-title','Tu compra'));
- row(content,'Cartones',message.quantity);row(content,'Total',money(message.total)+' Bs');if(message.ref)row(content,'Referencia',message.ref);pills(content,message.cards);if(message.type==='success')content.append(el('p','card-foot','Participas cuando el pago esté aprobado.'));else{const terms=el('p','card-foot','Al confirmar aceptas los ');const t=el('a','','Términos');t.href='/terminos.html';t.target='_blank';t.rel='noopener';const p=el('a','','Política de Privacidad');p.href='/privacidad.html';p.target='_blank';p.rel='noopener';terms.append(t,document.createTextNode(' y la '),p,document.createTextNode('.'));content.append(terms);}
+ }else if(message.type==='success'){
+ content=el('div','card-content');b.append(content);content.append(el('div','success-icon','✓'),el('h3','success-text','Compra registrada'),el('span','state-badge','PENDIENTE DE VERIFICACIÓN'));
+ row(content,'Cartones',message.quantity);row(content,'Total',money(message.total)+' Bs');pills(content,message.cards);content.append(el('p','card-foot','Participas cuando el pago esté aprobado.'));
  }else if(message.type==='catalog'){
  content=el('div','card-content');b.append(content);const button=el('button','inline-button','Ver cartones disponibles');button.onclick=()=>action(async()=>{await conversation.refresh();openCatalog();return [];});content.append(button);
  }else if(message.type==='link'){

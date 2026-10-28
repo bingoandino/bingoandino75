@@ -67,7 +67,7 @@ export class Assistant{
  payment(){return {type:'payment',quantity:this.state.quantity,total:this.state.quantity*this.config.price,copy:`${this.config.bank}\n${this.config.phone}\n${this.config.id}\n${money(this.state.quantity*this.config.price)} Bs`};}
  summary(){return {type:'summary',data:{...this.state.data},quantity:this.state.quantity,cards:[...this.state.cards]};}
  guidance(){const step=this.state.step;
- const help={done:'Tu compra ya fue enviada 😊 Puedes revisar si está aprobada en «Verificar tu compra». No hagas otro pago.',quantity:'Vamos con calma 😊 Dime cuántos cartones quieres. Por ejemplo, puedes escribir: dos.',data:'Vamos con calma 😊 Mándame tu nombre y apellido, tu cédula y tu teléfono. Juntos o uno por uno, como te sea más fácil.',paymentData:'Son los datos de tu Pago Móvil para recibir los premios: banco, cédula y teléfono. Si la cédula y teléfono son los que ya mandaste, escribe «son los mismos» 😊',confirm:'Revisa los datos que te mostré. Si están bien, escribe «sí». Si hay un error, dime cuál dato quieres corregir 😊',cards:'Puedes decirme tus números favoritos o escribir «escoge tú» y yo los busco por ti 😊',proof:'Toca el clip 📎 para mandar el capture del pago. Después escribe la referencia que aparece en ese recibo.',final:'Si todo está bien, escribe «confirmo». Tu compra quedará pendiente hasta que se revise el pago 😊'};
+ const help={done:'Tu compra ya fue enviada 😊 Puedes revisar si está aprobada en «Verificar tu compra». No hagas otro pago.',quantity:'Vamos con calma 😊 Dime cuántos cartones quieres. Por ejemplo, puedes escribir: dos.',data:'Vamos con calma 😊 Mándame tu nombre y apellido, tu cédula y tu teléfono. Juntos o uno por uno, como te sea más fácil.',paymentData:'Son los datos de tu Pago Móvil para recibir los premios: banco, cédula y teléfono. Si la cédula y teléfono son los que ya mandaste, escribe «son los mismos» 😊',confirm:'Revisa los datos que te mostré. Si están bien, escribe «sí». Si hay un error, dime cuál dato quieres corregir 😊',cards:'Puedes decirme tus números favoritos o escribir «escoge tú» y yo los busco por ti 😊',proof:'Toca el clip 📎 para mandar el capture del pago. Después escribe la referencia que aparece en ese recibo.',sending:'Estoy enviando tu compra para revisar el pago 😊 No necesitas confirmar otra vez.'};
  if(help[step])return [text(help[step])];
  if(step==='route')return this.advance();
  return [text('Claro, vamos paso a paso 😊 Para jugar necesitas comprar tu cartón. ¿Quieres que te ayude por aquí?')];
@@ -81,7 +81,7 @@ export class Assistant{
  if(!s.confirmed){s.step='confirm';return [this.summary(),text('Revisa bien tu cédula y teléfono 😊 ¿Los datos están bien? Allí recibirías tus premios.')];}
  if(s.cards.length!==s.quantity){s.step='cards';return [text('¿Cuáles números quieres? Si te da igual, escribe «escoge tú» y los busco por ti 😊')];}
  if(!s.file||!s.ref){s.step='proof';return [text(!s.file&&!s.ref?'Ahora mándame el capture del pago y la referencia 📎 Usa el clip para mandar la foto.':!s.file?'Solo falta el capture del pago 📎 Toca el clip para mandarlo.':'Ya tengo el capture 😊 Ahora mándame la referencia que sale en el recibo del pago.')];}
- s.step='final';return [{type:'review',quantity:s.quantity,total:s.quantity*this.config.price,cards:[...s.cards],ref:s.ref},text('Ya está todo listo 😊 ¿Confirmas que mande tu compra para revisar el pago?')];
+ s.step='sending';return [{type:'submit'}];
  }
  choose(cards){const s=this.state;if(s.submitted)return [text('Esta compra ya está registrada. Puedes iniciar otra con «Nueva conversación».')];const unique=[...new Set(cards.map(Number))];if(unique.length!==s.quantity)return [text(`Necesito ${s.quantity} cartones distintos. Llevas ${unique.length}.`)];const busy=unique.filter(n=>!this.available.has(n));if(busy.length)return [text(`Estos no están disponibles: ${busy.join(', ')}. Dime otros números o pídemelos al azar.`)];s.cards=unique;return [text(`Listo 🎟️ Tus cartones: ${unique.join(', ')}.`),...this.advance()];}
  attach(file){if(this.state.submitted)return [text('La compra ya está registrada. No necesitas reenviar la imagen.')];this.state.file={name:file.name,size:file.size};return [text('Comprobante recibido 📎'),...this.advance()];}
@@ -111,7 +111,6 @@ export class Assistant{
  const extracted=dataLike?details(raw,s.step==='paymentData',s.step==='data'):{};
  // Un cambio nunca equivale a confirmar ni a enviar una compra.
  if(Object.keys(extracted).length){Object.assign(s.data,extracted);s.confirmed=false;}
- if(s.step==='final'&&yes(n))return [{type:'submit'}];
  if(s.step==='confirm'&&yes(n)&&!Object.keys(extracted).length){s.confirmed=true;return this.advance();}
  const q=quantity(raw,['quantity','route'].includes(s.step));if(q!==null){if(!Number.isInteger(q)||q<1||q>this.config.max)return [text('Puedes comprar una cantidad de 1 a 100 cartones.')];if(q!==s.quantity){s.quantity=q;s.cards=[];s.confirmed=false;return [text(`Serían ${money(q*this.config.price)} Bs por ${q} cartones 😊`),...this.advance()];}}
  if(s.quantity&&wantsRandom(n)){const candidates=[...this.available];for(let i=candidates.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}return this.choose(candidates.slice(0,s.quantity));}
@@ -122,3 +121,4 @@ export class Assistant{
  return s.step==='welcome'?[text('Claro, te ayudo 😊 ¿Quieres jugar, saber el precio o buscar una compra?')]:this.advance();
  }
 }
+
