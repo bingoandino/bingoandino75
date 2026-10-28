@@ -48,3 +48,10 @@ Tests de clasificador, payload sin datos personales, campos extra rechazados, pe
 de cuota, errores, truncamiento, herramientas, XSS, números inventados, respaldo,
 trato profesional y prueba de interfaz con el estado conservado. Se comprobaron también
 consultas reales al endpoint con temas ficticios, sin datos de clientes.
+
+## Revisión de seguridad del 28 de octubre
+
+Se reforzó el filtro frente a correos y dominios inventados, caracteres invisibles y
+números o palabras ocultos mediante Unicode. Los resultados rechazados no se cachean.
+La llamada de cuota impide redirecciones. Las pruebas y los avisos pendientes del
+proyecto están en [el informe de seguridad](seguridad-asistente-generales-20261028.md).

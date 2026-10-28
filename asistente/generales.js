@@ -12,7 +12,7 @@ export const GENERALES = Object.freeze({
   gracias: 'A la orden. Aquí sigo pendiente si necesitas información.',
   aclarar: 'Vamos con calma. Dime qué parte de la información no quedó clara.',
 });
-const clean = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\bq\b/g, 'que').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const clean = s => String(s || '').normalize('NFKC').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\bq\b/g, 'que').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 export function temaGeneral(input, step = 'welcome') {
   const n = clean(input);
   // No se enrutan ventas, registro, pagos ni cambios de datos al servicio de IA.
@@ -33,11 +33,17 @@ export function temaGeneral(input, step = 'welcome') {
 
 export function respuestaGeneralValida(answer, topic) {
   if (typeof answer !== 'string' || !answer.trim() || answer.length > 400 || answer.trim().split(/\s+/).length > 42) return false;
+  // No se permite ocultar instrucciones, contactos o números mediante Unicode.
+  if (/\p{Cf}|[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ufe00-\ufe0f]/u.test(answer)) return false;
+  const normalized = answer.normalize('NFKC');
+  if ((normalized.match(/\p{L}/gu) || []).some(c => !/\p{Script=Latin}/u.test(c)) ||
+    (normalized.match(/\p{N}/gu) || []).some(c => !/[0-9]/.test(c))) return false;
   const n = clean(answer);
-  if (/[<>]|https?:|www\.|\[[^\]]*\]\(/i.test(answer) || /\b(?:compr\w*|carton\w*|pag\w*|premios?|apuestas?|transfer\w*|deposit\w*|precio|dolares?|bolivares?|bs|contrasen\w*|cedula|clave|password)\b/.test(n)) return false;
+  if (/[<>@]|(?:https?|javascript|data|mailto|tel|ftp|file)\s*:|www\.|\[[^\]]*\]\(|\b[\p{L}\d-]+\.[\p{L}]{2,}\b/iu.test(normalized) ||
+    /\b(?:compr\w*|carton\w*|pag\w*|premios?|apuestas?|transfer\w*|deposit\w*|precio|dolares?|bolivares?|bs|contrasen\w*|cedula|clave|password|codigo|pin|token|cuenta|banc\w*|monto|correo|email|whatsapp|telefono|secreto)\b/.test(n)) return false;
   const emojis = answer.match(/\p{Extended_Pictographic}/gu) || [];
   if (emojis.length > 1 || emojis.some(emoji => emoji !== '😊') || /\b(?:mi pana|mi amor|abuelito|abuelita|viejito|viejita)\b/.test(n)) return false;
-  const nums = answer.replace(/\bBingoAndino75\b/gi, 'BingoAndino').match(/\d+/g) || [];
+  const nums = normalized.replace(/\bBingoAndino75\b/gi, 'BingoAndino').match(/\d+/g) || [];
   if (topic !== 'horario' && nums.length) return false;
   if (topic === 'horario' && (nums.some(x => !['8', '00'].includes(x)) || !/lunes a sabado/.test(n) || !/8 00 p m/.test(n) || !/venezuela/.test(n) || !/youtube/.test(n) || /domingo/.test(n))) return false;
   if (topic === 'bombo' && (!/bombo real/.test(n) || !/en vivo/.test(n))) return false;

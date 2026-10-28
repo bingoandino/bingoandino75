@@ -1,5 +1,5 @@
 import {SUPABASE_URL, PUBLIC_KEY} from '../slot/config.js';
-import {GENERALES, temaGeneral, respuestaGeneralValida} from './generales.js?v=20261028-ia-general-1';
+import {GENERALES, temaGeneral, respuestaGeneralValida} from './generales.js?v=20261028-ia-general-2';
 
 export function crearConsultasGenerales(fetcher = (...args) => globalThis.fetch(...args)) {
   let lastTopic = null;

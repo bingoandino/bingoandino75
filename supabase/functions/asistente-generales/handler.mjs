@@ -41,7 +41,7 @@ export function createGeneralHandler(env, fetcher = (...args) => globalThis.fetc
     const ip = req.headers.get('cf-connecting-ip');
     if (!key || !url || !service || !ip) return fallback();
     try {
-      const quota = await fetcher(url + '/rest/v1/rpc/rpc_asistente_consumir_cupo', {method: 'POST',
+      const quota = await fetcher(url + '/rest/v1/rpc/rpc_asistente_consumir_cupo', {method: 'POST', redirect: 'error',
         headers: {apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json'},
         body: JSON.stringify({_origen: ip}), signal: AbortSignal.timeout(2500)});
       if (!quota.ok || await quota.json() !== true) return fallback();

@@ -1,5 +1,5 @@
 import {SUPABASE_URL,PUBLIC_KEY} from '../slot/config.js';
-import {Assistant,norm,wantsRandom,conversationText,wantsCancellation} from './engine.js?v=20261028-ia-general-1';
+import {Assistant,norm,wantsRandom,conversationText,wantsCancellation} from './engine.js?v=20261028-ia-general-2';
 import {validateFile} from './files.js';
 const text=text=>({type:'text',text});
 export class PurchaseAPI{
