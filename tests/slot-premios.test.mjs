@@ -11,3 +11,27 @@ test('API loads only approvals, returns no cedula, and persists only isolated hi
 test('server draw is idempotent and preserves exact ticket ownership',async()=>{const f=setup(),s=(await f.call({action:'load'})).body.session;const request={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true};const a=await f.call(request),b=await f.call(request);assert.equal(a.status,200);assert.deepEqual(a.body.winner,b.body.winner);assert.equal(f.getState().state.winners.length,1);assert.equal(a.body.winner.name,'Ana');assert.equal(a.body.winner.ticket,'1');assert.deepEqual(f.mutations,['history:insert','history:update']);const c=await f.call({...request,drawId:crypto.randomUUID()});assert.equal(c.body.winner.name,'Luis')});
 test('concurrent draws cannot both claim one session version',async()=>{const f=setup(),s=(await f.call({action:'load'})).body.session;const request={action:'draw',sessionId:s.id,prize:'10 USD',uniquePerson:true,excludeWinners:true};const r=await Promise.all([f.call({...request,drawId:crypto.randomUUID()}),f.call({...request,drawId:crypto.randomUUID()})]);assert.deepEqual(r.map(x=>x.status).sort(),[200,409]);assert.equal(f.getState().state.winners.length,1)});
 test('reset or unknown action cannot mutate purchases/history',async()=>{const f=setup(),s=(await f.call({action:'load'})).body.session;f.setAnchor('200');const r=await f.call({action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true});assert.equal(r.status,409);assert.equal((await f.call({action:'delete'})).status,400);assert.deepEqual(f.mutations,['history:insert']);assert.equal((await f.call({action:'load'},'good','https://bad.example')).status,403)});
+
+test('remove exactly one winner, keep approvals and tombstone, persist after reload and retry safely',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session;
+ const req={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'1 cartón gratis',uniquePerson:true,excludeWinners:true};
+ await f.call(req);await f.call({...req,drawId:crypto.randomUUID()});
+ const r=await f.call({action:'remove-winner',sessionId:s.id,drawId:req.drawId});
+ assert.equal(r.status,200);assert.equal(r.body.session.winners.length,1);assert.equal(r.body.session.winners[0].name,'Luis');
+ assert.equal(r.body.session.participants.length,3);assert.equal(f.getState().state.removedWinners[0].drawId,req.drawId);
+ assert.equal((await f.call({action:'session',sessionId:s.id})).body.session.winners.length,1);
+ const version=f.getState().version;assert.equal((await f.call({action:'remove-winner',sessionId:s.id,drawId:req.drawId})).status,200);assert.equal(f.getState().version,version);
+ assert.equal((await f.call(req)).status,409);
+ assert.equal((await f.call({...req,drawId:crypto.randomUUID()})).body.winner.name,'Ana');
+});
+test('remove rejects unauthenticated, nonadmin, invalid or unknown winner without mutation',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session,req={action:'remove-winner',sessionId:s.id,drawId:crypto.randomUUID()};
+ assert.equal((await f.call(req,'bad')).status,401);f.setUser('someone-else');assert.equal((await f.call(req)).status,403);f.setUser(owner);
+ assert.equal((await f.call({...req,drawId:'bad'})).status,400);assert.equal((await f.call(req)).status,404);assert.deepEqual(f.mutations,['history:insert']);
+});
+test('concurrent draw and removal cannot overwrite either update silently',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session,draw={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true};
+ await f.call(draw);
+ const r=await Promise.all([f.call({action:'remove-winner',sessionId:s.id,drawId:draw.drawId}),f.call({...draw,drawId:crypto.randomUUID()})]);
+ assert.deepEqual(r.map(x=>x.status).sort(),[200,409]);
+});
