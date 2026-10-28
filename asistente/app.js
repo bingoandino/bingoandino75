@@ -1,6 +1,6 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-5';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-5';
+import {Assistant,CONFIG,money} from './engine.js?v=20261028-real-7';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-real-7';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
@@ -16,7 +16,7 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
  for(const [label,value] of [['Banco',assistant.config.bank],['Teléfono',assistant.config.phone],['Cédula',assistant.config.id]]){const r=el('div','payment-row');r.append(el('span','',label),el('strong','',value));content.append(r);}
  const button=el('button','copy-all','Copiar datos de pago');button.type='button';button.onclick=()=>copyAll(message.copy,button);content.append(button,el('p','card-foot','Copia banco, teléfono, cédula y monto juntos.'));
  }else if(message.type==='summary'){
- content=el('div','card-content');b.append(content);content.append(el('h3','summary-title','Revisemos tus datos 📝'));const d=message.data;content.append(el('p','summary-group','Registro'));row(content,'Nombre',d.name);row(content,'Cédula',d.id);row(content,'Teléfono',d.phone);content.append(el('p','summary-group','Pago Móvil para premios'));row(content,'Banco',d.bank);row(content,'Cédula',d.payId);row(content,'Teléfono',d.payPhone);
+ content=el('div','card-content');b.append(content);content.append(el('h3','summary-title','Vamos a revisar tus datos 📝'));const d=message.data;content.append(el('p','summary-group','Registro'));row(content,'Nombre',d.name);row(content,'Cédula',d.id);row(content,'Teléfono',d.phone);content.append(el('p','summary-group','Pago Móvil para recibir premios'));row(content,'Banco',d.bank);row(content,'Cédula',d.payId);row(content,'Teléfono',d.payPhone);
  }else if(message.type==='review'||message.type==='success'){
  content=el('div','card-content');b.append(content);if(message.type==='success'){content.append(el('div','success-icon','✓'),el('h3','success-text','Compra registrada'),el('span','state-badge','PENDIENTE DE VERIFICACIÓN'));}else content.append(el('p','card-label','ANTES DE REGISTRAR'),el('h3','summary-title','Tu compra'));
  row(content,'Cartones',message.quantity);row(content,'Total',money(message.total)+' Bs');if(message.ref)row(content,'Referencia',message.ref);pills(content,message.cards);if(message.type==='success')content.append(el('p','card-foot','Participas cuando el pago esté aprobado.'));else{const terms=el('p','card-foot','Al confirmar aceptas los ');const t=el('a','','Términos');t.href='/terminos.html';t.target='_blank';t.rel='noopener';const p=el('a','','Política de Privacidad');p.href='/privacidad.html';p.target='_blank';p.rel='noopener';terms.append(t,document.createTextNode(' y la '),p,document.createTextNode('.'));content.append(terms);}
@@ -25,7 +25,7 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
  }else if(message.type==='link'){
  content=el('div','card-content');b.append(content);const link=el('a','inline-link',message.label);link.href=message.url;link.target='_blank';link.rel='noopener noreferrer';content.append(link);
  }else if(message.type==='receipt'){
- content=el('div','card-content');b.append(content);const img=el('img','receipt-preview');img.src=message.url;img.alt='Comprobante adjunto';content.append(img,el('span','receipt-label',message.name));
+ content=el('div','card-content');b.append(content);const img=el('img','receipt-preview');img.src=message.url;img.alt='Capture del pago';content.append(img,el('span','receipt-label',message.name));
  }
  content.append(el('time','time',time()));wrap.append(b);$('messages').append(wrap);scroll();return b;
 }

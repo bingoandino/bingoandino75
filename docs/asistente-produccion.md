@@ -25,3 +25,9 @@ Cuotas preparadas y aplicadas: función SQL exclusiva de `service_role`, 8 consu
 ## Verificación
 
 Pruebas de motor, interfaz DOM, reservas rechazadas/vencidas, precio cambiado, confirmación, copia conjunta, captura, doble envío y respuestas inciertas. Pruebas PostgreSQL aisladas de compra pendiente, privacidad y permisos de administrador/verificador, junto con cuotas privadas. Lecturas reales de configuración y disponibilidad sin crear compras de prueba en el sorteo activo. No se hizo una compra/pago real ni una prueba bancaria en la laptop. Las pruebas DOM no sustituyen una revisión visual en un teléfono.
+
+## Atención clara y cercana
+
+El lenguaje usa expresiones habituales en Venezuela (capture, por aquí, porfa) con trato respetuoso. No deduce edad ni capacidad del cliente. Reconoce intención de jugar/participar/comprar, abreviaturas habituales y conectores al principio del mensaje. Acepta cantidades en letras y respuestas corteses. Las ayudas de cada etapa explican solo el paso que falta, y las preguntas no se convierten en datos del registro.
+
+Se puede enviar el registro junto o por partes; Enter conserva saltos de línea. El cliente puede pedir que se escojan cartones o elegir los suyos; ambas opciones conservan las reservas del servidor. Pedir los datos para pagar vuelve a mostrar la misma tarjeta únicamente si la reserva sigue vigente. Las mejoras son reglas de conversación; la IA generativa sigue desactivada.
