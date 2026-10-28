@@ -22,6 +22,15 @@ function setup(){
    if(options.method==='PATCH'){if(q.get('auth_session_id')==='is.null'&&r.auth_session_id)return Response.json([]);Object.assign(r,JSON.parse(options.body));}
    return Response.json([structuredClone(r)]);
   }
+  if(path==='/rest/v1/rpc/slot_asignar_premios'){
+   const b=JSON.parse(options.body);assert.equal(b._owner_id,owner);assert.equal(b._session_id,state.id);
+   for(const source of b._sources){const original=registrations.find(r=>r.id===source.sourceId);assert.ok(original);assert.equal(source.cedula,original.cedula.replace(/\D/g,''));}
+   const eligible=state.state.winners.filter(w=>['1 cartón gratis','1 carton gratis'].includes(w.prize.toLowerCase())&&!(state.state.awards||[]).some(a=>a.drawId===w.drawId));
+   assert.equal(b._sources.length,eligible.length);
+   const pending=eligible.map(w=>({drawId:w.drawId,name:w.name,winningTicket:w.ticket,paymentComplete:true}));
+   if(b._confirm){state.state.awards=[...(state.state.awards||[]),...eligible.map((w,i)=>({drawId:w.drawId,name:w.name,winningTicket:w.ticket,assignedTicket:String(100+i)}))];state.version++;}
+   return Response.json({pending:b._confirm?[]:pending,awards:state.state.awards||[],available:10,canAssign:pending.length>0&&!b._confirm});
+  }
   if(path==='/rest/v1/inscripciones'){assert.equal(options.method,'GET','purchases must only be read');return Response.json(q.get('select')==='id'?(anchor?[{id:anchor}]:[]):registrations);}
   if(path==='/rest/v1/slot_premios_sesiones'){
    if(options.method==='POST'){state={...JSON.parse(options.body),created_at:'2026-10-27T18:00:00Z',updated_at:'2026-10-27T18:00:00Z'};mutations.push('history:insert');return Response.json([structuredClone(state)])}
@@ -70,7 +79,7 @@ test('concurrent draw and removal cannot overwrite either update silently',async
 });
 
 test('email OTP alone cannot load, read history, draw, remove or sign out slot',async()=>{
- const f=setup();for(const action of ['load','session','history','draw','remove-winner','sign-out'])assert.equal((await f.raw({action})).status,401,action);
+ const f=setup();for(const action of ['load','session','history','draw','remove-winner','sign-out','preview-awards','assign-awards'])assert.equal((await f.raw({action})).status,401,action);
  assert.equal((await f.raw({action:'authorize'})).status,401);assert.deepEqual(f.mutations,[]);
 });
 test('wrong password produces no usable challenge; fake proof rejected',async()=>{
@@ -101,4 +110,17 @@ test('password challenge cannot be redeemed concurrently by two auth sessions',a
  const f=setup(),p=(await f.password()).body.passwordProof;
  const r=await Promise.all([f.raw({action:'authorize',passwordProof:p}),f.raw({action:'authorize',passwordProof:p},'second')]);
  assert.equal(r.filter(x=>x.status===200).length,1);assert.equal(r.filter(x=>x.status!==200).length,1);
+});
+
+test('award API derives owner and sources on server, previews only free-card winners, protects delivered results',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session;
+ const free={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'1 cartón gratis',uniquePerson:true,excludeWinners:true};
+ await f.call(free);await f.call({...free,drawId:crypto.randomUUID(),prize:'10 USD'});
+ const p=await f.call({action:'preview-awards',sessionId:s.id,_sources:[{sourceId:999}],_owner_id:'forged'});
+ assert.equal(p.status,200);assert.equal(p.body.preview.pending.length,1);assert.equal(p.body.preview.pending[0].name,'Ana');assert.equal(f.getState().state.awards,undefined);
+ const a=await f.call({action:'assign-awards',sessionId:s.id,_sources:[],_owner_id:'forged'});
+ assert.equal(a.status,200);assert.equal(a.body.session.awards.length,1);assert.equal(a.body.session.awards[0].drawId,free.drawId);
+ assert.equal(JSON.stringify(a.body).includes('cedula'),false);
+ assert.equal((await f.call({action:'remove-winner',sessionId:s.id,drawId:free.drawId})).status,409);
+ assert.equal((await f.call({action:'assign-awards',sessionId:s.id})).body.session.awards.length,1);
 });

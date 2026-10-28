@@ -1396,7 +1396,7 @@ async function verListaAprobados() {
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}</td>
+      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}${item.origen_registro==='premio_slot'?'<br><small>🎁 Premio del slot</small>':''}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.cedula || '')}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">
         ${escaparHTML(Array.isArray(item.cartones) ? item.cartones.join(', ') : '')}
@@ -2924,6 +2924,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
       cartones,
       referencia4dig,
       comprobante,
+      origen_registro,
       pago_banco,
       pago_telefono,
       pago_cedula,
@@ -2942,8 +2943,11 @@ cartonesOcupados = await fetchTodosLosOcupados();
   data.forEach(item => {
     const tr = document.createElement('tr');
     tr.dataset.estadoActual = item.estado || 'pendiente';
+    tr.dataset.origenRegistro = item.origen_registro || 'compra';
+    const filtroOrigen = document.getElementById('filtroOrigenSlot')?.value || 'todos';
+    tr.hidden = filtroOrigen !== 'todos' && tr.dataset.origenRegistro !== filtroOrigen;
     tr.innerHTML = `
-      <td>${escaparHTML(item.nombre)}</td>
+      <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':''}</td>
       <td>
         <a href="${buildWhatsAppLink(item.telefono, `Hola ${escaparHTML(item.nombre)}, te escribo de parte del equipo de bingoandino75.`)}"
            target="_blank" rel="noopener">
@@ -2957,9 +2961,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
         <span class="ref-text">${escaparHTML(item.referencia4dig || '')}</span>
         <button class="btn-accion btn-edit-ref" title="Editar">&#9998;</button>
       </td>
-      <td><a href="${escaparHTML(comprobanteURLSegura(item.comprobante))}" target="_blank">
-            <img src="${escaparHTML(comprobanteURLSegura(item.comprobante))}" alt="Comp." loading="lazy">
-          </a></td>
+      <td>${item.origen_registro==='premio_slot'?'🎁 Cartón gratis · Sin comprobante':`<a href="${escaparHTML(comprobanteURLSegura(item.comprobante))}" target="_blank"><img src="${escaparHTML(comprobanteURLSegura(item.comprobante))}" alt="Comp." loading="lazy"></a>`}</td>
           <td class="pago-ganador-admin">
   <strong>${escaparHTML(item.pago_banco || 'Sin banco')}</strong><br>
   📱 ${escaparHTML(item.pago_telefono || 'Sin número')}<br>
@@ -5117,3 +5119,5 @@ console.log('✅ Sistema de sesión única configurado correctamente');
 
 
 
+
+function filtrarOrigenInscripciones(){const origen=document.getElementById('filtroOrigenSlot')?.value||'todos';document.querySelectorAll('#tabla-comprobantes tbody tr').forEach(tr=>{tr.hidden=origen!=='todos'&&tr.dataset.origenRegistro!==origen;});}
