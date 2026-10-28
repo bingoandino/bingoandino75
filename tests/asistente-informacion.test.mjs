@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Assistant} from '../asistente/engine.js';
-import {INFORMACION, contextoInformativo} from '../asistente/informacion.js';
+import {INFORMACION, contextoInformativo, respuestaInformativa} from '../asistente/informacion.js';
 
 test('preguntas cotidianas de horario reciben los datos confirmados sin registrar nada', () => {
   for (const q of ['A q hora es el sorteo?', 'A que ora juegan?', 'Horario', 'Que dias transmiten', 'Y los sábados?', 'Cuando comienza el bingo?']) {
@@ -34,4 +34,9 @@ test('contexto tiene una única fuente de precio y nunca convierte ausencia en c
     const context = contextoInformativo(price); assert.equal(context.precioBs, null); assert.match(context.precioRegla, /no inventes/);
   }
   assert.equal(contextoInformativo(888).precioBs, 888); assert.equal(contextoInformativo(939).precioBs, 939);
+});
+test('el nombre Domingo no se interpreta como una pregunta de horario', () => {
+  assert.equal(respuestaInformativa('domingo perez'), null);
+  assert.equal(respuestaInformativa('nombre: domingo perez'), null);
+  assert.match(respuestaInformativa('los domingos'), /horario habitual/);
 });
