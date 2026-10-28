@@ -7,6 +7,12 @@ export const money=n=>new Intl.NumberFormat('es-VE',{maximumFractionDigits:2}).f
 const title=s=>s.trim().replace(/\s+/g,' ').toLocaleLowerCase('es').replace(/(^|\s)\p{L}/gu,c=>c.toLocaleUpperCase('es'));
 const yes=s=>/^(si|si claro|correcto|correctos|esta bien|estan bien|todo bien|confirmo|confirmado|asi es|ok|listo|dale|perfecto|si estan correctos|si estan bien|si confirmo|si todo bien)[.!\s]*$/.test(norm(s).replace(/[,¡!¿?]/g,''));
 const text=s=>({type:'text',text:s});
+// Intenciones de inicio: separadas de los campos del registro y de la confirmación.
+export function openingIntent(input){const n=norm(input);
+ if(/\b(?:verificar|consultar|estado|pendiente|aprobada|aprobado|pague|hice|realice)\b|\bmi compra\b/.test(n))return null;
+ if(/\bno (?:quiero|deseo|necesito|voy a)\b.*\b(?:comprar|compra|carton|cartones)\b/.test(n))return 'decline';
+ return /\b(?:comprar|compra|comprarme|adquirir|carton|cartones)\b/.test(n)?'purchase':null;
+}
 export function isQuestion(input){return /[¿?]/.test(String(input))||/^(?:(?:hola|disculpa|oye)[,\s]+)?(?:a\s+q(?:ue)?\s+hora|que|q\s|como|donde|cuando|cual(?:es)?|cuanto(?:s)?|por\s+que|puedo|se\s+puede|hay|sabes|me\s+puedes|tengo\s+(?:una\s+)?(?:duda|pregunta))\b/.test(norm(input));}
 function faq(input,CONFIG){const n=norm(input);
  if(/a\s+q(?:ue)?\s+hora|(?:hora|horario).*(?:sorteo|bingo|vivo)|cuando.*(?:sorteo|bingo|empieza|comienza)/.test(n))return [text('El horario del sorteo está en el anuncio de inicio de la página 😊 Revísalo allí para confirmar la hora de hoy.')];
@@ -17,7 +23,8 @@ function faq(input,CONFIG){const n=norm(input);
  if(/como.*(?:comprobante|captura|imagen)|donde.*(?:adjunt|subo|comprobante)/.test(n))return [text('Toca el clip 📎 junto al mensaje y selecciona el comprobante. Después escríbeme la referencia.')];
  return null;
 }
-export function quantity(input,allowBare=false){const n=norm(input);let m=n.match(/(?:quiero|deseo|dame|necesito|comprar|serian)\s+(?:comprar\s+)?(\d+|[a-z]+)/)||n.match(/(\d+|[a-z]+)\s+carton(?:es)?\b/);if(!m&&allowBare)m=n.match(/^(\d+|[a-z]+)[.!\s]*$/);if(!m)return null;return /^\d+$/.test(m[1])?Number(m[1]):words[m[1]]??null;}
+export function quantity(input,allowBare=false){const n=norm(input);const candidates=[n.match(/(?:quiero|deseo|dame|necesito|comprar|serian)\s+(?:comprar\s+)?(\d+|[a-z]+)/),n.match(/(\d+|[a-z]+)\s+carton(?:es)?\b/),allowBare?n.match(/^(\d+|[a-z]+)[.!\s]*$/):null];for(const m of candidates){if(!m)continue;const value=/^\d+$/.test(m[1])?Number(m[1]):words[m[1]];if(value!==undefined)return value;}return null;}
+
 export function details(input,paymentMode=false,allowName=true){const out={};if(isQuestion(input))return out;const lines=String(input).split(/[\n;]+/).map(l=>l.trim()).filter(Boolean);for(const line of lines){const n=norm(line);let m;
  if((m=line.match(/^(?:nombre(?:\s+y\s+apellido)?|titular)\s*[:=-]\s*(.+)$/i)))out.name=title(m[1]);
  const isPay=/pago|premio|titular/.test(n)||paymentMode;
@@ -50,7 +57,7 @@ export class Assistant{
  s.step='final';return [{type:'review',quantity:s.quantity,total:s.quantity*this.config.price,cards:[...s.cards],ref:s.ref},text('Todo está listo. ¿Confirmas que envíe esta compra para verificar el pago?')];
  }
  choose(cards){const s=this.state;if(s.submitted)return [text('Esta compra ya está registrada. Puedes iniciar otra con «Nueva conversación».')];const unique=[...new Set(cards.map(Number))];if(unique.length!==s.quantity)return [text(`Necesito ${s.quantity} cartones distintos. Llevas ${unique.length}.`)];const busy=unique.filter(n=>!this.available.has(n));if(busy.length)return [text(`Estos no están disponibles: ${busy.join(', ')}. Dime otros números o pídemelos al azar.`)];s.cards=unique;return [text(`Listo 🎟️ Tus cartones: ${unique.join(', ')}.`),...this.advance()];}
- attach(file){if(this.state.submitted)return [text('La compra ya está registrada. No necesitas reenviar la imagen.')];this.state.file={name:file.name,size:file.size};return [text('Comprobante recibida 📎'),...this.advance()];}
+ attach(file){if(this.state.submitted)return [text('La compra ya está registrada. No necesitas reenviar la imagen.')];this.state.file={name:file.name,size:file.size};return [text('Comprobante recibido 📎'),...this.advance()];}
  receive(input){const raw=String(input).trim(),n=norm(raw),s=this.state;if(!raw)return [];if(raw.length>2000)return [text('Envíame un mensaje más corto, por favor 😊')];
  const answer=faq(raw,this.config);if(answer)return answer;
  if(s.submitted)return [text('Tu compra ya quedó registrada como pendiente ✅ No se enviará otra vez. Para comenzar otra, usa «Nueva conversación».')];
@@ -59,6 +66,9 @@ export class Assistant{
  if(/disponibl|cuales (?:hay|quedan)|ver (?:los )?cartones|ver (?:los )?numeros|quedan cartones/.test(n))return [text('Los cartones blancos están disponibles. Puedes verlos aquí y decirme cuáles te gustan 😊'),{type:'catalog'}];
  if(/por la (?:pagina|web)|lo hago (?:yo|solo)|yo (?:mismo|misma)|comprar (?:yo|solo)/.test(n)&&['welcome','route'].includes(s.step))return [text('Claro 😊 Puedes hacer tu compra aquí:'),{type:'link',url:this.config.site,label:'Ir a BingoAndino75'},text('Si prefieres ayuda, escríbeme por aquí.')];
  if(['welcome','route'].includes(s.step)&&!/(?:no (?:quiero|necesito) (?:tu )?ayuda|no me ayudes)/.test(n)&&(/\b(?:por aqui|ayudame|ayuda por|contigo|hazlo tu|me ayud(?:es|as|a|e)|me (?:puedes|puede|podrias|podria) ayudar|(?:quiero|necesito) (?:tu )?ayuda)\b/.test(n)||yes(n)||/^ayuda[.!?]*$/.test(n)))return this.advance();
+ if(['welcome','route'].includes(s.step)&&openingIntent(raw)==='decline')return [text('Está bien 😊 Si necesitas consultar una compra o tienes otra duda, dime.')];
+ if(['welcome','route'].includes(s.step)&&openingIntent(raw)==='purchase'&&quantity(raw)===null){if(s.step==='route')return this.advance();s.step='route';return [text(`El cartón cuesta ${money(this.config.price)} Bs 😊 ¿Prefieres comprar por la página o que te ayude por aquí?`)];}
+ if(/^[¿?]+$/.test(raw)||/^(?:no entiendo|no entendi|como asi|que hago|no se)[.!?]*$/.test(n))return ['welcome'].includes(s.step)?this.start():this.advance();
  if(isQuestion(raw)&&quantity(raw)===null)return [{type:'question',text:raw}];
  if(/mismos|misma cedula|mismo telefono|igual.*registro/.test(n)){if(s.data.id)s.data.payId=s.data.id;if(s.data.phone)s.data.payPhone=s.data.phone;}
  const ref=reference(raw,s.step==='proof');if(ref)s.ref=ref;
@@ -71,7 +81,6 @@ export class Assistant{
  const q=quantity(raw,s.step==='quantity');if(q!==null){if(!Number.isInteger(q)||q<1||q>this.config.max)return [text('Puedes comprar una cantidad de 1 a 100 cartones.')];if(q!==s.quantity){s.quantity=q;s.cards=[];s.confirmed=false;return [text(`Serían ${money(q*this.config.price)} Bs por ${q} cartones 😊`),...this.advance()];}}
  if(s.quantity&&/azar|escoge|escoja|eligelos|elige tu|cualquiera/.test(n)){const candidates=[...this.available];for(let i=candidates.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}return this.choose(candidates.slice(0,s.quantity));}
  if(s.quantity&&(/carton|numero|^el\b|^los\b/.test(n)||s.step==='cards')&&!ref&&!Object.keys(extracted).length){const ids=raw.match(/\b\d{1,4}\b/g);if(ids?.length)return this.choose(ids.map(Number));}
- if(s.step==='welcome'&&/comprar|cartones|carton/.test(n)){s.step='route';return [text(`El cartón cuesta ${money(this.config.price)} Bs 😊 ¿Prefieres comprar por la página o que te ayude por aquí?`)];}
  if(Object.keys(extracted).length||ref||/mismos|misma cedula|mismo telefono/.test(n))return this.advance();
  if(/^no\b/.test(n)&&['confirm','final'].includes(s.step))return [text('Dime qué dato quieres corregir y escríbelo de nuevo, por ejemplo: «Teléfono: 04120000000».')];
  if(s.step==='proof'&&/ya.*(?:pague|envie)|ya esta|listo/.test(n))return this.advance();
