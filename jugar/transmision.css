@@ -14,3 +14,5 @@
 #transmision+.controls p{margin:4px 0 0;font-size:12px;line-height:1.25}
 @media(max-width:600px){main{padding:8px 8px 28px}header h1{font-size:23px;margin:4px 0}header p{font-size:12px;margin:4px 0 8px}.eyebrow{font-size:10px}#transmision+.controls .view strong{font-size:13px}#transmision+.controls .view button{padding:7px 13px}}
 @media(max-width:360px){#transmision .transmision-buttons button,#transmision .transmision-buttons a{font-size:12px;padding:6px}}
+
+.controls .compact-tools{display:flex;align-items:center;gap:4px}.controls .compact-view{display:flex;gap:3px}.controls .compact-view button{width:44px;min-height:44px;padding:7px}.controls .compact-tools #undo{margin-left:auto;font-size:13px;padding:8px}.controls .compact-tools #last{min-width:43px;font-size:13px}
