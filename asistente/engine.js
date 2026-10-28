@@ -4,6 +4,11 @@ const words={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:
 export const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 // Conversación venezolana cotidiana; se aplica a intenciones, nunca altera los datos enviados.
 export const conversationText=s=>norm(s).replace(/^[¿¡]+/,'').replace(/\bq\b|\bk\b/g,'que').replace(/\bkiero\b/g,'quiero').replace(/\bnesecito\b/g,'necesito').replace(/\bpa\b/g,'para').replace(/^(?:(?:y|pero|mira|mire|oye|epa|aja|hola|buenas(?: tardes| noches| dias)?|por favor)[,!.\s]+)+/,'').trim();
+export function websiteIntent(input){const n=conversationText(input).replace(/[.!?]+$/,'').trim();
+ if(/^(?:(?:por|en|desde) (?:la )?|(?:mejor|prefiero) (?:por |en )?(?:la )?|la )?(?:pagina|web)(?: por favor)?$/.test(n)||/^(?:lo hago yo|yo sol[oa]|yo mism[oa])$/.test(n))return 'choice';
+ return /\b(?:pagina|web)\b/.test(n)&&/como|compr|jugar|hago|hacer|pasos/.test(n)?'instructions':null;
+}
+function websiteGuide(config){return [text('Claro 😊\n1. Toca COMPRAR y escribe tus datos.\n2. Escoge tus cartones.\n3. Sigue los pasos para pagar y mandar el capture y la referencia.'),{type:'link',url:config.site,label:'Comprar en la página'}];}
 export function wantsCancellation(input,step){let n=conversationText(input).replace(/[,;:]/g,' ').replace(/[.!?]+$/,'').replace(/\s+/g,' ').trim();
  if(n==='no gracias')return true;
  n=n.replace(/ (?:gracias|porfa|por favor)$/,'');
@@ -82,8 +87,10 @@ export class Assistant{
  receive(input){const raw=String(input).trim(),n=conversationText(raw),s=this.state;if(!raw)return [];if(raw.length>2000)return [text('Envíame un mensaje más corto, por favor 😊')];
  if(wantsCancellation(raw,s.step))return [{type:'cancel'}];
  const answer=faq(raw,this.config);if(answer)return answer;
- if(/^(?:hola+|holi|buenas(?: tardes| noches| dias)?|buenos dias|buen dia|epa)[!.,\s]*$/.test(norm(raw)))return ['welcome','paused'].includes(s.step)?[text('¡Hola! 😊 Cuéntame, ¿qué necesitas?')]:[text('¡Hola! 😊 Seguimos donde íbamos.'),...this.advance()];
+ const web=websiteIntent(raw);if(web){if(web==='choice'&&['welcome','route','quantity','selfService'].includes(s.step))s.step='selfService';return websiteGuide(this.config);}
+ if(/^(?:hola+|holi|buenas(?: tardes| noches| dias)?|buenos dias|buen dia|epa)[!.,\s]*$/.test(norm(raw)))return ['welcome','paused','selfService'].includes(s.step)?[text('¡Hola! 😊 Cuéntame, ¿qué necesitas?')]:[text('¡Hola! 😊 Seguimos donde íbamos.'),...this.advance()];
  if(/^(?:gracias|muchas gracias|mil gracias|ok gracias)[!.,\s]*$/.test(n))return [text('A la orden 😊 Aquí sigo pendiente.')];
+ if(s.step==='selfService'){if(/ayudame|ayuda por|me ayudas|por aqui|^aqui$|contigo|hazlo tu/.test(n)||openingIntent(raw)==='purchase'||quantity(raw)!==null)s.step='welcome';else return websiteGuide(this.config);}
  if(s.step==='paused'){if(openingIntent(raw)==='purchase'||quantity(raw)!==null||/ayudame|necesito ayuda|me ayudas|quiero seguir|quiero continuar|seguir comprando/.test(n))s.step='welcome';else return [text('Está bien 😊 Aquí estoy si después necesitas algo.')];}
  if(/no entiendo|no entendi|no comprendo|me enrede|me cuesta|no puedo|no se usar|primera vez|soy nuev[oa]|estoy perdid[oa]|no se (?:como|que)|^no se$|explicame|mas facil|paso a paso/.test(n))return this.guidance();
  if(s.submitted)return [text('Tu compra ya quedó registrada como pendiente ✅ No se enviará otra vez. Para comenzar otra, usa «Nueva conversación».')];
