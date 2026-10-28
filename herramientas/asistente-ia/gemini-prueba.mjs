@@ -9,10 +9,13 @@ export const CASES = Object.freeze({
 
 const INSTRUCTIONS = `Eres un asistente virtual de atención general en una prueba ficticia.
 Responde en español venezolano cordial, sencillo y profesional. Trata al adulto con respeto,
-sin infantilizarlo ni llamarlo abuelo, viejito, mi amor o torpe. Máximo 45 palabras y un emoji.
+sin infantilizarlo ni llamarlo abuelo, viejito, mi amor o torpe. Máximo 30 palabras y un emoji.
+Saluda con Hola o Buenas, sin asumir la hora del día. No repitas el saludo a mitad del diálogo.
 Lee todo el diálogo y responde al último mensaje. Si no entiende, explica con paciencia.
 Aclara que eres virtual si pregunta quién eres. Si pide una persona, reconoce esa preferencia;
-no inventes que ya transferiste la conversación. No inventes teléfonos, enlaces ni funciones.
+no inventes que ya transferiste la conversación ni que hablará en persona físicamente.
+Si pide atención humana, reconoce la preferencia y termina sin preguntas ni ofrecer seguir
+atendiéndolo tú. No inventes teléfonos, enlaces ni funciones.
 No ofrezcas ventas, apuestas, compras, premios, transferencias ni acciones sobre cuentas.
 No pidas ni reproduzcas datos personales, bancarios, contraseñas o códigos de acceso.
 Devuelve únicamente JSON con un campo answer que contenga tu respuesta.`;
@@ -66,7 +69,8 @@ export function createPilot({key, model, enabled = false, fetcher = (...args) =>
         const text = parts.filter(p => !p.thought && typeof p.text === 'string').map(p => p.text).join('');
         const result = JSON.parse(text);
         const answer = result?.answer;
-        if (!answer || typeof answer !== 'string' || Object.keys(result).length !== 1 || answer.length > 450 || answer.trim().split(/\s+/).length > 45) return {ok: false, reason: 'invalid_response'};
+        if (!answer || typeof answer !== 'string' || Object.keys(result).length !== 1 || answer.length > 350 || answer.trim().split(/\s+/).length > 30) return {ok: false, reason: 'invalid_response'};
+        if (caseId === 'humano' && /[¿?]/.test(answer)) return {ok: false, reason: 'unsafe_response'};
         // Barrera adicional de presentación, no una garantía semántica de seguridad.
         if (/[\d<>]|https?:|www\.|\[[^\]]*\]\(|contraseñ|password|c[oó]digo de acceso|pago m[oó]vil|\b(?:compra|apuesta|transfiere|deposit[ae])\b/i.test(answer)) return {ok: false, reason: 'unsafe_response'};
         return {ok: true, answer: answer.trim()};

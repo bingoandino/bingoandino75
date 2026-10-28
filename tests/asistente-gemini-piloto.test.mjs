@@ -55,9 +55,13 @@ test('bloqueo de seguridad o respuesta incompleta no se presenta como éxito', a
   }
 });
 test('rechaza enlaces, HTML, números y respuestas demasiado largas', async () => {
-  for (const text of ['Visita https://evil.test', '<script>alert()</script>', 'Tu clave es 1234', 'compra ahora', 'palabra '.repeat(46)]) {
+  for (const text of ['Visita https://evil.test', '<script>alert()</script>', 'Tu clave es 1234', 'compra ahora', 'palabra '.repeat(31)]) {
     const {run} = setup({fetcher: async () => provider(text)}); assert.equal((await run('saludo')).ok, false);
   }
+});
+test('petición de atención humana no termina en otra pregunta del bot', async () => {
+  const {run} = setup({fetcher: async () => provider('¿En qué puedo ayudarte?')});
+  assert.equal((await run('humano')).reason, 'unsafe_response');
 });
 test('rechaza herramientas, JSON inválido y cuerpos enormes', async () => {
   const responses = [new Response('invalid json'), new Response('x'.repeat(32769)),
