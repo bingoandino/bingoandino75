@@ -126,33 +126,12 @@ async function createSessionAfterOTP(
   deviceId: string,
   supabaseAdmin: any
 ): Promise<{ sessionToken: string; expiresAt: string; deviceId: string }> {
-  const sessionToken = `sess_${Date.now()}_${crypto.randomUUID()}`;
-  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-
-  const { error: sessionError } = await supabaseAdmin
-    .from("sesiones_activas")
-    .upsert(
-      {
-        user_id: email,
-        user_email: email,
-        tipo: "admin",
-        session_token: sessionToken,
-        device_id: deviceId,
-        activa: true,
-        ultima_actividad: new Date().toISOString(),
-        expires_at: expiresAt,
-        updated_at: new Date().toISOString(),
-        cerrada_en: null,
-        autenticacion_tipo: "otp",
-      },
-      { onConflict: "tipo,user_email" }
-    );
-
-  if (sessionError) throw sessionError;
-
-  return { sessionToken, expiresAt, deviceId };
+  const {data,error}=await supabaseAdmin.rpc('admin_abrir_sesion',{
+    _email:email.trim().toLowerCase(),_device_id:deviceId,_authentication:'otp'
+  });
+  if(error)throw error;
+  return data;
 }
-
 
 // ========== FUNCIÓN PARA VERIFICAR DISPOSITIVO CONOCIDO ==========
 async function isDeviceKnown(
@@ -217,7 +196,7 @@ serve(async (req: Request) => {
 
   try {
     // Parsear cuerpo con acciones nuevas
-    const { email, password, deviceId, action = 'login' } = await req.json();
+    const { email, password, deviceId, sessionToken: logoutToken, action = 'login' } = await req.json();
     if(action!=="verify_credentials") {
       const verified=await verifiedBingoAdmin(req);
       if(!verified || String(email || "").trim().toLowerCase()!==verified.email?.toLowerCase()) {
@@ -228,7 +207,7 @@ serve(async (req: Request) => {
     
     // ========== HANDLE LOGOUT ==========
     if (action === "logout") {
-      if (!email || !deviceId) {
+      if (!email || !deviceId || !logoutToken) {
         return new Response(
           JSON.stringify({ error: "Datos incompletos para logout" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -251,6 +230,8 @@ serve(async (req: Request) => {
         .select("id, device_id")
         .eq("user_email", email.trim().toLowerCase())
         .eq("device_id", deviceId)
+        .eq("session_token", logoutToken)
+        .eq("tipo", "admin")
         .eq("activa", true)
         .single();
 
@@ -326,28 +307,6 @@ serve(async (req: Request) => {
         auth: { persistSession: false },
       });
 
-      // Verificar si ya tiene sesión activa
-      const { data: activeSessions } = await supabaseAdmin
-        .from("sesiones_activas")
-        .select("id, device_id")
-        .eq("user_email", email)
-        .eq("activa", true)
-        .eq("tipo", "admin");
-
-      if (activeSessions && activeSessions.length > 0) {
-        // Permitir si es el mismo dispositivo
-        const sameDeviceSession = activeSessions.find(s => s.device_id === deviceId);
-        if (!sameDeviceSession) {
-          return new Response(
-            JSON.stringify({ 
-              error: "SESION_ACTIVA",
-              message: "Ya hay una sesión activa en otro dispositivo"
-            }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
       // Crear nueva sesión
       const sessionData = await createSessionAfterOTP(email, deviceId, supabaseAdmin);
 
@@ -418,102 +377,12 @@ serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
-    // Verificar sesión activa
-    const { data: activeSessions } = await supabaseAdmin
-      .from("sesiones_activas")
-      .select("id, device_id, ultima_actividad, session_token")
-      .eq("user_email", ADMIN_EMAIL)
-      .eq("activa", true)
-      .eq("tipo", "admin");
-
-    const now = new Date();
-    
-    if (activeSessions && activeSessions.length > 0) {
-      const expiredSessions = activeSessions.filter(session => {
-        const lastActivity = new Date(session.ultima_actividad);
-        const hoursDiff = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
-        return hoursDiff > 2;
-      });
-
-      if (expiredSessions.length > 0) {
-        for (const session of expiredSessions) {
-          await supabaseAdmin
-            .from("sesiones_activas")
-            .update({ activa: false })
-            .eq("id", session.id);
-        }
-      }
-
-      const stillActive = activeSessions.filter(s => 
-        !expiredSessions.find(es => es.id === s.id)
-      );
-
-      if (stillActive.length > 0) {
-        if (deviceId) {
-          const sameDeviceSession = stillActive.find(s => s.device_id === deviceId);
-          if (sameDeviceSession) {
-            const newExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-            
-            await supabaseAdmin
-              .from("sesiones_activas")
-              .update({
-                ultima_actividad: now.toISOString(),
-                expires_at: newExpiresAt.toISOString()
-              })
-              .eq("id", sameDeviceSession.id);
-
-            return new Response(
-              JSON.stringify({
-                success: true,
-                email: ADMIN_EMAIL,
-                sessionToken: sameDeviceSession.session_token,
-                expiresAt: newExpiresAt.toISOString(),
-                deviceId: deviceId,
-                message: "Sesión renovada"
-              }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        }
-        
-        return new Response(
-          JSON.stringify({ 
-            error: "SESION_ACTIVA",
-            message: "Ya hay una sesión activa en otro dispositivo",
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // Crear nueva sesión
-    const sessionToken = `sess_${Date.now()}_${crypto.randomUUID()}`;
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
     const finalDeviceId = deviceId || `dev_${Date.now()}_${crypto.randomUUID()}`;
-const { error: sessionError } = await supabaseAdmin
-  .from("sesiones_activas")
-  .upsert(
-    {
-      user_id: ADMIN_EMAIL,
-      user_email: ADMIN_EMAIL,
-      tipo: "admin",
-      session_token: sessionToken,
-      device_id: finalDeviceId,
-      activa: true,
-      ultima_actividad: now.toISOString(),
-      expires_at: expiresAt,
-      updated_at: now.toISOString(),
-      cerrada_en: null,
-      autenticacion_tipo: "password",
-    },
-    { onConflict: "tipo,user_email" }
-  );
-
-  if (sessionError) {
-  console.error("Error creando sesión:", sessionError);
-  throw sessionError;
-}
-
+    const {data:sessionData,error:sessionError}=await supabaseAdmin.rpc('admin_abrir_sesion',{
+      _email:cleanEmail,_device_id:finalDeviceId,_authentication:'password'
+    });
+    if(sessionError)throw sessionError;
+    const {sessionToken,expiresAt}=sessionData;
 
     return new Response(
       JSON.stringify({
@@ -522,12 +391,13 @@ const { error: sessionError } = await supabaseAdmin
         sessionToken,
         expiresAt,
         deviceId: finalDeviceId,
-        message: "Sesión única creada",
+        message: "Sesión creada (máximo 2 activas)",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
+    if(String((error as any)?.message||'').includes('SESION_ACTIVA:'))return new Response(JSON.stringify({error:'SESION_ACTIVA',message:'Ya hay 2 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.'}),{status:403,headers:{...corsHeaders,'Content-Type':'application/json'}});
     console.error("Error en admin-auth:", error);
 
     const e: any = error || {};
@@ -543,3 +413,4 @@ const { error: sessionError } = await supabaseAdmin
     );
   }
 });
+
