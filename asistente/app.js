@@ -31,8 +31,9 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
 }
 function respond(messages){const epoch=generation;queue=queue.then(async()=>{if(epoch!==generation)return;$('typing').hidden=false;scroll();await new Promise(r=>setTimeout(r,380));if(epoch!==generation)return;$('typing').hidden=true;for(const message of messages)bubble(message);});return queue;}
 async function action(fn){if(busy||!conversation)return;busy=true;$('send').disabled=true;$('attach').disabled=true;$('reset').disabled=true;try{await respond(await fn());}catch(e){await respond([{type:'text',text:e.message||'No pudimos completar la solicitud. Revisa tu compra antes de volver a pagar.'}]);}finally{busy=false;$('send').disabled=false;$('attach').disabled=false;$('reset').disabled=false;}}
-function send(){const input=$('input'),value=input.value.trim();if(!value||busy||!conversation)return;input.value='';bubble({type:'text',text:value},true);action(()=>conversation.receive(value));input.focus();}
-$('composer').onsubmit=e=>{e.preventDefault();send();};$('input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();send();}};
+function send(){const input=$('input'),value=input.value.trim();if(!value||busy||!conversation)return;input.value='';input.style.height='auto';bubble({type:'text',text:value},true);action(()=>conversation.receive(value));input.focus();}
+$('composer').onsubmit=e=>{e.preventDefault();send();};
+$('input').oninput=()=>{const input=$('input');input.style.height='auto';input.style.height=Math.min(input.scrollHeight,125)+'px';};
 $('attach').onclick=()=>$('attachment').click();
 $('attachment').onchange=()=>{const file=$('attachment').files[0];$('attachment').value='';if(!file||busy||!conversation)return;action(async()=>{await validateFile(file);if(assistant.state.submitted)return [{type:'text',text:'Tu compra ya está registrada.'}];const url=URL.createObjectURL(file);objectURLs.push(url);bubble({type:'receipt',name:file.name,url},true);return conversation.attach(file);});};
 
