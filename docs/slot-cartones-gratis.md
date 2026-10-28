@@ -4,12 +4,13 @@
 - Solo premios cuyo texto sea «1 cartón gratis» (también se admite sin tilde, espacios adicionales y mayúsculas).
 - Botón manual al final, con vista previa de ganadores pendientes y confirmación.
 - La asignación elige números disponibles del sorteo actual y copia nombre, teléfono, cédula de registro, referido y los tres campos de Pago Móvil del registro aprobado ganador. No confunde cédula del participante y cédula de Pago Móvil.
+- Máximo un cartón gratis por persona y por sorteo de bingo, identificado por cédula de registro. Se aplica aunque gane varias veces, tenga varios cartones o se abra otra sesión del slot para el mismo bingo. La vista previa muestra repeticiones y entregas anteriores.
 - Cada nuevo registro queda aprobado, referencia 0000, monto 0, sin comprobante y origen premio_slot. No simula verificación bancaria.
 - No se modifican compras previas, pagos, referencias ni reservas existentes. La recaudación y el contador existentes conservan su cálculo, según lo solicitado.
 - Se excluyen premios_slot de los dos endpoints públicos de top y del top calculado por auditoria-pagos. Permanecen en aprobados, consulta de cartones y datos para pago de premios.
 - Administrador: etiqueta «Premio del slot» y filtro de origen.
 - Slot: muestra el cartón ganador y por separado el nuevo cartón entregado. Copia e imagen incluyen la entrega; los datos bancarios no se exponen en la ruleta.
-- Una entrega se guarda por drawId en la sesión y con un índice único en inscripciones. Reintentar no crea otro registro. Ganadores con entrega registrada no pueden borrarse desde la X del slot.
+- Una entrega se guarda por drawId y personId en la sesión, con índices únicos por giro y por ancla del sorteo + cédula normalizada en inscripciones. También se consulta el historial de entregas del mismo bingo para evitar duplicar incluso si se elimina manualmente el registro gratuito. Reintentar no crea otro registro. Ganadores con entrega registrada no pueden borrarse desde la X del slot.
 - La lista de participantes del slot permanece fija; las tarjetas nuevas entran solo si el operador actualiza aprobados explícitamente.
 - Pago Móvil incompleto se conserva y se advierte en la vista previa.
 
@@ -36,3 +37,4 @@ No se ejecutó migración en producción ni se entregaron cartones reales al pre
 
 ## Límite deliberado
 El ancla actual deriva del menor id de inscripción; ante reinicio o borrado del registro mínimo se bloquea la entrega. Si se elimina manualmente un cartón de premio en el administrador, no se vuelve a entregar automáticamente: la marca histórica impide duplicarlo.
+

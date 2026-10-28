@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const {PGlite}=require('@electric-sql/pglite');
 const owner='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',session='10000000-0000-4000-8000-000000000001';
 const free1='20000000-0000-4000-8000-000000000001',money='20000000-0000-4000-8000-000000000002',free2='20000000-0000-4000-8000-000000000003';
-const winners=[{drawId:free1,name:'Ana',ticket:'1',prize:'1 cartón gratis'},{drawId:money,name:'Luis',ticket:'3',prize:'10 USD'},{drawId:free2,name:'Mara',ticket:'2',prize:'1 cartón gratis'}];
+const winners=[{drawId:free1,personId:'ana',name:'Ana',ticket:'1',prize:'1 cartón gratis'},{drawId:money,personId:'luis',name:'Luis',ticket:'3',prize:'10 USD'},{drawId:free2,personId:'mara',name:'Mara',ticket:'2',prize:'1 cartón gratis'}];
 const sources=[{drawId:free1,sourceId:80,cedula:'123456'},{drawId:free2,sourceId:81,cedula:'654321'}];
 async function fixture(){const db=new PGlite();await db.exec(`
 create role anon;create role authenticated;create role service_role bypassrls;
@@ -66,5 +66,43 @@ test('source substitution and repeated calls do not overwrite other registration
  const {db,run}=await fixture();try{
  await assert.rejects(()=>run(true,[{drawId:free1,sourceId:82,cedula:'555555'},sources[1]]),/original/);
  const a=await run(true),b=await run(true);assert.deepEqual(a.awards,b.awards);assert.equal((await db.query("select count(*)::int n from public.inscripciones")).rows[0].n,6);
+ }finally{await db.close()}
+});
+
+test('duplicates for the same registered person receive one card; later slot sessions cannot bypass the bingo limit',async()=>{
+ const {db,run}=await fixture();try{
+  await db.exec("update public.configuracion set total=12;insert into public.inscripciones(id,nombre,cedula,cartones,estado) values(90,'Alias de Ana','V-123456',array[9],'aprobado');insert into public.cartones(numero,cedula) values(9,'V-123456')");
+  const duplicate={drawId:'20000000-0000-4000-8000-000000000009',personId:'ana',name:'Alias de Ana',ticket:'9',prize:'1 cartón gratis'};
+  await db.query('update public.slot_premios_sesiones set state=$1',[JSON.stringify({winners:[winners[0],duplicate,winners[2]]})]);
+  const src=[...sources,{drawId:duplicate.drawId,sourceId:90,cedula:'123456'}];
+  const p=await run(false,src);assert.equal(p.pending.length,2);assert.equal(p.skipped.length,1);assert.equal(p.skipped[0].reason,'duplicate-person');
+  const r=await run(true,src);assert.equal(r.awards.length,2);assert.equal(r.awards.filter(a=>a.personId==='ana').length,1);
+  assert.equal((await db.query("select count(*)::int n from public.inscripciones where origen_registro='premio_slot' and regexp_replace(cedula,'[^0-9]','','g')='123456'")).rows[0].n,1);
+  await assert.rejects(()=>db.exec("insert into public.inscripciones(nombre,cedula,origen_registro,slot_premio_source_anchor) values('Alias','V-123456','premio_slot','80')"),/unique|duplicate/);
+  const later='10000000-0000-4000-8000-000000000002';
+  await db.query('insert into public.slot_premios_sesiones(id,owner_id,source_anchor,state) values($1,$2,$3,$4)',[later,owner,'80',JSON.stringify({winners:[duplicate]})]);
+  const call=confirm=>db.query('select public.slot_asignar_premios($1,$2,$3,$4) r',[later,owner,JSON.stringify(src),confirm]).then(r=>r.rows[0].r);
+  assert.equal((await call(false)).pending.length,0);assert.equal((await call(false)).skipped[0].reason,'already-received');
+  assert.equal((await call(true)).awards.length,0);
+  // Keep the historic delivery as the guard even if somebody deletes its approved registration.
+  await db.exec("delete from public.inscripciones where origen_registro='premio_slot' and regexp_replace(cedula,'[^0-9]','','g')='123456'");
+  assert.equal((await call(true)).awards.length,0);assert.equal((await call(false)).skipped[0].reason,'already-received');
+ }finally{await db.close()}
+});
+test('ten different recipients each get exactly one free card',async()=>{
+ const {db,run}=await fixture();try{
+  await db.exec('update public.configuracion set total=40');
+  const ws=[],src=[];
+  for(let i=0;i<10;i++){
+   const id=100+i,ticket=10+i,ced=String(700000+i),drawId='30000000-0000-4000-8000-'+String(i+1).padStart(12,'0');
+   await db.query("insert into public.inscripciones(id,nombre,cedula,cartones,estado,pago_cedula) values($1,$2,$3,$4,'aprobado','999999')",[id,'Persona '+i,ced,[ticket]]);
+   await db.query('insert into public.cartones(numero,cedula) values($1,$2)',[ticket,ced]);
+   ws.push({drawId,personId:'person-'+i,name:'Persona '+i,ticket:String(ticket),prize:'1 cartón gratis'});src.push({drawId,sourceId:id,cedula:ced});
+  }
+  await db.exec("reset role;select setval(pg_get_serial_sequence('public.inscripciones','id'),109);set role service_role");
+  await db.query('update public.slot_premios_sesiones set state=$1',[JSON.stringify({winners:ws})]);
+  assert.equal((await run(false,src)).pending.length,10);
+  const r=await run(true,src);assert.equal(r.awards.length,10);assert.equal(new Set(r.awards.map(a=>a.personId)).size,10);assert.equal(new Set(r.awards.map(a=>a.assignedTicket)).size,10);
+  assert.equal((await run(true,src)).awards.length,10);
  }finally{await db.close()}
 });

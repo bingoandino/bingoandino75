@@ -77,7 +77,7 @@ function demoAwardPreview(){
  return {pending:pendingList.map(w=>({drawId:w.drawId,name:w.name,winningTicket:w.ticket,paymentComplete:true})),awards:session.awards||[],available:1000-session.participants.length-(session.awards||[]).length,canAssign:pendingList.length>0};
 }
 function showAwardPreview(p){
- $('#awardRows').innerHTML=p.pending.map(w=>'<div class="award-row"><b>'+esc(w.name)+'</b><span>Ganó con el cartón '+esc(w.winningTicket)+'</span><small>'+(w.paymentComplete?'Datos de Pago Móvil registrados':'⚠️ Pago Móvil incompleto: se conservarán los datos disponibles')+'</small></div>').join('')+(p.awards||[]).map(w=>'<div class="award-row assigned"><b>'+esc(w.name)+'</b><span>🎁 Cartón entregado: <strong>'+esc(w.assignedTicket)+'</strong></span><small>Ganó con el cartón '+esc(w.winningTicket)+'</small></div>').join('');
+ $('#awardRows').innerHTML=p.pending.map(w=>'<div class="award-row"><b>'+esc(w.name)+'</b><span>Ganó con el cartón '+esc(w.winningTicket)+'</span><small>'+(w.paymentComplete?'Datos de Pago Móvil registrados':'⚠️ Pago Móvil incompleto: se conservarán los datos disponibles')+'</small></div>').join('')+(p.awards||[]).map(w=>'<div class="award-row assigned"><b>'+esc(w.name)+'</b><span>🎁 Cartón entregado: <strong>'+esc(w.assignedTicket)+'</strong></span><small>Ganó con el cartón '+esc(w.winningTicket)+'</small></div>').join('')+(p.skipped||[]).map(w=>'<div class="award-row"><b>'+esc(w.name)+'</b><small>'+(w.reason==='duplicate-person'?'Una sola entrega: esta persona aparece más de una vez.':'Esta persona ya recibió su cartón gratis en este sorteo.')+'</small></div>').join('');
  $('#awardStatus').textContent=p.pending.length?(p.available<p.pending.length?'No hay suficientes cartones disponibles. No se entregará ninguno.':p.pending.length+' premios por entregar · '+p.available+' cartones disponibles.'):'No hay premios pendientes de 1 cartón gratis.';
  $('#confirmAwards').disabled=!p.canAssign;
 }
@@ -93,7 +93,7 @@ async function assignAwards(){
  awardBusy=true;$('#confirmAwards').disabled=true;$('#closeAwards').disabled=true;$('#awardStatus').textContent='Asignando cartones. Espera a que termine…';
  try{
   let r;
-  if(demo){const used=new Set([...session.participants.map(p=>+p.ticket),...(session.awards||[]).map(a=>+a.assignedTicket)]);const extra=pendingFreeWinners(session).map(w=>{let n=1;while(used.has(n))n++;used.add(n);return {drawId:w.drawId,name:w.name,winningTicket:w.ticket,assignedTicket:String(n),date:new Date().toISOString()};});session={...session,awards:[...(session.awards||[]),...extra]};r={session,preview:demoAwardPreview()};}
+  if(demo){const used=new Set([...session.participants.map(p=>+p.ticket),...(session.awards||[]).map(a=>+a.assignedTicket)]);const extra=pendingFreeWinners(session).map(w=>{let n=1;while(used.has(n))n++;used.add(n);return {drawId:w.drawId,name:w.name,personId:w.personId,winningTicket:w.ticket,assignedTicket:String(n),date:new Date().toISOString()};});session={...session,awards:[...(session.awards||[]),...extra]};r={session,preview:demoAwardPreview()};}
   else r=await api('assign-awards',{sessionId:awardSessionId});
   session=r.session;historyCache=[];renderResults();showAwardPreview(r.preview);toast(demo?'Entrega simulada. No se registraron cartones reales.':'Cartones entregados y registrados con referencia 0000. Actualiza los aprobados en la app de pagos.');
  }catch(e){$('#awardStatus').textContent=e.message+' Puedes volver a abrir esta vista: una entrega registrada no se duplicará.';fail(e)}
