@@ -65,7 +65,8 @@ export class Assistant{
  if(/cuanto.*(?:cuesta|vale)|precio|costo/.test(n)&&!quantity(n)){if(!s.quantity){s.step='route';return [text(`El cartón cuesta ${money(this.config.price)} Bs 😊 ¿Prefieres comprar por la página o que te ayude por aquí?`)];}return [text(`El cartón cuesta ${money(this.config.price)} Bs. Tu total es ${money(s.quantity*this.config.price)} Bs 😊`)];}
  if(/disponibl|cuales (?:hay|quedan)|ver (?:los )?cartones|ver (?:los )?numeros|quedan cartones/.test(n))return [text('Los cartones blancos están disponibles. Puedes verlos aquí y decirme cuáles te gustan 😊'),{type:'catalog'}];
  if(/por la (?:pagina|web)|lo hago (?:yo|solo)|yo (?:mismo|misma)|comprar (?:yo|solo)/.test(n)&&['welcome','route'].includes(s.step))return [text('Claro 😊 Puedes hacer tu compra aquí:'),{type:'link',url:this.config.site,label:'Ir a BingoAndino75'},text('Si prefieres ayuda, escríbeme por aquí.')];
- if(['welcome','route'].includes(s.step)&&!/(?:no (?:quiero|necesito) (?:tu )?ayuda|no me ayudes)/.test(n)&&(/\b(?:por aqui|ayudame|ayuda por|contigo|hazlo tu|me ayud(?:es|as|a|e)|me (?:puedes|puede|podrias|podria) ayudar|(?:quiero|necesito) (?:tu )?ayuda)\b/.test(n)||yes(n)||/^ayuda[.!?]*$/.test(n)))return this.advance();
+ if(s.step==='route'&&/^(?:no(?: gracias)?[.!]*|no (?:quiero|necesito) (?:tu )?ayuda[.!]*)$/.test(n))return [text('Está bien 😊 Puedes comprar directamente en la página.'),{type:'link',url:this.config.site,label:'Ir a la página'}];
+ if(['welcome','route'].includes(s.step)&&!/(?:no (?:quiero|necesito) (?:tu )?ayuda|no me ayudes)/.test(n)&&(/\b(?:(?:por )?aqui|(?:por )?aca|por (?:este |el )?chat|en el chat|tu|usted|ayudame|ayuda por|contigo|hazlo tu|me ayud(?:es|as|a|e)|me (?:puedes|puede|podrias|podria) ayudar|(?:quiero|necesito) (?:tu )?ayuda)\b/.test(n)||yes(n)||/^ayuda[.!?]*$/.test(n)))return this.advance();
  if(['welcome','route'].includes(s.step)&&openingIntent(raw)==='decline')return [text('Está bien 😊 Si necesitas consultar una compra o tienes otra duda, dime.')];
  if(['welcome','route'].includes(s.step)&&openingIntent(raw)==='purchase'&&quantity(raw)===null){if(s.step==='route')return this.advance();s.step='route';return [text(`El cartón cuesta ${money(this.config.price)} Bs 😊 ¿Prefieres comprar por la página o que te ayude por aquí?`)];}
  if(/^[¿?]+$/.test(raw)||/^(?:no entiendo|no entendi|como asi|que hago|no se)[.!?]*$/.test(n))return ['welcome'].includes(s.step)?this.start():this.advance();
@@ -78,13 +79,13 @@ export class Assistant{
  if(Object.keys(extracted).length){Object.assign(s.data,extracted);s.confirmed=false;}
  if(s.step==='final'&&yes(n))return [{type:'submit'}];
  if(s.step==='confirm'&&yes(n)&&!Object.keys(extracted).length){s.confirmed=true;return this.advance();}
- const q=quantity(raw,s.step==='quantity');if(q!==null){if(!Number.isInteger(q)||q<1||q>this.config.max)return [text('Puedes comprar una cantidad de 1 a 100 cartones.')];if(q!==s.quantity){s.quantity=q;s.cards=[];s.confirmed=false;return [text(`Serían ${money(q*this.config.price)} Bs por ${q} cartones 😊`),...this.advance()];}}
+ const q=quantity(raw,['quantity','route'].includes(s.step));if(q!==null){if(!Number.isInteger(q)||q<1||q>this.config.max)return [text('Puedes comprar una cantidad de 1 a 100 cartones.')];if(q!==s.quantity){s.quantity=q;s.cards=[];s.confirmed=false;return [text(`Serían ${money(q*this.config.price)} Bs por ${q} cartones 😊`),...this.advance()];}}
  if(s.quantity&&/azar|escoge|escoja|eligelos|elige tu|cualquiera/.test(n)){const candidates=[...this.available];for(let i=candidates.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}return this.choose(candidates.slice(0,s.quantity));}
  if(s.quantity&&(/carton|numero|^el\b|^los\b/.test(n)||s.step==='cards')&&!ref&&!Object.keys(extracted).length){const ids=raw.match(/\b\d{1,4}\b/g);if(ids?.length)return this.choose(ids.map(Number));}
  if(Object.keys(extracted).length||ref||/mismos|misma cedula|mismo telefono/.test(n))return this.advance();
  if(/^no\b/.test(n)&&['confirm','final'].includes(s.step))return [text('Dime qué dato quieres corregir y escríbelo de nuevo, por ejemplo: «Teléfono: 04120000000».')];
  if(s.step==='proof'&&/ya.*(?:pague|envie)|ya esta|listo/.test(n))return this.advance();
  if(/hola|buenas|buenos dias|buenas tardes|buenas noches/.test(n))return this.start();
- return ['welcome','route'].includes(s.step)?[text('Claro 😊 Cuéntame, ¿en qué puedo ayudarte?')]:this.advance();
+ return s.step==='welcome'?[text('Claro 😊 Cuéntame, ¿en qué puedo ayudarte?')]:this.advance();
  }
 }
