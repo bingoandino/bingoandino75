@@ -2,7 +2,7 @@
   "name": "bingoandino75-web-tests",
   "private": true,
   "scripts": {
-    "test": "node --test tests/*.test.cjs tests/asistente/*.test.mjs"
+    "test": "node --test tests/*.test.cjs tests/*.test.mjs tests/asistente/*.test.mjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0",
