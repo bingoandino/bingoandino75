@@ -5,7 +5,7 @@
  let current=null,opened=false,busy=false,stopped=false,timer,expiry;
  const endpoint='https://dbkixcpwirjwjvjintkr.supabase.co/rest/v1/transmision_juego?id=eq.1&select=video_id,revision,expira_en';
  const key=document.querySelector('meta[name="bingo-public-key"]').content;
- function say(text){const message=box.querySelector('#transmisionEstado');if(message)message.textContent=text;}
+ function say(text){const message=box.querySelector('#transmisionEstado');if(message)message.textContent=text;box.dataset.notice=/No se pudo|No hay/.test(text)?'true':'false';}
  function close(){opened=false;frame.replaceChildren();panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.textContent='📺 Ver transmisión';direct.hidden=true;say('Video y sonido detenidos. Tus marcas se conservan.');}
  function open(){
   if(!T.active(current)){close();return;}
@@ -14,7 +14,7 @@
   iframe.src='https://www.youtube.com/embed/'+current.video_id+'?autoplay=1&playsinline=1&controls=1';
   iframe.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';iframe.allowFullscreen=true;
   iframe.referrerPolicy='strict-origin-when-cross-origin';
-  frame.append(iframe);panel.hidden=false;opened=true;toggle.setAttribute('aria-expanded','true');toggle.textContent='Ocultar transmisión';direct.hidden=false;say('Al ocultar se detienen el video y el sonido.');
+  frame.append(iframe);panel.hidden=false;opened=true;toggle.setAttribute('aria-expanded','true');toggle.textContent='Ocultar';direct.hidden=false;say('Al ocultar se detienen el video y el sonido.');
  }
  function apply(data){
   const previous=current;current=data;clearTimeout(expiry);

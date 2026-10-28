@@ -1,1 +1,16 @@
-#transmision{margin:16px 0 12px;padding:12px;border:1px solid #dfcfb0;border-radius:16px;background:#fffdf8}#transmision [hidden]{display:none!important}#transmision .transmision-buttons{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#transmision a{color:#4b174f;font-weight:700;padding:12px 4px;min-height:44px}#transmisionVideo{width:100%;aspect-ratio:16/9;min-height:200px;background:#110b17;margin:10px 0;border-radius:10px;overflow:hidden}#transmisionVideo iframe{width:100%;height:100%;min-height:200px;border:0;display:block}#transmision p{font-size:13px;color:#6e5c70;margin:8px 0}#transmisionVer{flex:1}#transmisionActualizar{font-size:13px;padding:8px}
+#transmision{position:relative;margin:8px 0 0;padding:6px;border:1px solid #dfcfb0;border-radius:12px;background:#fffdf8}
+#transmision [hidden]{display:none!important}
+#transmision .transmision-buttons{display:flex;gap:4px;align-items:center}
+#transmision .transmision-buttons button,#transmision .transmision-buttons a{min-height:44px;font-size:13px;padding:7px 8px;white-space:nowrap;border-radius:9px}
+#transmision a{display:inline-flex;align-items:center;justify-content:center;color:#4b174f;font-weight:700;border:1px solid #cdbbd0;text-decoration:none}
+#transmisionVer{flex:1;min-width:0}
+#transmisionActualizar{width:44px;flex:none;font-size:22px!important;padding:4px!important}
+#transmisionVideo{width:100%;aspect-ratio:16/9;min-height:200px;background:#110b17;margin:4px 0 0;border-radius:8px;overflow:hidden}
+#transmisionVideo iframe{width:100%;height:100%;min-height:200px;border:0;display:block}
+#transmisionEstado{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#transmision:not([data-notice]) #transmisionEstado,#transmision[data-notice=true] #transmisionEstado{position:static;width:auto;height:auto;margin:4px 0 0;overflow:visible;clip-path:none;white-space:normal;font-size:12px;color:#6e5c70}
+#transmision+.controls{margin:4px 0 6px;padding:6px;border-radius:12px}
+#transmision+.controls .view{margin-bottom:4px}
+#transmision+.controls p{margin:4px 0 0;font-size:12px;line-height:1.25}
+@media(max-width:600px){main{padding:8px 8px 28px}header h1{font-size:23px;margin:4px 0}header p{font-size:12px;margin:4px 0 8px}.eyebrow{font-size:10px}#transmision+.controls .view strong{font-size:13px}#transmision+.controls .view button{padding:7px 13px}}
+@media(max-width:360px){#transmision .transmision-buttons button,#transmision .transmision-buttons a{font-size:12px;padding:6px}}
