@@ -1,0 +1,160 @@
+{
+  "paths": [
+    {
+      "schema": "public",
+      "proname": "fn_total_cartones_actual",
+      "signature": "fn_total_cartones_actual()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.fn_total_cartones_actual()\n RETURNS integer\n LANGUAGE sql\n STABLE\nAS $function$\r\n  select coalesce((\r\n    select case \r\n      when valore ~ '^[0-9]+$' then valore::integer\r\n      else 0\r\n    end\r\n    from public.configuracion\r\n    where clave = 'total_cartones'\r\n    limit 1\r\n  ), 0);\r\n$function$\n",
+      "anon_execute": true,
+      "user_execute": true,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "limpiar_reservas_expiradas",
+      "signature": "limpiar_reservas_expiradas()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.limpiar_reservas_expiradas()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  DELETE FROM reservas_temporales WHERE expira_en < NOW();\r\nEND;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "rpc_listar_cartones_huerfanos",
+      "signature": "rpc_listar_cartones_huerfanos(interval)",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_listar_cartones_huerfanos(_min_age interval DEFAULT '00:05:00'::interval)\n RETURNS TABLE(numero bigint, cedula text, created_at timestamp with time zone, reserved_at timestamp with time zone)\n LANGUAGE sql\nAS $function$\r\n  SELECT c.numero, c.cedula, c.created_at, c.reserved_at\r\n  FROM public.cartones c\r\n  WHERE COALESCE(c.reserved_at, c.created_at) < now() - _min_age\r\n    AND NOT EXISTS (\r\n      SELECT 1\r\n      FROM public.inscripciones i\r\n      WHERE c.numero = ANY(i.cartones)\r\n        AND i.estado IN ('pendiente', 'aprobado')\r\n    )\r\n  ORDER BY COALESCE(c.reserved_at, c.created_at) ASC;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "trg_validar_cartones_inscripcion",
+      "signature": "trg_validar_cartones_inscripcion()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.trg_validar_cartones_inscripcion()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\ndeclare\r\n  max_cartones integer;\r\n  carton_num bigint;\r\nbegin\r\n  max_cartones := public.fn_total_cartones_actual();\r\n\r\n  if max_cartones < 1 then\r\n    raise exception 'total_cartones no está configurado correctamente';\r\n  end if;\r\n\r\n  if new.cartones is null then\r\n    return new;\r\n  end if;\r\n\r\n  foreach carton_num in array new.cartones loop\r\n    if carton_num is null or carton_num < 1 or carton_num > max_cartones then\r\n      raise exception 'Inscripción tiene cartón % fuera de rango. Permitido: 1 a %',\r\n        carton_num,\r\n        max_cartones;\r\n    end if;\r\n  end loop;\r\n\r\n  return new;\r\nend;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "trg_validar_numero_carton",
+      "signature": "trg_validar_numero_carton()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.trg_validar_numero_carton()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\ndeclare\r\n  max_cartones integer;\r\nbegin\r\n  max_cartones := public.fn_total_cartones_actual();\r\n\r\n  if max_cartones < 1 then\r\n    raise exception 'total_cartones no está configurado correctamente';\r\n  end if;\r\n\r\n  if new.numero is null or new.numero < 1 or new.numero > max_cartones then\r\n    raise exception 'Cartón % fuera de rango. Permitido: 1 a %', new.numero, max_cartones;\r\n  end if;\r\n\r\n  return new;\r\nend;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "trg_validar_total_cartones_config",
+      "signature": "trg_validar_total_cartones_config()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.trg_validar_total_cartones_config()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\ndeclare\r\n  nuevo_total integer;\r\n  mayor_en_cartones integer;\r\n  mayor_en_inscripciones integer;\r\n  mayor_usado integer;\r\nbegin\r\n  if new.clave <> 'total_cartones' then\r\n    return new;\r\n  end if;\r\n\r\n  if new.valore is null or new.valore !~ '^[0-9]+$' or new.valore::integer < 1 then\r\n    raise exception 'total_cartones debe ser un número entero mayor a 0';\r\n  end if;\r\n\r\n  nuevo_total := new.valore::integer;\r\n\r\n  select coalesce(max(numero), 0)::integer\r\n  into mayor_en_cartones\r\n  from public.cartones;\r\n\r\n  select coalesce(max(x.carton::integer), 0)\r\n  into mayor_en_inscripciones\r\n  from public.inscripciones i\r\n  cross join lateral unnest(i.cartones) as x(carton);\r\n\r\n  mayor_usado := greatest(mayor_en_cartones, mayor_en_inscripciones);\r\n\r\n  if nuevo_total < mayor_usado then\r\n    raise exception \r\n      'No puedes configurar total_cartones en %, porque ya existe/usaste el cartón %',\r\n      nuevo_total,\r\n      mayor_usado;\r\n  end if;\r\n\r\n  return new;\r\nend;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "trigger_limpiar_expiradas",
+      "signature": "trigger_limpiar_expiradas()",
+      "prosecdef": false,
+      "proconfig": null,
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.trigger_limpiar_expiradas()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  PERFORM limpiar_reservas_expiradas();\r\n  RETURN NEW;\r\nEND;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": false,
+      "service_execute": true
+    }
+  ],
+  "guards": [
+    {
+      "schema": "public",
+      "proname": "rpc_eliminar_inscripcion_seguro",
+      "signature": "rpc_eliminar_inscripcion_seguro(bigint)",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_eliminar_inscripcion_seguro(_id bigint)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare\r\n  v_cartones bigint[];\r\n  v_liberados integer := 0;\r\nbegin\r\n  if auth.role() <> 'service_role' and not public.es_admin_bingo() then\r\n    raise exception 'No autorizado para eliminar inscripción'\r\n      using errcode = '42501';\r\n  end if;\r\n\r\n  select cartones\r\n  into v_cartones\r\n  from public.inscripciones\r\n  where id = _id\r\n  for update;\r\n\r\n  if not found then\r\n    return 0;\r\n  end if;\r\n\r\n  if v_cartones is not null then\r\n    delete from public.cartones c\r\n    where c.numero = any(v_cartones)\r\n      and not exists (\r\n        select 1\r\n        from public.inscripciones i\r\n        where i.id <> _id\r\n          and c.numero = any(i.cartones)\r\n          and i.estado in ('pendiente', 'aprobado')\r\n      );\r\n\r\n    get diagnostics v_liberados = row_count;\r\n  end if;\r\n\r\n  delete from public.inscripciones\r\n  where id = _id;\r\n\r\n  return v_liberados;\r\nend;\r\n$function$\n",
+      "anon_execute": false,
+      "user_execute": true,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "rpc_listar_respaldos",
+      "signature": "rpc_listar_respaldos()",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_listar_respaldos()\n RETURNS TABLE(id uuid, fecha timestamp with time zone, motivo text, compras integer, cartones integer)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;\n return query select s.id,s.created_at,s.reason,jsonb_array_length(s.payload->'inscripciones'),jsonb_array_length(s.payload->'cartones') from bingo_security.snapshots s order by s.created_at desc limit 30;\nend $function$\n",
+      "anon_execute": false,
+      "user_execute": true,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "rpc_respaldar_sorteo",
+      "signature": "rpc_respaldar_sorteo(text)",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_respaldar_sorteo(_motivo text DEFAULT 'Respaldo manual'::text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;\n return bingo_security.make_snapshot(_motivo);\nend $function$\n",
+      "anon_execute": false,
+      "user_execute": true,
+      "service_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "rpc_restaurar_sorteo",
+      "signature": "rpc_restaurar_sorteo(uuid)",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_restaurar_sorteo(_respaldo uuid)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare datos jsonb; antes uuid; secuencia text;\nbegin\n if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;\n select payload into datos from bingo_security.snapshots where id=_respaldo;\n if datos is null then raise exception 'Respaldo no encontrado';end if;\n lock table public.inscripciones,public.cartones,public.configuracion in exclusive mode;\n antes:=bingo_security.make_snapshot('Antes de restaurar otro respaldo');\n delete from public.inscripciones;delete from public.cartones;delete from public.configuracion;\n insert into public.configuracion overriding system value select * from jsonb_populate_recordset(null::public.configuracion,datos->'configuracion');\n insert into public.cartones overriding system value select * from jsonb_populate_recordset(null::public.cartones,datos->'cartones');\n insert into public.inscripciones overriding system value select * from jsonb_populate_recordset(null::public.inscripciones,datos->'inscripciones');\n insert into bingo_security.reservation_owners select * from jsonb_populate_recordset(null::bingo_security.reservation_owners,datos->'owners');\n secuencia:=pg_get_serial_sequence('public.inscripciones','id');\n if secuencia is not null and exists(select 1 from public.inscripciones) then perform setval(secuencia::regclass,(select max(id) from public.inscripciones),true);end if;\n return antes;\nend $function$\n",
+      "anon_execute": false,
+      "user_execute": true,
+      "service_execute": true
+    }
+  ],
+  "helpers": [
+    {
+      "nspname": "public",
+      "proname": "es_admin_bingo",
+      "signature": "es_admin_bingo()",
+      "definition": "CREATE OR REPLACE FUNCTION public.es_admin_bingo()\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO ''\nAS $function$\n select coalesce(auth.role()='authenticated' and auth.uid()='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5'::uuid,false)\n$function$\n"
+    },
+    {
+      "nspname": "bingo_security",
+      "proname": "is_admin",
+      "signature": "bingo_security.is_admin()",
+      "definition": "CREATE OR REPLACE FUNCTION bingo_security.is_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO ''\nAS $function$\n select auth.role()='authenticated' and auth.uid()='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5'::uuid\n$function$\n"
+    }
+  ]
+}

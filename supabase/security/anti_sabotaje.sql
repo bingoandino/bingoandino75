@@ -134,18 +134,18 @@ begin
 end $$;
 create or replace function public.rpc_respaldar_sorteo(_motivo text default 'Respaldo manual') returns uuid language plpgsql security definer set search_path='' as $$
 begin
- if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
+ if bingo_security.is_admin() is not true and auth.role() is distinct from 'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
  return bingo_security.make_snapshot(_motivo);
 end $$;
 create or replace function public.rpc_listar_respaldos() returns table(id uuid,fecha timestamptz,motivo text,compras int,cartones int) language plpgsql security definer set search_path='' as $$
 begin
- if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
+ if bingo_security.is_admin() is not true and auth.role() is distinct from 'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
  return query select s.id,s.created_at,s.reason,jsonb_array_length(s.payload->'inscripciones'),jsonb_array_length(s.payload->'cartones') from bingo_security.snapshots s order by s.created_at desc limit 30;
 end $$;
 create or replace function public.rpc_reiniciar_sorteo_seguro() returns uuid language plpgsql security definer set search_path='' as $$
 declare id_respaldo uuid;
 begin
- if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
+ if bingo_security.is_admin() is not true and auth.role() is distinct from 'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
  lock table public.inscripciones,public.cartones in exclusive mode;
  id_respaldo:=bingo_security.make_snapshot('Antes de reiniciar sorteo');
  delete from public.inscripciones;delete from public.cartones;
@@ -155,7 +155,7 @@ end $$;
 create or replace function public.rpc_restaurar_sorteo(_respaldo uuid) returns uuid language plpgsql security definer set search_path='' as $$
 declare datos jsonb; antes uuid; secuencia text;
 begin
- if not bingo_security.is_admin() and auth.role()<>'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
+ if bingo_security.is_admin() is not true and auth.role() is distinct from 'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
  select payload into datos from bingo_security.snapshots where id=_respaldo;
  if datos is null then raise exception 'Respaldo no encontrado';end if;
  lock table public.inscripciones,public.cartones,public.configuracion in exclusive mode;
