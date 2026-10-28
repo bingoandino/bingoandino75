@@ -18,6 +18,9 @@ export function openingIntent(input){const n=conversationText(input);
 }
 export function isQuestion(input){return /[¿?]/.test(String(input))||/^(?:(?:hola|disculpa|oye)[,\s]+)?(?:a\s+q(?:ue)?\s+hora|que|q\s|como|donde|cuando|cual(?:es)?|cuanto(?:s)?|por\s+que|puedo|se\s+puede|hay|sabes|me\s+puedes|tengo\s+(?:una\s+)?(?:duda|pregunta))\b/.test(conversationText(input));}
 function faq(input,CONFIG){const n=conversationText(input);
+ if(/^(?:que es (?:esto|eso|esta pagina|este sitio|bingoandino75|el bingo andino)|para que (?:es|sirve) (?:esto|eso|esta pagina)|de que (?:se )?trata (?:esto|esta pagina)|que (?:hacen|se hace) aqui)[.!?\s]*$/.test(n))return [text('Este es el asistente de BingoAndino75 😊 Te ayudo a comprar cartones y a revisar tu compra, paso a paso.')];
+ if(/quien eres|eres (?:un |una )?(?:bot|robot|persona|asistente)|con quien (?:hablo|estoy hablando)|que eres/.test(n))return [text('Soy el asistente virtual de BingoAndino75 😊 Te ayudo con tus cartones y te voy guiando en la compra.')];
+ if(/hablar.*(?:persona|alguien|soporte|operador)|(?:quiero|necesito|comunicarme).*soporte|(?:ayude|atienda).*persona|^soporte[.!?\s]*$/.test(n))return [text('Claro 😊 Puedes escribirle a soporte al 0424-7221608, de lunes a sábado de 9 a. m. a 8 p. m.')];
  if(/a\s+q(?:ue)?\s+hora|(?:hora|horario).*(?:sorteo|bingo|vivo)|cuando.*(?:sorteo|bingo|empieza|comienza)/.test(n))return [text('El horario del sorteo está en el anuncio de inicio de la página 😊 Revísalo allí para confirmar la hora de hoy.')];
  if(/(?:donde|por donde|como).*(?:ver|transmi|vivo)|(?:canal|youtube).*(?:sorteo|bingo|vivo)/.test(n))return [text('Jugamos en vivo por YouTube 😊 Puedes abrir la transmisión desde la página.'),{type:'link',url:CONFIG.site,label:'Ver la página del bingo'}];
  if(/como (?:se )?juega|como (?:es|funciona) (?:eso|el juego|el bingo)|de que (?:se )?trata|(?:un|mismo|solo) carton.*(?:todas|rondas)/.test(n))return [text('Con tu cartón juegas en todas las rondas 🎟️ Sacamos las bolitas del bombo y el sistema indica quién gana. Si quieres jugar, te ayudo por aquí.')];
@@ -71,6 +74,8 @@ export class Assistant{
  attach(file){if(this.state.submitted)return [text('La compra ya está registrada. No necesitas reenviar la imagen.')];this.state.file={name:file.name,size:file.size};return [text('Comprobante recibido 📎'),...this.advance()];}
  receive(input){const raw=String(input).trim(),n=conversationText(raw),s=this.state;if(!raw)return [];if(raw.length>2000)return [text('Envíame un mensaje más corto, por favor 😊')];
  const answer=faq(raw,this.config);if(answer)return answer;
+ if(/^(?:hola+|holi|buenas(?: tardes| noches| dias)?|buenos dias|buen dia|epa)[!.,\s]*$/.test(norm(raw)))return s.step==='welcome'?[text('¡Hola! 😊 Cuéntame, ¿qué necesitas?')]:[text('¡Hola! 😊 Seguimos donde íbamos.'),...this.advance()];
+ if(/^(?:gracias|muchas gracias|mil gracias|ok gracias)[!.,\s]*$/.test(n))return [text('A la orden 😊 Aquí sigo pendiente.')];
  if(/no entiendo|no entendi|no comprendo|me enrede|me cuesta|no puedo|no se usar|primera vez|soy nuev[oa]|estoy perdid[oa]|no se (?:como|que)|^no se$|explicame|mas facil|paso a paso/.test(n))return this.guidance();
  if(s.submitted)return [text('Tu compra ya quedó registrada como pendiente ✅ No se enviará otra vez. Para comenzar otra, usa «Nueva conversación».')];
  if(/ignora|aprueb|gratis|borr|elimin.*sorteo|reinicia.*sorteo|clave.*admin|datos de otro|service.role/.test(n))return [text('Puedo ayudarte a preparar una compra. La aprobación del pago corresponde a la verificación bancaria.')];
@@ -97,7 +102,6 @@ export class Assistant{
  if(Object.keys(extracted).length||ref||/mismos|misma cedula|mismo telefono/.test(n))return this.advance();
  if(/^no\b/.test(n)&&['confirm','final'].includes(s.step))return [text('Dime qué dato quieres corregir y escríbelo de nuevo, por ejemplo: «Teléfono: 04120000000».')];
  if(s.step==='proof'&&/ya.*(?:pague|envie)|ya esta|listo/.test(n))return this.advance();
- if(/hola|buenas|buenos dias|buenas tardes|buenas noches/.test(n))return this.start();
  return s.step==='welcome'?[text('Claro, te ayudo 😊 ¿Quieres jugar, saber el precio o buscar una compra?')]:this.advance();
  }
 }

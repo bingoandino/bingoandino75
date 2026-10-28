@@ -1,5 +1,5 @@
 import {SUPABASE_URL,PUBLIC_KEY} from '../slot/config.js';
-import {Assistant,norm,wantsRandom,conversationText} from './engine.js?v=20261028-real-7';
+import {Assistant,norm,wantsRandom,conversationText} from './engine.js?v=20261028-real-8';
 import {validateFile} from './files.js';
 const text=text=>({type:'text',text});
 export class PurchaseAPI{
@@ -15,7 +15,7 @@ export class PurchaseAPI{
  async find(state){const rows=await this.request('/rest/v1/inscripciones?select=id,cartones,referencia4dig,estado&cedula=eq.'+encodeURIComponent(state.data.id)+'&order=id.desc&limit=100');return rows.find(r=>r.referencia4dig===state.ref.slice(-4)&&r.cartones.length===state.cards.length&&r.cartones.every(n=>state.cards.includes(Number(n))));}
  async upload(file){await validateFile(file);const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type];const name=crypto.randomUUID()+'.'+ext;const response=await this.fetcher(SUPABASE_URL+'/storage/v1/object/comprobantes/'+name,{method:'POST',headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+PUBLIC_KEY,'Content-Type':file.type,'x-upsert':'false'},body:file,signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('No se pudo subir el comprobante. Puedes intentarlo de nuevo sin repetir el pago.');return SUPABASE_URL+'/storage/v1/object/public/comprobantes/'+name;}
  submit(state,url){const d=state.data;return this.rpc('rpc_registrar_compra_segura',{_compra:{nombre:d.name,cedula:d.id,telefono:d.phone,cartones:state.cards,referencia4dig:state.ref,comprobante:url,pago_banco:d.bank,pago_cedula:d.payId,pago_telefono:d.payPhone}});}
- async question(){return 'Esa consulta necesita revisarla soporte 😊 Escríbenos al 0424-7221608. Si quieres, seguimos por aquí con tu compra.';}
+ async question(){return 'No entendí bien esa pregunta 😊 ¿Me la dices de otra forma? Puedo ayudarte con el bingo, tus cartones y la compra.';}
 }
 export class Conversation{
  constructor(engine,api){this.engine=engine;this.api=api;this.held=null;this.file=null;this.url=null;this.uncertain=false;this.busy=false;}
