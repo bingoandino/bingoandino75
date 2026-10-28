@@ -1,4 +1,4 @@
-import {announcementPages,drawAnnouncement} from './award-announcement.js?v=1.0.14';
+import {announcementText} from './award-announcement.js?v=1.0.15';
 import {pendingFreeWinners} from './award-rules.js?v=1.0.13';
 import {spinCylinder} from './spin-cylinder.js?v=1.0.7';
 import {uuid} from './uuid.js';
@@ -103,33 +103,17 @@ async function assignAwards(){
 $('#assignAwards').onclick=previewAwards;$('#confirmAwards').onclick=assignAwards;$('#closeAwards').onclick=()=>{if(!awardBusy)$('#awardDialog').close()};
 $('#awardDialog').addEventListener('cancel',e=>{if(awardBusy)e.preventDefault()});
 
-// The announcement uses confirmed assigned tickets, independently of the winning tickets.
-let announcementSource=null,announcementPage=0,announcementParts=[],announcementRendering=false;
-async function openAnnouncement(source){
- announcementParts=announcementPages(source);if(!announcementParts.length)return;
- announcementSource=source;announcementPage=0;$('#announcementDialog').showModal();await renderAnnouncement();
+// Copy announcements only after the assignment has been confirmed by the server.
+function openAnnouncement(source){
+ const text=announcementText(source,{example:demo});if(!text)return;
+ $('#announcementText').value=text;$('#announcementCopyStatus').textContent='';$('#announcementDialog').showModal();
 }
-async function renderAnnouncement(){
- announcementRendering=true;$('#downloadAnnouncement').disabled=$('#shareAnnouncement').disabled=true;
- $('#announcementPrevious').disabled=$('#announcementNext').disabled=true;
- $('#announcementStatus').textContent='Preparando imagen…';
- try{
-  await drawAnnouncement($('#announcementCanvas'),announcementParts[announcementPage],{date:formatDate(announcementSource.createdAt),example:demo,page:announcementPage+1,pages:announcementParts.length});
-  $('#announcementStatus').textContent='Imagen '+(announcementPage+1)+' de '+announcementParts.length+' · Cartones ya asignados';
-  $('#downloadAnnouncement').disabled=$('#shareAnnouncement').disabled=false;
- }catch(e){$('#announcementStatus').textContent='No se pudo preparar la imagen. Cierra y vuelve a abrir el anuncio.';}
- finally{announcementRendering=false;$('#announcementPrevious').disabled=announcementPage===0;$('#announcementNext').disabled=announcementPage===announcementParts.length-1;}
+async function copyAnnouncement(text){
+ if(!text)return;
+ try{await navigator.clipboard.writeText(text);toast('Anuncio copiado. Listo para pegar en tus grupos.');$('#announcementCopyStatus').textContent='¡Anuncio copiado!';}
+ catch{if(!$('#announcementDialog').open)$('#announcementDialog').showModal();$('#announcementText').value=text;$('#announcementText').focus();$('#announcementText').select();$('#announcementCopyStatus').textContent='Mantén pulsado el texto o usa Ctrl+C para copiar el anuncio.';}
 }
-async function announcementFile(){
- const blob=await new Promise(resolve=>$('#announcementCanvas').toBlob(resolve,'image/png'));
- if(!blob)throw new Error('No se pudo generar la imagen.');
- return new File([blob],'BingoAndino75_cartones_asignados_'+announcementSource.createdAt.slice(0,10)+'_'+(announcementPage+1)+'.png',{type:'image/png'});
-}
-function downloadAnnouncement(file){const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
-$('#announcementLive').onclick=()=>openAnnouncement(session);
-$('#announcementResults').onclick=()=>openAnnouncement(current());
+$('#announcementLive').onclick=()=>copyAnnouncement(announcementText(session,{example:demo}));
+$('#announcementResults').onclick=()=>copyAnnouncement(announcementText(current(),{example:demo}));
 $('#closeAnnouncement').onclick=()=>$('#announcementDialog').close();
-$('#announcementPrevious').onclick=()=>{if(!announcementRendering&&announcementPage>0){announcementPage--;renderAnnouncement();}};
-$('#announcementNext').onclick=()=>{if(!announcementRendering&&announcementPage<announcementParts.length-1){announcementPage++;renderAnnouncement();}};
-$('#downloadAnnouncement').onclick=async()=>{try{downloadAnnouncement(await announcementFile());toast('Imagen lista para publicar en tus grupos.');}catch(e){fail(e)}};
-$('#shareAnnouncement').onclick=async()=>{try{const file=await announcementFile();if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'Cartones gratis asignados · Bingo Andino 75'});}else{downloadAnnouncement(file);toast('Imagen descargada. Adjunta el archivo en tus grupos.');}}catch(e){if(e.name!=='AbortError')fail(e)}};
+$('#copyAnnouncement').onclick=()=>copyAnnouncement($('#announcementText').value);

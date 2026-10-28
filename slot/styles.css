@@ -246,8 +246,8 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
 .award-row span{font-size:14px}.award-row small{font-size:11px;color:#dccade}.award-row.assigned{border-color:#e6c577}
 #assignAwards{white-space:normal}
 
-#announcementDialog{width:min(650px,94vw);max-height:94dvh;overflow:auto}
+#announcementDialog{width:min(620px,94vw);max-height:90dvh;overflow:auto}
 #announcementDialog h2{margin-top:0}
-#announcementCanvas{display:block;width:100%;height:auto;max-height:60dvh;object-fit:contain;border-radius:8px}
+#announcementText{display:block;width:100%;height:48dvh;min-height:210px;margin-top:12px;padding:15px;resize:vertical;border:1px solid #d7af5880;border-radius:10px;background:#fff4df;color:#30133d;font:16px/1.6 system-ui;box-sizing:border-box}
 #announcementDialog .dialog-actions{flex-wrap:wrap}
-#announcementStatus{font-size:13px;color:#f2d38b}
+#announcementCopyStatus{font-size:13px;color:#f2d38b}

@@ -40,4 +40,6 @@ El ancla actual deriva del menor id de inscripción; ante reinicio o borrado del
 
 
 ## Anuncio para grupos
-Después de confirmar las entregas se abre automáticamente un anuncio con nombre y **cartón nuevo asignado**, en PNG vertical 1080 × 1350. Solo incluye entregas confirmadas, hasta ocho por imagen; diez destinatarios generan dos páginas. No incluye cédulas, teléfonos ni datos bancarios. Se puede descargar o usar el selector nativo de compartir cuando el dispositivo lo admite, sin envío automático a grupos. El botón “Ver anuncio” permite recuperarlo; también está en resultados del historial. El anuncio no genera ni repite asignaciones.
+Después de confirmar las entregas se abre un anuncio de texto con el botón «Copiar anuncio». Cada persona tiene su bloque con 🎊, nombre y cartón nuevo asignado; indica que fueron asignados al azar y que ya pueden consultarlos en «Verificar tu compra». Solo incluye entregas confirmadas; no incluye cédulas, teléfonos ni datos bancarios. Hay botones de copia directa en el sorteo y en resultados del historial. Si el portapapeles no está disponible, permite seleccionar y copiar manualmente. No envía mensajes automáticamente. Sustituye el anuncio en imagen; conserva la exportación general de resultados existente.
+
+La asignación inserta la inscripción con estado `aprobado`, sin aprobación manual posterior. «Verificar tu compra» consulta las inscripciones con la cédula original y muestra los cartones asociados. Esto no simula una verificación bancaria de un regalo sin pago.
