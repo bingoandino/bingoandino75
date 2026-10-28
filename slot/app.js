@@ -1,3 +1,4 @@
+import {announcementPages,drawAnnouncement} from './award-announcement.js?v=1.0.14';
 import {pendingFreeWinners} from './award-rules.js?v=1.0.13';
 import {spinCylinder} from './spin-cylinder.js?v=1.0.7';
 import {uuid} from './uuid.js';
@@ -17,8 +18,8 @@ function appVisible(){ $('#authView').hidden=true;$('#appShell').hidden=false;$(
 function current(){return displaySession||session;}
 function data(){return current()?.winners||[];}
 function card(w,i,source=current()){const delivered=source?.awards?.find(a=>a.drawId===w.drawId);return '<article class="winner-card">'+(w.drawId&&!delivered?'<button type="button" class="remove-winner" data-remove-winner="'+esc(w.drawId)+'" data-session="'+esc(source.id)+'" aria-label="Eliminar ganador '+esc(w.name)+', cartón '+esc(w.ticket)+'" title="Eliminar ganador">×</button>':'')+'<div class="card-label">'+trophy+' GANADOR '+(i+1)+'</div><div class="winner-name">'+esc(w.name)+'</div><div class="winner-ticket">CARTÓN '+esc(w.ticket)+'</div><div class="prize-badge">'+esc(w.prize)+'</div>'+(delivered?'<div class="delivered-badge">🎁 Entregado: cartón '+esc(delivered.assignedTicket)+'</div>':'')+'</article>';}
-function renderResults(){const list=data(),pages=Math.max(1,Math.ceil(list.length/8));page=Math.max(0,Math.min(page,pages-1));$('#resultCount').textContent=session?.winners.length||0;$('#resultsIntro').textContent=current()?(demo?'Resultados de ejemplo · ':formatDate(current().createdAt)+' · ')+list.length+' ganadores':'Carga los aprobados y realiza el primer giro.';$('#winnerGrid').innerHTML=list.length?list.slice(page*8,page*8+8).map((w,i)=>card(w,page*8+i,current())).join(''):'<div class="empty results-empty">Aquí se verán los ganadores con nombre, cartón y premio.</div>';$('#pagination').hidden=pages<2;$('#pageCount').textContent=(page+1)+' de '+pages;$('#previousPage').disabled=page===0;$('#nextPage').disabled=page>=pages-1;$('#saveResults').disabled=!list.length;renderLive();}
-function renderLive(){const list=session?.winners||[];$('#liveCount').textContent=list.length;$('#liveIntro').textContent=demo?'Modo de ejemplo · Ningún resultado corresponde al sorteo real.':session?'Sesión del '+formatDate(session.createdAt)+' · '+list.length+' ganadores':'Los ganadores aparecerán al terminar cada giro.';$('#liveGrid').innerHTML=list.length?list.map((w,i)=>card(w,i,session)).join(''):'<div class="empty live-empty">Todavía no hay ganadores. El resultado de cada giro quedará visible aquí.</div>';$('#saveLive').disabled=$('#copyWinners').disabled=!list.length;$('#assignAwards').disabled=awardBusy||phase==='spinning'||!!pending||!session||(!pendingFreeWinners(session).length&&!(session.awards||[]).length);}
+function renderResults(){const list=data(),pages=Math.max(1,Math.ceil(list.length/8));page=Math.max(0,Math.min(page,pages-1));$('#resultCount').textContent=session?.winners.length||0;$('#resultsIntro').textContent=current()?(demo?'Resultados de ejemplo · ':formatDate(current().createdAt)+' · ')+list.length+' ganadores':'Carga los aprobados y realiza el primer giro.';$('#winnerGrid').innerHTML=list.length?list.slice(page*8,page*8+8).map((w,i)=>card(w,page*8+i,current())).join(''):'<div class="empty results-empty">Aquí se verán los ganadores con nombre, cartón y premio.</div>';$('#pagination').hidden=pages<2;$('#pageCount').textContent=(page+1)+' de '+pages;$('#previousPage').disabled=page===0;$('#nextPage').disabled=page>=pages-1;$('#saveResults').disabled=!list.length;$('#announcementResults').hidden=!current()?.awards?.length;renderLive();}
+function renderLive(){const list=session?.winners||[];$('#liveCount').textContent=list.length;$('#liveIntro').textContent=demo?'Modo de ejemplo · Ningún resultado corresponde al sorteo real.':session?'Sesión del '+formatDate(session.createdAt)+' · '+list.length+' ganadores':'Los ganadores aparecerán al terminar cada giro.';$('#liveGrid').innerHTML=list.length?list.map((w,i)=>card(w,i,session)).join(''):'<div class="empty live-empty">Todavía no hay ganadores. El resultado de cada giro quedará visible aquí.</div>';$('#announcementLive').hidden=!session?.awards?.length;$('#saveLive').disabled=$('#copyWinners').disabled=!list.length;$('#assignAwards').disabled=awardBusy||phase==='spinning'||!!pending||!session||(!pendingFreeWinners(session).length&&!(session.awards||[]).length);}
 function renderParticipants(){const p=session?.participants||[],people=new Set(p.map(x=>x.personId)).size;$('#participantList').innerHTML=p.length?p.map(x=>'<div role="listitem"><b>'+esc(x.ticket)+'</b><span>'+esc(x.name)+'</span></div>').join(''):'<div>Sin cartones cargados.</div>';$('#ticketCount').textContent=p.length;$('#peopleCount').textContent=people;$('#extraCount').textContent=p.length-people;$('#listState').textContent=demo?'EJEMPLO':p.length?'APROBADOS':'SIN CARGAR';updateMode();}
 function updateMode(){const p=session?.participants||[],count=$('#uniquePerson').checked?new Set(p.map(x=>x.personId)).size:p.length;$('#modeLabel').textContent=p.length?count+($('#uniquePerson').checked?' personas · Una oportunidad por persona':' cartones · Una oportunidad por cartón'):'Carga los aprobados para comenzar';if(phase==='ready')$('#slotTicket').textContent=$('#uniquePerson').checked?'Cada persona, una oportunidad':'Cada cartón, una oportunidad';settings();}
 function updatePrizes(){document.querySelectorAll('[data-prize]').forEach(b=>{b.textContent=prizes[+b.dataset.prize];b.classList.toggle('active',+b.dataset.prize===selected);b.setAttribute('aria-pressed',+b.dataset.prize===selected)});if(phase==='ready')$('#slotPrize').textContent=prizes[selected];settings();}
@@ -95,9 +96,40 @@ async function assignAwards(){
   let r;
   if(demo){const used=new Set([...session.participants.map(p=>+p.ticket),...(session.awards||[]).map(a=>+a.assignedTicket)]);const extra=pendingFreeWinners(session).map(w=>{let n=1;while(used.has(n))n++;used.add(n);return {drawId:w.drawId,name:w.name,personId:w.personId,winningTicket:w.ticket,assignedTicket:String(n),date:new Date().toISOString()};});session={...session,awards:[...(session.awards||[]),...extra]};r={session,preview:demoAwardPreview()};}
   else r=await api('assign-awards',{sessionId:awardSessionId});
-  session=r.session;historyCache=[];renderResults();showAwardPreview(r.preview);toast(demo?'Entrega simulada. No se registraron cartones reales.':'Cartones entregados y registrados con referencia 0000. Actualiza los aprobados en la app de pagos.');
+  session=r.session;historyCache=[];renderResults();showAwardPreview(r.preview);if(session.awards?.length){$('#awardDialog').close();openAnnouncement(session);}toast(demo?'Entrega simulada. No se registraron cartones reales.':'Cartones entregados y registrados con referencia 0000. Actualiza los aprobados en la app de pagos.');
  }catch(e){$('#awardStatus').textContent=e.message+' Puedes volver a abrir esta vista: una entrega registrada no se duplicará.';fail(e)}
  finally{awardBusy=false;$('#closeAwards').disabled=false;renderLive();}
 }
 $('#assignAwards').onclick=previewAwards;$('#confirmAwards').onclick=assignAwards;$('#closeAwards').onclick=()=>{if(!awardBusy)$('#awardDialog').close()};
 $('#awardDialog').addEventListener('cancel',e=>{if(awardBusy)e.preventDefault()});
+
+// The announcement uses confirmed assigned tickets, independently of the winning tickets.
+let announcementSource=null,announcementPage=0,announcementParts=[],announcementRendering=false;
+async function openAnnouncement(source){
+ announcementParts=announcementPages(source);if(!announcementParts.length)return;
+ announcementSource=source;announcementPage=0;$('#announcementDialog').showModal();await renderAnnouncement();
+}
+async function renderAnnouncement(){
+ announcementRendering=true;$('#downloadAnnouncement').disabled=$('#shareAnnouncement').disabled=true;
+ $('#announcementPrevious').disabled=$('#announcementNext').disabled=true;
+ $('#announcementStatus').textContent='Preparando imagen…';
+ try{
+  await drawAnnouncement($('#announcementCanvas'),announcementParts[announcementPage],{date:formatDate(announcementSource.createdAt),example:demo,page:announcementPage+1,pages:announcementParts.length});
+  $('#announcementStatus').textContent='Imagen '+(announcementPage+1)+' de '+announcementParts.length+' · Cartones ya asignados';
+  $('#downloadAnnouncement').disabled=$('#shareAnnouncement').disabled=false;
+ }catch(e){$('#announcementStatus').textContent='No se pudo preparar la imagen. Cierra y vuelve a abrir el anuncio.';}
+ finally{announcementRendering=false;$('#announcementPrevious').disabled=announcementPage===0;$('#announcementNext').disabled=announcementPage===announcementParts.length-1;}
+}
+async function announcementFile(){
+ const blob=await new Promise(resolve=>$('#announcementCanvas').toBlob(resolve,'image/png'));
+ if(!blob)throw new Error('No se pudo generar la imagen.');
+ return new File([blob],'BingoAndino75_cartones_asignados_'+announcementSource.createdAt.slice(0,10)+'_'+(announcementPage+1)+'.png',{type:'image/png'});
+}
+function downloadAnnouncement(file){const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+$('#announcementLive').onclick=()=>openAnnouncement(session);
+$('#announcementResults').onclick=()=>openAnnouncement(current());
+$('#closeAnnouncement').onclick=()=>$('#announcementDialog').close();
+$('#announcementPrevious').onclick=()=>{if(!announcementRendering&&announcementPage>0){announcementPage--;renderAnnouncement();}};
+$('#announcementNext').onclick=()=>{if(!announcementRendering&&announcementPage<announcementParts.length-1){announcementPage++;renderAnnouncement();}};
+$('#downloadAnnouncement').onclick=async()=>{try{downloadAnnouncement(await announcementFile());toast('Imagen lista para publicar en tus grupos.');}catch(e){fail(e)}};
+$('#shareAnnouncement').onclick=async()=>{try{const file=await announcementFile();if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'Cartones gratis asignados · Bingo Andino 75'});}else{downloadAnnouncement(file);toast('Imagen descargada. Adjunta el archivo en tus grupos.');}}catch(e){if(e.name!=='AbortError')fail(e)}};

@@ -245,3 +245,9 @@ nav{max-width:100%}nav button{white-space:nowrap}nav button.nav-new{background:l
 .award-row{display:flex;flex-direction:column;gap:5px;padding:12px;margin:8px 0;background:#ffffff09;border:1px solid #dbba6344;border-radius:10px}
 .award-row span{font-size:14px}.award-row small{font-size:11px;color:#dccade}.award-row.assigned{border-color:#e6c577}
 #assignAwards{white-space:normal}
+
+#announcementDialog{width:min(650px,94vw);max-height:94dvh;overflow:auto}
+#announcementDialog h2{margin-top:0}
+#announcementCanvas{display:block;width:100%;height:auto;max-height:60dvh;object-fit:contain;border-radius:8px}
+#announcementDialog .dialog-actions{flex-wrap:wrap}
+#announcementStatus{font-size:13px;color:#f2d38b}

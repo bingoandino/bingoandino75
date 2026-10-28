@@ -38,3 +38,6 @@ No se ejecutó migración en producción ni se entregaron cartones reales al pre
 ## Límite deliberado
 El ancla actual deriva del menor id de inscripción; ante reinicio o borrado del registro mínimo se bloquea la entrega. Si se elimina manualmente un cartón de premio en el administrador, no se vuelve a entregar automáticamente: la marca histórica impide duplicarlo.
 
+
+## Anuncio para grupos
+Después de confirmar las entregas se abre automáticamente un anuncio con nombre y **cartón nuevo asignado**, en PNG vertical 1080 × 1350. Solo incluye entregas confirmadas, hasta ocho por imagen; diez destinatarios generan dos páginas. No incluye cédulas, teléfonos ni datos bancarios. Se puede descargar o usar el selector nativo de compartir cuando el dispositivo lo admite, sin envío automático a grupos. El botón “Ver anuncio” permite recuperarlo; también está en resultados del historial. El anuncio no genera ni repite asignaciones.
