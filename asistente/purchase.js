@@ -1,5 +1,5 @@
 import {SUPABASE_URL,PUBLIC_KEY} from '../slot/config.js';
-import {Assistant,norm} from './engine.js?v=20261028-real-2';
+import {Assistant,norm} from './engine.js?v=20261028-real-3';
 import {validateFile} from './files.js';
 const text=text=>({type:'text',text});
 export class PurchaseAPI{
