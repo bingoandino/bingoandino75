@@ -1,6 +1,7 @@
 import {validateFile} from './files.js';
-import {Assistant,CONFIG,money} from './engine.js?v=20261028-info-2';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-info-2';
+import {responderConsultaGeneral} from './generales-cliente.js?v=20261028-ia-general-1';
+import {Assistant,CONFIG,money} from './engine.js?v=20261028-ia-general-1';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-ia-general-1';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
@@ -31,8 +32,8 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
  content.append(el('time','time',time()));wrap.append(b);$('messages').append(wrap);scroll();return b;
 }
 function respond(messages){const epoch=generation;queue=queue.then(async()=>{if(epoch!==generation)return;$('typing').hidden=false;scroll();await new Promise(r=>setTimeout(r,380));if(epoch!==generation)return;$('typing').hidden=true;for(const message of messages)bubble(message);});return queue;}
-async function action(fn){if(busy||!conversation)return;busy=true;$('send').disabled=true;$('attach').disabled=true;$('reset').disabled=true;try{await respond(await fn());}catch(e){await respond([{type:'text',text:e.message||'No pudimos completar la solicitud. Revisa tu compra antes de volver a pagar.'}]);}finally{if(assistant?.state.step==='paused'){for(const button of document.querySelectorAll('.copy-all,.inline-button'))button.disabled=true;if($('catalog').open)$('catalog').close();}busy=false;$('send').disabled=false;$('attach').disabled=false;$('reset').disabled=false;}}
-function send(){const input=$('input'),value=input.value.trim();if(!value||busy||!conversation)return;input.value='';input.style.height='auto';bubble({type:'text',text:value},true);action(()=>conversation.receive(value));input.focus();}
+async function action(fn){if(busy||!conversation)return;busy=true;$('typing').hidden=false;$('send').disabled=true;$('attach').disabled=true;$('reset').disabled=true;try{await respond(await fn());}catch(e){await respond([{type:'text',text:e.message||'No pudimos completar la solicitud. Revisa tu compra antes de volver a pagar.'}]);}finally{if(assistant?.state.step==='paused'){for(const button of document.querySelectorAll('.copy-all,.inline-button'))button.disabled=true;if($('catalog').open)$('catalog').close();}busy=false;$('typing').hidden=true;$('send').disabled=false;$('attach').disabled=false;$('reset').disabled=false;}}
+function send(){const input=$('input'),value=input.value.trim();if(!value||busy||!conversation)return;input.value='';input.style.height='auto';bubble({type:'text',text:value},true);action(async()=>{const general=await responderConsultaGeneral(value,assistant.state.step);return general??conversation.receive(value);});input.focus();}
 $('composer').onsubmit=e=>{e.preventDefault();send();};
 $('input').oninput=()=>{const input=$('input');input.style.height='auto';input.style.height=Math.min(input.scrollHeight,125)+'px';};
 $('attach').onclick=()=>$('attachment').click();
