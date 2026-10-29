@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/pwa/icon-192.png">
+  <meta name="theme-color" content="#351044">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bingo Andino 75">
+  <script src="/instalar.js?v=20261029-1" defer></script>
   <title>BingoAndino7- Juegos en línea y diversión</title>
    <link rel="icon" type="image/png" href="https://dbkixcpwirjwjvjintkr.supabase.co/storage/v1/object/public/1/bingo-andino75.png">
    <!-- ✅ Metaetiquetas SEO -->
@@ -69,6 +75,8 @@
     <button class="inicio-enlace" onclick="mostrarVentana('top-compradores')"><span class="inicio-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0ZM7 5H3v2a4 4 0 0 0 5 4M17 5h4v2a4 4 0 0 1-5 4M12 13v6M8 21h8M9 19h6"/></svg></span><span class="inicio-etiqueta">Top compradores</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
     <button class="inicio-enlace" onclick="mostrarSeccion('ganadores')"><span class="inicio-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7"/></svg></span><span class="inicio-etiqueta">Historial de ganadores</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
     <!-- Redes sociales y enlaces legales - pantalla de inicio -->
+    <button id="btnInstalarBingo" type="button" class="inicio-enlace" aria-controls="ayudaInstalarBingo" aria-expanded="false"><span aria-hidden="true">📲</span> <span class="inicio-etiqueta">Instálame</span><span class="inicio-flecha" aria-hidden="true">↓</span></button>
+    <div id="ayudaInstalarBingo" hidden role="status" style="padding:14px;text-align:left;color:#351044;background:#fff8e9;border:1px solid #cba45a;border-radius:14px;margin-bottom:12px"></div>
     <div id="redes-sociales" class="caja-redes-final">
       <div class="iconos-redes-final">
         <a href="https://wa.me/584247221608" target="_blank" rel="noopener noreferrer" title="WhatsApp">

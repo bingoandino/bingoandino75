@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Bingo Andino 75",
+  "short_name": "Bingo Andino 75",
+  "description": "Compra tus cartones, verifica tu compra y consulta los ganadores de Bingo Andino 75.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#351044",
+  "background_color": "#fffdf5",
+  "prefer_related_applications": false,
+  "icons": [
+    {"src": "/assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
