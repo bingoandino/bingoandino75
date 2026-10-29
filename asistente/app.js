@@ -31,7 +31,6 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
  }else if(message.type==='consult-options'){
  content=el('div','card-content consultation-options');b.append(content);
  for(const label of ['Consultar mi compra','Escribir a soporte','Volver al inicio']){const button=el('button','inline-button consultation-button',label);button.type='button';button.onclick=()=>{if(busy)return;bubble({type:'text',text:label},true);action(()=>consultas.receive(label));};content.append(button);}
- const correct=el('button','inline-button consultation-button','Corregir cédula');correct.type='button';correct.onclick=()=>{if(busy)return;action(()=>consultas.receive('corregir cedula'));};content.append(correct);
  }else if(message.type==='receipt'){
  content=el('div','card-content');b.append(content);const img=el('img','receipt-preview');img.src=message.url;img.alt='Capture del pago';content.append(img,el('span','receipt-label',message.name));
  }
