@@ -1405,7 +1405,7 @@ async function verListaAprobados() {
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}${item.origen_registro==='premio_slot'?'<br><small>🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small>🤖 Compra del bot</small>':''}</td>
+      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}${item.origen_registro==='premio_dinamica'?'<br><small>🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small>🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small>🤖 Compra del bot</small>':''}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.cedula || '')}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">
         ${escaparHTML(Array.isArray(item.cartones) ? item.cartones.join(', ') : '')}
@@ -2959,7 +2959,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
     const filtroOrigen = document.getElementById('filtroOrigenSlot')?.value || 'todos';
     tr.hidden = !coincideOrigenInscripcion(filtroOrigen,tr.dataset.origenRegistro);
     tr.innerHTML = `
-      <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small style="color:#64277f;font-weight:bold">🤖 Compra del bot</small>':''}</td>
+      <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_dinamica'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small style="color:#64277f;font-weight:bold">🤖 Compra del bot</small>':''}</td>
       <td>
         <a href="${buildWhatsAppLink(item.telefono, `Hola ${escaparHTML(item.nombre)}, te escribo de parte del equipo de bingoandino75.`)}"
            target="_blank" rel="noopener">
@@ -2973,7 +2973,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
         <span class="ref-text">${escaparHTML(item.referencia4dig || '')}</span>
         <button class="btn-accion btn-edit-ref" title="Editar">&#9998;</button>
       </td>
-      <td>${item.origen_registro==='premio_slot'?'🎁 Cartón gratis · Sin comprobante':`<a href="${escaparHTML(comprobanteURLSegura(item.comprobante))}" target="_blank"><img src="${escaparHTML(comprobanteURLSegura(item.comprobante))}" alt="Comp." loading="lazy"></a>`}</td>
+      <td>${['premio_slot','premio_dinamica'].includes(item.origen_registro)?'🎁 Cartón gratis · Sin comprobante':`<a href="${escaparHTML(comprobanteURLSegura(item.comprobante))}" target="_blank"><img src="${escaparHTML(comprobanteURLSegura(item.comprobante))}" alt="Comp." loading="lazy"></a>`}</td>
           <td class="pago-ganador-admin">
   <strong>${escaparHTML(item.pago_banco || 'Sin banco')}</strong><br>
   📱 ${escaparHTML(item.pago_telefono || 'Sin número')}<br>
