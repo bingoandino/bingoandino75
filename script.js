@@ -2049,10 +2049,33 @@ requestAnimationFrame(() => {
   }
 }
 
+// Conserva letras y emojis; elimina números también al pegar y al usar teclado móvil.
+function filtrarNumerosNombre(evento) {
+  const campo = evento.target;
+  if (campo?.id !== 'nombre' || evento.isComposing) return;
+  const valor = campo.value;
+  const sinNumeros = texto => texto.replace(/\p{N}\uFE0F?\u20E3?/gu, '');
+  const limpio = sinNumeros(valor);
+  if (limpio === valor) return;
+  const inicio = campo.selectionStart;
+  const fin = campo.selectionEnd;
+  campo.value = limpio;
+  if (inicio !== null && fin !== null) {
+    campo.setSelectionRange(sinNumeros(valor.slice(0, inicio)).length, sinNumeros(valor.slice(0, fin)).length);
+  }
+}
+document.addEventListener('input', filtrarNumerosNombre, true);
+document.addEventListener('compositionend', filtrarNumerosNombre, true);
+
 // Guardar datos del formulario
 function guardarDatosInscripcion() {
   const campoNombre = document.getElementById('nombre');
   const nombreCompleto = campoNombre.value.trim().replace(/\s+/g, ' ');
+  if (/\p{N}/u.test(nombreCompleto)) {
+    alert('El nombre y apellido no pueden contener números. Puedes usar letras y emojis.');
+    campoNombre.focus();
+    return;
+  }
   if (nombreCompleto.split(' ').filter(palabra => /\p{L}/u.test(palabra)).length < 2) {
     alert('Escribe tu nombre y apellido');
     campoNombre.focus();
