@@ -1,4 +1,4 @@
-import {createSpinPlan} from './spin-plan.js?v=1.0.16';
+import {createSpinPlan} from './spin-plan.js?v=1.0.17';
 /** Smooth cylindrical projection: text bends around a continuous curved surface. */
 export function spinCylinder(reel,{participants,winner,prize,duration=5000,reduced=false,onTick=()=>{}}){
  if(reduced)return Promise.resolve();
