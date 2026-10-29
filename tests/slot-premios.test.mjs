@@ -1,4 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {randomIndex,chooseWinner,assertSameSource,validateSnapshot,validatePrize} from '../supabase/functions/slot-premios/core.mjs';import {createHandler} from '../supabase/functions/slot-premios/handler.mjs';
+import {isConsolationPrize,consolationPool} from '../supabase/functions/slot-premios/round-rules.mjs';
 const owner='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5';
 const people=[{name:'Ana',personId:'a',ticket:'1'},{name:'Ana',personId:'a',ticket:'2'},{name:'Ana',personId:'a',ticket:'3'},{name:'Luis',personId:'b',ticket:'4'}];
 test('one opportunity per person chooses among people then exact owned ticket',()=>{const sizes=[];const w=chooseWinner(people,[],{uniquePerson:true},n=>{sizes.push(n);return n-1});assert.deepEqual(sizes,[2,1]);assert.equal(w.name,'Luis');assert.equal(w.ticket,'4')});
@@ -6,7 +7,7 @@ test('exclusion removes all tickets belonging to prior winner only in person mod
 test('unbiased selection rejects the top incomplete range and invalid pools',()=>{let calls=0;assert.equal(randomIndex(3,a=>a[0]=calls++===0?4294967295:4),1);assert.equal(calls,2);assert.throws(()=>randomIndex(0))});
 test('changed source or withdrawn approval blocks drawing',()=>{assert.throws(()=>assertSameSource('1','2'));assert.throws(()=>assertSameSource('1',null));assert.throws(()=>validateSnapshot(people,people.slice(1)));assert.doesNotThrow(()=>validateSnapshot(people,[...people,{personId:'c',ticket:'5'}]));assert.throws(()=>validatePrize(' '));assert.equal(validatePrize(' 10 USD '),'10 USD')});
 function setup(){
- let state=null,mutations=[],anchor='80',user=owner,time=Date.parse('2026-10-27T18:00:00Z'),proof=null;
+ let state=null,mutations=[],anchor='80',user=owner,time=Date.parse('2026-10-27T18:00:00Z'),proof=null,rounds=[];
  const accesses=new Map(),sid='10000000-0000-4000-8000-000000000001',sid2='10000000-0000-4000-8000-000000000002';
  const registrations=[{id:80,nombre:'Ana',cedula:'V-123',cartones:[1,2]},{id:81,nombre:'Luis',cedula:'456',cartones:[4]}];
  const tokenFor=t=>['good','second','old','password'].includes(t)?'test.'+Buffer.from(JSON.stringify({sub:owner,role:'authenticated',session_id:t==='second'?sid2:sid,amr:[{method:t==='password'?'password':'otp',timestamp:Math.floor(Date.parse('2026-10-27T18:00:00Z')/1000)-(t==='old'?60:0)}]})).toString('base64url')+'.mock':t;
@@ -31,6 +32,7 @@ function setup(){
    if(b._confirm){state.state.awards=[...(state.state.awards||[]),...eligible.map((w,i)=>({drawId:w.drawId,name:w.name,winningTicket:w.ticket,assignedTicket:String(100+i)}))];state.version++;}
    return Response.json({pending:b._confirm?[]:pending,awards:state.state.awards||[],available:10,canAssign:pending.length>0&&!b._confirm});
   }
+  if(path==='/rest/v1/slot_rondas_excluidos'){assert.equal(options.method,'GET');return Response.json(q.get('source_anchor')==='eq.'+anchor?rounds:[]);}
   if(path==='/rest/v1/inscripciones'){assert.equal(options.method,'GET','purchases must only be read');return Response.json(q.get('select')==='id'?(anchor?[{id:anchor}]:[]):registrations);}
   if(path==='/rest/v1/slot_premios_sesiones'){
    if(options.method==='POST'){state={...JSON.parse(options.body),created_at:'2026-10-27T18:00:00Z',updated_at:'2026-10-27T18:00:00Z'};mutations.push('history:insert');return Response.json([structuredClone(state)])}
@@ -46,7 +48,7 @@ function setup(){
   if(token==='good'&&!proof){const p=await password();if(p.status!==200)return p;proof=p.body.passwordProof;const a=await raw({action:'authorize',passwordProof:proof});if(a.status!==200)return a;}
   return raw({...body,slotAccess:proof},token,origin);
  }
- return {call,raw,password,mutations,setAnchor:a=>anchor=a,setUser:u=>user=u,setTime:t=>time=t,getState:()=>structuredClone(state)};
+ return {call,raw,password,mutations,registrations,setRounds:r=>rounds=r,setAnchor:a=>anchor=a,setUser:u=>user=u,setTime:t=>time=t,getState:()=>structuredClone(state)};
 }
 test('API rejects unauthenticated and nonadmin users before reading data',async()=>{const f=setup();assert.equal((await f.call({action:'load'},'bad')).status,401);f.setUser('someone-else');assert.equal((await f.call({action:'load'})).status,403);assert.deepEqual(f.mutations,[])});
 test('API loads only approvals, returns no cedula, and persists only isolated history',async()=>{const f=setup(),r=await f.call({action:'load'});assert.equal(r.status,200);assert.equal(r.body.session.participants.length,3);assert.equal(JSON.stringify(r.body).includes('cedula'),false);assert.deepEqual(f.mutations,['history:insert']);assert.notEqual(r.body.session.participants[0].personId,'123')});
@@ -123,4 +125,32 @@ test('award API derives owner and sources on server, previews only free-card win
  assert.equal(JSON.stringify(a.body).includes('cedula'),false);
  assert.equal((await f.call({action:'remove-winner',sessionId:s.id,drawId:free.drawId})).status,409);
  assert.equal((await f.call({action:'assign-awards',sessionId:s.id})).body.session.awards.length,1);
+});
+
+test('round exclusions apply to every ticket/person and cannot be bypassed by repetition or ticket mode; all tied round winners included',async()=>{
+ for(const uniquePerson of [true,false]){
+ const f=setup();f.registrations.push({id:82,nombre:'Mara',cedula:'789',cartones:[5,6]});
+ f.setRounds([{fecha:'2026-10-29',enviados_en:'2026-10-29T20:00:00Z',ganadores:[{name:'Ana',cedula:'123',ticket:'1',round:1,type:'ronda'},{name:'Luis',cedula:'456',ticket:'4',round:1,type:'ronda'}]}]);
+ const s=(await f.call({action:'load'})).body.session;
+ const req={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson,excludeWinners:false};
+ const r=await f.call(req);assert.equal(r.status,200);assert.equal(r.body.winner.name,'Mara');assert.equal(r.body.session.roundExclusions.winners.length,2);assert.equal(r.body.winner.roundsSent,true);assert.ok(!JSON.stringify(r.body).includes('cedula'));
+ const retry=await f.call(req);assert.equal(retry.body.winner.drawId,r.body.winner.drawId);
+ const gift=await f.call({...req,drawId:crypto.randomUUID(),prize:'1 cartón gratis'});assert.equal(gift.body.winner.name,'Ana');
+ }
+});
+test('missing rounds warn without preventing draw; list updated before next draw; empty eligible pool cannot select an excluded person',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session;
+ assert.equal((await f.call({action:'rounds',sessionId:s.id})).body.rounds.sent,false);
+ const req={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:false};
+ const first=await f.call(req);assert.equal(first.status,200);assert.equal(first.body.winner.roundsSent,false);
+ f.setRounds([{ganadores:[{name:'Ana',cedula:'123',ticket:'1',round:1,type:'ronda'}]}]);
+ assert.equal((await f.call({...req,drawId:crypto.randomUUID()})).body.winner.name,'Luis');
+ f.setRounds([{ganadores:[{name:'Ana',cedula:'123'},{name:'Luis',cedula:'456'}]}]);
+ assert.equal((await f.call({...req,drawId:crypto.randomUUID()})).status,400);
+ assert.equal((await f.raw({action:'rounds',sessionId:s.id})).status,401);
+});
+test('cash rule narrowly recognizes 10 USD and leaves edited noncash/free prizes unchanged',()=>{
+ for(const label of ['10 USD','10 usd',' $10 ','10$'])assert.equal(isConsolationPrize(label),true);
+ for(const label of ['1 cartón gratis','110 USD','10 cartones','20 USD'])assert.equal(isConsolationPrize(label),false);
+ const r={sent:true,winners:[{personId:'a'}]};assert.deepEqual(consolationPool(people,'10 USD',r),[people[3]]);assert.deepEqual(consolationPool(people,'1 cartón gratis',r),people);
 });
