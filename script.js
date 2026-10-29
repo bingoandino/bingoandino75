@@ -2081,9 +2081,17 @@ function guardarDatosInscripcion() {
     campoNombre.focus();
     return;
   }
+  const campoTelefono = document.getElementById('telefono');
+  const telefonoNormalizado = campoTelefono.value.replace(/[\s().+\-\u200B-\u200F\u2066-\u2069\uFEFF]/gu, '');
+  if (!/^\d{10,15}$/.test(telefonoNormalizado)) {
+    alert('Revisa tu teléfono de registro: escribe entre 10 y 15 dígitos, sin letras. Ejemplo: 04241234567.');
+    campoTelefono.focus();
+    return;
+  }
+  campoTelefono.value = telefonoNormalizado;
   campoNombre.value = nombreCompleto;
   usuario.nombre = nombreCompleto;
-  usuario.telefono = document.getElementById('telefono').value;
+  usuario.telefono = telefonoNormalizado;
   const cedulaNormalizada = document.getElementById('cedula').value.replace(/[.\s]/g, '').trim();
   if (!/^\d{5,12}$/.test(cedulaNormalizada)) { alert('Ingresa una cédula válida, solo números (puedes usar puntos).'); return; }
   document.getElementById('cedula').value = cedulaNormalizada;
@@ -2672,6 +2680,17 @@ async function enviarComprobante() {
       throw new Error('Debes completar primero los datos de inscripción');
     }
 
+    // Comprueba también datos recordados por versiones anteriores, antes de subir la imagen.
+    const telefonoNormalizado = String(usuario.telefono).replace(/[\s().+\-\u200B-\u200F\u2066-\u2069\uFEFF]/gu, '');
+    if (!/^\d{10,15}$/.test(telefonoNormalizado)) {
+      await mostrarVentana('inscripcion');
+      document.getElementById('telefono')?.focus();
+      throw new Error('Revisa tu teléfono de registro: escribe entre 10 y 15 dígitos, sin letras. Ejemplo: 04241234567. No vuelvas a pagar.');
+    }
+    usuario.telefono = telefonoNormalizado;
+    const campoTelefono = document.getElementById('telefono');
+    if (campoTelefono) campoTelefono.value = telefonoNormalizado;
+
     const referencia4dig = ReferenciaBancaria.ultimos4(document.getElementById('referencia4dig').value);
 const PagoBanco = document.getElementById('pago_banco').value.trim();
 const PagoTelefono = document.getElementById('pago_telefono').value.replace(/\D/g, '');
@@ -2828,11 +2847,20 @@ if (duplicados.length > 0) {
     }]);
 
     if (errorInsert) {
-      await supabase.rpc('rpc_liberar_reserva', {
-  _cedula: cedulaLimpia,
-  _partida_id: null
-});
-      throw new Error('Error guardando la inscripción');
+      // Mantén la reserva hasta su vencimiento para poder corregir o reintentar.
+      // Solo muestra mensajes de validación conocidos, nunca detalles internos de SQL.
+      const mensajes = {
+        'Revisa el teléfono': 'Revisa tu teléfono de registro: escribe entre 10 y 15 dígitos, sin letras.',
+        'Revisa nombre y cédula': 'Revisa tu nombre y cédula en el registro.',
+        'Revisa los datos de Pago Móvil': 'Revisa el banco, teléfono y cédula de tu Pago Móvil.',
+        'Referencia inválida': 'Revisa la referencia bancaria. Debe contener al menos 4 dígitos.',
+        'Un cartón no tiene una reserva vigente de esta pestaña': 'Tu reserva venció o pertenece a otra pestaña. Vuelve a seleccionar tus cartones.',
+        'Reserva de compra no válida': 'No se pudo confirmar tu reserva. Vuelve a seleccionar tus cartones.',
+        'Un cartón ya está registrado': 'Uno de tus cartones ya tiene una compra registrada. Consulta tu compra antes de reenviar.',
+        'Comprobante inválido': 'Selecciona un comprobante en formato JPG, PNG o WebP.',
+        'El comprobante no está disponible o no es válido': 'Revisa el comprobante: usa una imagen JPG, PNG o WebP de hasta 10 MB.'
+      };
+      throw new Error((mensajes[errorInsert.message] || 'No se pudo confirmar tu inscripción. Consulta tu compra antes de reenviar; si no aparece, contacta a soporte.') + ' No vuelvas a pagar.');
     }
 clearInterval(timerReserva);
     alert('Inscripción y comprobante enviados con éxito');
