@@ -2,3 +2,5 @@
 
 /* Lectura cómoda en el teléfono. */
 @media(max-width:650px){.bubble{font-size:16px;line-height:1.6}.header-name p{font-size:11px}.card-foot{font-size:11px;line-height:1.5}.data-line{font-size:13px}}
+
+.consultation-options{display:flex;flex-direction:column;gap:8px}.consultation-options .inline-button{min-height:48px;width:100%;font-size:1rem;white-space:normal}.consultation-options .time{align-self:flex-end}
