@@ -6,6 +6,7 @@
   const modoApp = window.matchMedia?.('(display-mode: standalone)');
   let instalada = Boolean(modoApp?.matches || navigator.standalone);
   let solicitud = null;
+  const accesoDirecto = window.location.pathname === '/instalar.html';
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function actualizar() {
     boton.hidden = instalada;
@@ -22,12 +23,18 @@
   }
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault(); solicitud = event; actualizar();
+    if (accesoDirecto && !instalada) {
+      ayuda.textContent = 'Toca “Instalar ahora” y confirma la instalación en tu teléfono. Necesitas internet para usar el bingo.';
+      ayuda.hidden = false;
+      boton.setAttribute('aria-expanded', 'true');
+    }
   });
   window.addEventListener('appinstalled', () => { instalada = true; solicitud = null; actualizar(); });
   modoApp?.addEventListener?.('change', event => { instalada = Boolean(event.matches || navigator.standalone); actualizar(); });
   boton.addEventListener('click', async () => {
     if (!solicitud) {
-      if (!ayuda.hidden) { ayuda.hidden = true; boton.setAttribute('aria-expanded', 'false'); }
+      if (accesoDirecto) instrucciones();
+      else if (!ayuda.hidden) { ayuda.hidden = true; boton.setAttribute('aria-expanded', 'false'); }
       else instrucciones();
       return;
     }
@@ -40,4 +47,5 @@
     finally { boton.disabled = false; }
   });
   actualizar();
+  if (accesoDirecto && !instalada) instrucciones();
 })();
