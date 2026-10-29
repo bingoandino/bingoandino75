@@ -27,6 +27,6 @@ export function createSpinPlan(participants,winner,duration,pick=randomIndex){
   rows.push(...deck.slice(0,finalIndex+5-rows.length));
  }
  const index=finalIndex+2;rows[index]=winner;
- if(people.length>1)for(const i of [index-1,index+1])if(person(rows[i])===person(winner))rows[i]=people.find(cards=>person(cards[0])!==person(winner))[0];
+ if(people.length>1)for(const i of [index-1,index+1])if(person(rows[i])===person(winner)){const alternatives=people.filter(cards=>person(cards[0])!==person(winner)),cards=alternatives[pick(alternatives.length)];rows[i]=cards[pick(cards.length)];}
  return {finalIndex,panel:i=>rows[Math.max(0,Math.min(rows.length-1,i+2))]};
 }
