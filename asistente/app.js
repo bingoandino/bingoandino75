@@ -1,4 +1,4 @@
-import {crearConsultasCompra,opcionesConsulta} from './consultas.js?v=20261029-consultas-1';
+import {crearConsultasCompra,opcionesConsulta} from './consultas.js?v=20261029-consultas-3';
 const consultas=crearConsultasCompra();
 import {validateFile} from './files.js';
 import {responderConsultaGeneral} from './generales-cliente.js?v=20261028-soporte-whatsapp-1';

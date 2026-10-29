@@ -52,3 +52,6 @@ test('peticiones concurrentes no duplican consultas',async()=>{
 });
 
 test('sí después del comprobante abre consulta y nunca cae en registro',async()=>{const c=crearConsultasCompra(()=>{throw Error();});c.proof();assert.match((await c.receive('sí'))[0].text,/solo tu cédula/);});
+
+test('cambiar de tema no se trata como cédula incorrecta ni dispara operaciones',async()=>{let calls=0;const c=crearConsultasCompra(()=>{calls++;throw Error();});await c.receive('Consultar mi compra');const out=await c.receive('Quiero comprar');assert.doesNotMatch(out[0].text,/Revisa la cédula/);assert.equal(calls,0);assert.equal(await c.receive('12345678'),null);});
+test('pregunta general sale de la consulta y deja responder al asistente general',async()=>{const c=crearConsultasCompra(()=>{throw Error();});await c.receive('Consultar mi compra');assert.equal(await c.receive('A qué hora transmiten?'),null);assert.equal(await c.receive('12345678'),null);});

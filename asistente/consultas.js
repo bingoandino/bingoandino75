@@ -1,3 +1,4 @@
+import {temaGeneral} from './generales.js?v=20261028-ia-general-2';
 import {SUPABASE_URL, PUBLIC_KEY} from '../slot/config.js';
 const text = text => ({type: 'text', text});
 const norm = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[¿?¡!.,;:]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -24,6 +25,12 @@ export function crearConsultasCompra(fetcher = (...args) => globalThis.fetch(...
       const lookup = /(?:consultar|verificar|revisar|buscar|estado de|donde esta|donde estan|ver)\b.*\b(?:compra|carton|cartones)\b|^(?:mi compra|mi carton|mis cartones)$/.test(n);
       if (!awaiting && (existing || lookup)) return begin();
       if (!awaiting) return proofChoice ? home() : null;
+      // Una pregunta general cambia de tema; nunca se interpreta como cédula.
+      if (temaGeneral(input)) {awaiting = false; return null;}
+      if (!/\d/.test(String(input)) && /\p{L}/u.test(String(input))) {
+        awaiting = false;
+        return [text('Dejamos la consulta de cédula 😊 Puedes consultar el estado de una compra o escribir a soporte.'), opcionesConsulta()];
+      }
       const cedula = cedulaConsulta(input);
       if (!cedula) return [text('Revisa la cédula 😊 Mándame solo ese número, sin nombre, teléfono ni referencia.'), opcionesConsulta()];
       if (busy || Date.now() - lastRequest < 3000) return [text('Espera unos segundos antes de volver a consultar 😊'), opcionesConsulta()];
