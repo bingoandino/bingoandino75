@@ -118,7 +118,11 @@ setTimeout(() => {
         const botonAdmin = document.getElementById('boton-admin-oculto');
         if (botonAdmin) {
           botonAdmin.style.display = 'inline-block';
-          alert('🔓 Botón Admin activado');
+          const accesos = document.getElementById('accesos-privados');
+          const botonCompras = document.getElementById('boton-compras-oculto');
+          if (accesos) accesos.style.display = 'flex';
+          if (botonCompras) botonCompras.style.display = 'inline-block';
+          alert('🔓 Accesos Admin y Compras activados');
         }
       }
     });
