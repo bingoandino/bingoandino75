@@ -2674,6 +2674,15 @@ function urlCartonWebP(numero) {
   return agregarVersionCacheUrl(urlBase);
 }
 // Una respuesta perdida no convierte una compra recibida en una compra fallida.
+function esperarEtapaCompra(crearOperacion, milisegundos, mensaje) {
+  let temporizador;
+  const limite = new Promise((_, reject) => {
+    temporizador = setTimeout(() => reject(new Error(mensaje)), milisegundos);
+  });
+  // No se reintenta una escritura: puede haberse guardado aunque no llegue su respuesta.
+  return Promise.race([Promise.resolve().then(crearOperacion), limite])
+    .finally(() => clearTimeout(temporizador));
+}
 window.estadoEnvioCompra = { fase: 'listo', compra: null, id: null };
 function actualizarBotonEnvioCompra() {
   const boton = document.getElementById('btnEnviarComprobante');
@@ -2698,6 +2707,16 @@ function mostrarEstadoEnvioCompra(confirmada) {
     : '⏳ Estamos comprobando si tu compra quedó registrada. No vuelvas a pagar ni selecciones otros cartones. Toca «Comprobar mi compra» o consulta con soporte.';
   const enlace = document.createElement('a'); enlace.href = '/?verificar=1'; enlace.textContent = 'Verificar mi compra';
   caja.append(mensaje, enlace);
+  if (confirmada) {
+    const formulario = document.querySelector('#pago .pago-box');
+    if (formulario) formulario.hidden = true;
+    const inicio = document.createElement('button'); inicio.type = 'button';
+    inicio.textContent = 'Volver al inicio'; inicio.onclick = () => mostrarVentana('bienvenida');
+    caja.appendChild(inicio);
+  }
+  caja.tabIndex = -1;
+  caja.focus({preventScroll: true});
+  caja.scrollIntoView?.({block: 'start', behavior: 'auto'});
   actualizarBotonEnvioCompra();
 }
 function confirmarEnvioCompra(id) {
@@ -2713,9 +2732,9 @@ async function comprobarEnvioCompra() {
   const compra = estado.compra;
   if (!compra) return false;
   try {
-    const { data, error } = await supabase.from('inscripciones')
+    const { data, error } = await esperarEtapaCompra(() => supabase.from('inscripciones')
       .select('id,cartones,referencia4dig,estado').eq('cedula', compra.cedula)
-      .in('estado', ['pendiente', 'aprobado']);
+      .in('estado', ['pendiente', 'aprobado']), 15000, 'No se pudo consultar la compra a tiempo');
     if (error || !Array.isArray(data)) throw new Error('Consulta no disponible');
     const recibida = data.find(fila => String(fila.referencia4dig) === compra.referencia4dig
       && Array.isArray(fila.cartones) && fila.cartones.length === compra.cartones.length
@@ -2731,6 +2750,7 @@ async function enviarComprobante() {
   const textoOriginal = boton.textContent;
   boton.disabled = true;
   boton.textContent = 'Cargando comprobante...';
+  let envioActivo = true;
 
   try {
     if (!usuario.nombre || !usuario.telefono || !usuario.cedula) {
@@ -2762,12 +2782,12 @@ guardarDatosPagoClienteAutomatico();
 if (!archivoOriginal) throw new Error('Debes subir un comprobante');
 
 // Convierte, verifica y reintenta antes de subir a Supabase.
-const resultadoComprobante = await prepararComprobanteSeguro(
+const resultadoComprobante = await esperarEtapaCompra(() => prepararComprobanteSeguro(
   archivoOriginal,
   mensaje => {
-    boton.textContent = mensaje;
+    if (envioActivo) boton.textContent = mensaje;
   }
-);
+), 30000, 'El comprobante tardó demasiado en prepararse. Selecciona una captura más pequeña e intenta de nuevo. No vuelvas a pagar.');
 
 const archivoFinal = resultadoComprobante.archivo;
 const extensionFinal = resultadoComprobante.extension;
@@ -2785,13 +2805,13 @@ const nombreArchivo =
 
 boton.textContent = 'Subiendo comprobante...';
 
-const { error: errorUpload } = await supabase.storage
+const { error: errorUpload } = await esperarEtapaCompra(() => supabase.storage
   .from('comprobantes')
   .upload(nombreArchivo, archivoFinal, {
     contentType: tipoFinal,
     upsert: false,
     cacheControl: '31536000'
-  });
+  }), 45000, 'No se pudo terminar de subir el comprobante. Revisa tu conexión e intenta enviarlo de nuevo. No vuelvas a pagar.');
 
 if (errorUpload) {
   throw new Error('Error subiendo comprobante: ' + errorUpload.message);
@@ -2817,10 +2837,10 @@ if (cartonesEnviar.length !== cantidadPermitida) {
 }
 
 // 1. Validar que esos cartones estén reservados por esta misma cédula
-const { data: reservas, error: errorReservas } = await supabase
+const { data: reservas, error: errorReservas } = await esperarEtapaCompra(() => supabase
   .from('cartones')
   .select('numero, cedula')
-  .in('numero', cartonesEnviar);
+  .in('numero', cartonesEnviar), 15000, 'No se pudieron comprobar tus cartones a tiempo. Revisa tu conexión. No vuelvas a pagar.');
 
 if (errorReservas) {
   throw new Error('No se pudieron validar tus cartones.');
@@ -2847,10 +2867,10 @@ if (faltantes.length > 0) {
 }
 
 // 2. Validar que no existan en otra inscripción pendiente/aprobada
-const { data: inscripcionesActivas, error: errorInscripciones } = await supabase
+const { data: inscripcionesActivas, error: errorInscripciones } = await esperarEtapaCompra(() => supabase
   .from('inscripciones')
   .select('id, nombre, cedula, cartones')
-  .in('estado', ['pendiente', 'aprobado']);
+  .in('estado', ['pendiente', 'aprobado']), 15000, 'No se pudo comprobar la disponibilidad a tiempo. Revisa tu conexión. No vuelvas a pagar.');
 
 if (errorInscripciones) {
   throw new Error('No se pudieron verificar cartones duplicados.');
@@ -2887,7 +2907,8 @@ if (duplicados.length > 0) {
 }
     window.estadoEnvioCompra.compra = { cedula: cedulaLimpia, referencia4dig, cartones: [...cartonesEnviar] };
     window.estadoEnvioCompra.fase = 'enviando';
-    const { data: compraId, error: errorInsert } = await supabase.from('inscripciones').insert([{
+    boton.textContent = 'Confirmando tu compra…';
+    const { data: compraId, error: errorInsert } = await esperarEtapaCompra(() => supabase.from('inscripciones').insert([{
       nombre: usuario.nombre,
       telefono: usuario.telefono,
       cedula: cedulaLimpia,
@@ -2903,7 +2924,7 @@ if (duplicados.length > 0) {
       usa_promo: !!promo,
       promo_desc: promo ? promo.descripcion : null,
       precio_unitario_bs: promo ? null : (precioPorCarton || 0) 
-    }]);
+    }]), 25000, 'La confirmación está tardando. Vamos a comprobar si recibimos tu compra.');
 
     if (errorInsert) {
       // Los rechazos explícitos de Postgres revierten toda la operación.
@@ -2938,6 +2959,7 @@ if (duplicados.length > 0) {
     }
     alert(err.message || 'Ocurrió un error inesperado');
   } finally {
+    envioActivo = false;
     boton.disabled = false;
     boton.textContent = textoOriginal;
     window.actualizarBotonEnvioCompra?.();
@@ -5235,4 +5257,5 @@ window.addEventListener('pagehide',()=>{
   else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
  }catch{/* An unavailable view bookmark never grants access. */}
 });
+
 
