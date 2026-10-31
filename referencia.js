@@ -1051,7 +1051,7 @@
         const anteriores=new Map(borrador.reservas.map(r=>[Number(r.numero),r.sello]));
         const validas=String(borrador.version)===String(versionCartones)?validar(consulta.filas,consulta.enviadas,seleccion,anteriores):new Map();
         aplicar(validas);
-        if(seleccion.some(n=>consulta.enviadas.has(n))){usuario.cartones=[];sellos.clear();vence=0;borrar();await abrir.call(global,'usuario');document.getElementById('consulta-cedula').value=cedula;avisar('Ya existe una compra enviada con estos cartones. Consulta su estado antes de volver a enviar o pagar.');return;}
+        if(seleccion.some(n=>consulta.enviadas.has(n))){usuario.cartones=[];sellos.clear();vence=0;borrar();await abrir.call(global,'usuario');document.getElementById('consulta-cedula').value=cedula;avisar('✅ Recibimos tu compra. Aquí puedes ver el estado de tu pago y tus cartones.');return;}
         const completa=numeros().length===cantidadPermitida&&vence>Date.now();
         await abrir.call(global,borrador.etapa==='inscripcion'?'inscripcion':completa&&borrador.etapa==='pago'?'pago':numeros().length?'cartones':'cantidad');
         pintarSeleccion();arrancarReloj();restaurando=false;guardar();caja.remove();
