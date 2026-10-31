@@ -1,5 +1,5 @@
 const ORIGINS=new Set(['https://bingoandino75.com','https://www.bingoandino75.com']);
-const ACTIONS=new Set(['panel','cliente','historial','reservar','liberar','registrar','resultado','equipo','upload']);
+const ACTIONS=new Set(['panel','cliente','historial','reservar','liberar','registrar','resultado','equipo','upload','selection-create','selection-owner-read','selection-owner-choose']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 async function jsonBounded(req,max){const reader=req.body?.getReader();if(!reader)throw Error('Solicitud vacía');const decoder=new TextDecoder();let size=0,text='';try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>max)throw Error('Solicitud demasiado grande');text+=decoder.decode(value,{stream:true})}return JSON.parse(text+decoder.decode())}finally{await reader.cancel().catch(()=>{})}}
 export function createHandler(env,fetcher=fetch){return async req=>{
@@ -12,10 +12,14 @@ export function createHandler(env,fetcher=fetch){return async req=>{
  const url=env('SUPABASE_URL'),key=env('SUPABASE_SERVICE_ROLE_KEY');
  if(!url||!key)return reply({error:'Servicio pendiente de configuración'},503);
  const serverHeaders={apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'};
- async function rpc(actor,action,data){const r=await fetcher(url+'/rest/v1/rpc/soporte_compras_backend',{method:'POST',headers:serverHeaders,body:JSON.stringify({_actor:actor,_accion:action,_datos:data}),signal:AbortSignal.timeout(20000),redirect:'error'});const d=await r.json();if(!r.ok)throw Object.assign(Error(d.message||'No se pudo completar la operación'),{status:d.code==='42501'?403:409});return d;}
+ async function rpc(actor,action,data,selection=false){const r=await fetcher(url+'/rest/v1/rpc/'+(selection?'soporte_seleccion_backend':'soporte_compras_backend'),{method:'POST',headers:serverHeaders,body:JSON.stringify({_actor:actor,_accion:action,_datos:data}),signal:AbortSignal.timeout(20000),redirect:'error'});const d=await r.json();if(!r.ok)throw Object.assign(Error(d.message||'No se pudo completar la operación'),{status:d.code==='42501'?403:409});return d;}
  try{
   const body=await jsonBounded(req,7300000);
   if(!body||Array.isArray(body)||typeof body!=='object')return reply({error:'Solicitud inválida'},400);
+  if(['selection-read','selection-choose'].includes(body.action)){
+   if(typeof body.token!=='string'||!/^[a-f0-9]{64}$/.test(body.token)||Object.keys(body).some(k=>!['action','token','numeros','revision'].includes(k))||JSON.stringify(body).length>3000)return reply({error:'Enlace de selección inválido'},400);
+   return reply(await rpc(null,body.action==='selection-read'?'leer':'elegir',{token:body.token,numeros:body.numeros,revision:body.revision},true));
+  }
   if(body.action==='login'){
    const email=String(body.email||'').trim().toLowerCase();
    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)return reply({error:'Revisa el correo'},400);
@@ -29,6 +33,8 @@ export function createHandler(env,fetcher=fetch){return async req=>{
   if(!auth.ok)return reply({error:'Tu acceso venció. Ingresa nuevamente.'},401);
   const user=await auth.json();if(!UUID.test(user.id||'')||!user.email_confirmed_at)return reply({error:'Debes verificar el correo'},403);
   const data={...body,actor_email:user.email};delete data.action;delete data.image;
+  if(body.action.startsWith('selection-'))return reply(await rpc(user.id,{'selection-create':'crear','selection-owner-read':'leer','selection-owner-choose':'elegir'}[body.action],data,true));
+  if(body.action==='reservar'&&body.selectionToken)return reply(await rpc(user.id,'reservar',{...data,token:body.selectionToken,revision:body.selectionRevision},true));
   if(body.action==='upload'){
    await rpc(user.id,'upload',data);
    if(!UUID.test(body.id||'')||typeof body.image!=='string'||body.image.length>7000000||!/^[A-Za-z0-9+/]*={0,2}$/.test(body.image))return reply({error:'Captura inválida'},400);
@@ -40,5 +46,5 @@ export function createHandler(env,fetcher=fetch){return async req=>{
    return reply({uploaded:true});
   }
   return reply(await rpc(user.id,body.action,data));
- }catch(e){const msg=String(e.message||'');const safe=/^(Acceso|Solo el administrador|No puedes|Revisa|Completa|El sorteo|El precio|La reserva|La solicitud|Las ventas|No hay|No se encontró|Un cartón|Esta gestión|Esta referencia|Adjunta|Precio no configurado)/.test(msg);return reply({error:safe?msg:'No se pudo confirmar la operación. Consulta la misma gestión antes de repetirla.'},e.status||503);}
+ }catch(e){const msg=String(e.message||'');const safe=/^(Acceso|Solo el administrador|No puedes|Revisa|Completa|El sorteo|El precio|La reserva|La solicitud|La selección|Las ventas|No hay|No se encontró|Un cartón|Esta gestión|Esta referencia|Adjunta|Precio no configurado|Enlace|Espera)/.test(msg);return reply({error:safe?msg:'No se pudo confirmar la operación. Consulta la misma gestión antes de repetirla.'},e.status||503);}
 };}
