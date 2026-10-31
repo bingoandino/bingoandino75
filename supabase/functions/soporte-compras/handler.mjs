@@ -1,4 +1,4 @@
-const ORIGINS=new Set(['https://bingoandino75.com','https://www.bingoandino75.com']);
+const ORIGINS=new Set(['https://bingoandino75.com','https://www.bingoandino75.com','https://soporte.bingoandino75.com','https://soporte-andino75.elis-j-garcia.chatgpt.site']);
 const ACTIONS=new Set(['panel','cliente','historial','reservar','liberar','registrar','resultado','equipo','upload','selection-create','selection-owner-read','selection-owner-choose']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 async function jsonBounded(req,max){const reader=req.body?.getReader();if(!reader)throw Error('Solicitud vacía');const decoder=new TextDecoder();let size=0,text='';try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>max)throw Error('Solicitud demasiado grande');text+=decoder.decode(value,{stream:true})}return JSON.parse(text+decoder.decode())}finally{await reader.cancel().catch(()=>{})}}
