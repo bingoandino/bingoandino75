@@ -19,11 +19,26 @@ let sesionActiva = false;
 const ultimoEstadoProcesado = new Map();
 const estadoEnProceso = new Set();
 
+async function solicitudEstadoAdmin(consulta) {
+  const controlador = new AbortController();
+  let temporizador;
+  const operacion = typeof consulta.abortSignal === 'function' ? consulta.abortSignal(controlador.signal) : consulta;
+  const limite = new Promise((_, reject) => {
+    temporizador = setTimeout(() => {
+      controlador.abort();
+      reject(new Error('La operación tardó demasiado. Pulsa Recargar para comprobar el estado antes de volver a intentarlo.'));
+    }, 15000);
+  });
+  try { return await Promise.race([Promise.resolve(operacion), limite]); }
+  finally { clearTimeout(temporizador); }
+}
+
 async function procesarEstadoUnaVez(id, fila, nuevoEstado, accion) {
-  const claveProceso = `${id}-${nuevoEstado}`;
+  const claveProceso = String(id);
 
   const estadoActualFila = fila?.dataset?.estadoActual || '';
-  const ultimoEstado = ultimoEstadoProcesado.get(id) || estadoActualFila;
+  // Una fila recargada prevalece sobre el estado guardado en esta pestaña.
+  const ultimoEstado = estadoActualFila || ultimoEstadoProcesado.get(id);
 
   // Si ya está en ese mismo estado, no hace nada
   if (ultimoEstado === nuevoEstado) {
@@ -38,21 +53,36 @@ async function procesarEstadoUnaVez(id, fila, nuevoEstado, accion) {
   }
 
   estadoEnProceso.add(claveProceso);
+  const botones = Array.from(fila?.querySelectorAll('.btn-accion') || []);
+  const previos = botones.map(boton => boton.disabled);
+  botones.forEach(boton => { boton.disabled = true; });
+  fila?.setAttribute('aria-busy', 'true');
+  let aviso = fila?.querySelector('.estado-operacion-admin');
+  if (fila && !aviso) {
+    aviso = document.createElement('small');aviso.className = 'estado-operacion-admin';
+    aviso.setAttribute('role', 'status');fila.lastElementChild?.appendChild(aviso);
+  }
+  if (aviso) aviso.textContent = ' Comprobando…';
 
   try {
     const ok = await accion();
 
-    if (ok !== false) {
+    if (ok === true) {
       ultimoEstadoProcesado.set(id, nuevoEstado);
 
       if (fila) {
         fila.dataset.estadoActual = nuevoEstado;
       }
     }
+    if (aviso) aviso.textContent = ok === true ? ' Guardado' : ' No se cambió el estado';
   } catch (error) {
     console.error('Error procesando estado:', error);
+    if (aviso) aviso.textContent = ' No se pudo confirmar el cambio';
+    alert('No se pudo confirmar el cambio. Revisa tu conexión y pulsa Recargar para comprobar el estado antes de intentarlo de nuevo.');
   } finally {
     estadoEnProceso.delete(claveProceso);
+    fila?.removeAttribute('aria-busy');
+    botones.forEach((boton, indice) => { boton.disabled = previos[indice]; });
   }
 }
 const CONFIG_OTP = {
@@ -3220,11 +3250,11 @@ async function aprobarInscripcion(id, fila) {
   if (!puedeCambiar) return false;
 
   // Buscar inscripción actual
-  const { data: actual, error: errorActual } = await supabase
+  const { data: actual, error: errorActual } = await solicitudEstadoAdmin(supabase
     .from('inscripciones')
     .select('cartones,nombre')
     .eq('id', id)
-    .single();
+    .single());
 
   if (errorActual || !actual) {
     alert('No se pudo verificar la inscripción');
@@ -3234,11 +3264,11 @@ async function aprobarInscripcion(id, fila) {
   const misCartones = (actual.cartones || []).map(String);
 
   // Buscar aprobados
-  const { data: aprobados, error: errorAprobados } = await supabase
+  const { data: aprobados, error: errorAprobados } = await solicitudEstadoAdmin(supabase
     .from('inscripciones')
     .select('id,nombre,cartones')
     .eq('estado', 'aprobado')
-    .neq('id', id);
+    .neq('id', id));
 
   if (errorAprobados) {
     alert('No se pudieron verificar duplicados');
@@ -3274,14 +3304,14 @@ async function aprobarInscripcion(id, fila) {
   }
 
   // Aprobar
-  const { error } = await supabase
+  const { data: guardada, error } = await solicitudEstadoAdmin(supabase
     .from('inscripciones')
     .update({ estado: 'aprobado' })
-    .eq('id', id);
+    .eq('id', id).select('id,estado').single());
 
-  if (error) {
+  if (error || !guardada || guardada.estado !== 'aprobado') {
     console.error(error);
-    alert('No se pudo aprobar');
+    alert('No se pudo confirmar la aprobación. Pulsa Recargar; si sigue pendiente, vuelve a entrar al administrador.');
     return false;
   }
 
@@ -3297,13 +3327,16 @@ async function aprobarInscripcion(id, fila) {
   return true;
 }
 async function confirmarCambioEstado(id, nuevoEstado) {
-  const { data } = await supabase
+  const { data, error } = await solicitudEstadoAdmin(supabase
     .from('inscripciones')
     .select('estado')
     .eq('id', id)
-    .single();
+    .single());
 
-  if (!data) return false;
+  if (error || !data) {
+    alert('No se pudo consultar esta compra. Pulsa Recargar; si continúa el problema, vuelve a entrar al administrador.');
+    return false;
+  }
 
   if (data.estado !== 'pendiente' && data.estado !== nuevoEstado) {
     return confirm(`Esta inscripción está ${data.estado}. ¿Seguro quieres cambiarla a ${nuevoEstado}?`);
@@ -5257,5 +5290,6 @@ window.addEventListener('pagehide',()=>{
   else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
  }catch{/* An unavailable view bookmark never grants access. */}
 });
+
 
 
