@@ -2732,8 +2732,9 @@ function mostrarEstadoEnvioCompra(confirmada) {
   }
   caja.replaceChildren();
   const mensaje = document.createElement('p');
+  const detalleEstado = ({aprobado:'Tu pago ya está verificado.',rechazado:'Esta compra está rechazada. Contacta a soporte para revisarla.'})[estado.compra?.estado] || 'Tu pago está pendiente de verificación.';
   mensaje.textContent = confirmada
-    ? `✅ Compra #${estado.id} recibida: ${estado.compra.cartones.length} cartones. Tu pago está pendiente de verificación. No necesitas enviarlo otra vez.`
+    ? `✅ ${estado.compra.reenvio ? 'Esta compra ya fue recibida' : 'Compra recibida'}. Compra #${estado.id}: ${estado.compra.cartones.length} cartones. ${detalleEstado} No necesitas enviarlo otra vez.`
     : '⏳ Estamos comprobando si tu compra quedó registrada. No vuelvas a pagar ni selecciones otros cartones. Toca «Comprobar mi compra» o consulta con soporte.';
   const enlace = document.createElement('a'); enlace.href = '/?verificar=1'; enlace.textContent = 'Verificar mi compra';
   caja.append(mensaje, enlace);
@@ -2749,9 +2750,13 @@ function mostrarEstadoEnvioCompra(confirmada) {
   caja.scrollIntoView?.({block: 'start', behavior: 'auto'});
   actualizarBotonEnvioCompra();
 }
-function confirmarEnvioCompra(id) {
+function confirmarEnvioCompra(resultado) {
   const estado = window.estadoEnvioCompra;
-  estado.fase = 'confirmada'; estado.id = Number(id);
+  const recibo = resultado && typeof resultado === 'object' ? resultado : {id: resultado};
+  if (Array.isArray(recibo.cartones)) estado.compra.cartones = recibo.cartones.map(Number);
+  estado.compra.estado = recibo.estado || 'pendiente';
+  estado.compra.reenvio = recibo.reenvio === true;
+  estado.fase = 'confirmada'; estado.id = Number(recibo.id);
   clearInterval(timerReserva);
   window.dispatchEvent(new CustomEvent('bingo:compra-confirmada'));
   mostrarEstadoEnvioCompra(true);
@@ -2769,7 +2774,7 @@ async function comprobarEnvioCompra() {
     const recibida = data.find(fila => String(fila.referencia4dig) === compra.referencia4dig
       && Array.isArray(fila.cartones) && fila.cartones.length === compra.cartones.length
       && compra.cartones.every(n => fila.cartones.map(Number).includes(Number(n))));
-    if (recibida) { confirmarEnvioCompra(recibida.id); return true; }
+    if (recibida) { confirmarEnvioCompra(recibida); return true; }
   } catch { /* Una consulta fallida nunca autoriza un nuevo envío. */ }
   estado.fase = 'incierta'; mostrarEstadoEnvioCompra(false); return false;
 }
@@ -2975,7 +2980,8 @@ if (duplicados.length > 0) {
       };
       throw new Error((mensajes[errorInsert.message] || 'No se pudo confirmar tu inscripción. Consulta tu compra antes de reenviar; si no aparece, contacta a soporte.') + ' No vuelvas a pagar.');
     }
-    if (!Number.isSafeInteger(Number(compraId)) || Number(compraId) < 1) {
+    const idConfirmado = compraId && typeof compraId === 'object' ? compraId.id : compraId;
+    if (!Number.isSafeInteger(Number(idConfirmado)) || Number(idConfirmado) < 1) {
       throw new Error('No se recibió la confirmación de compra');
     }
     confirmarEnvioCompra(compraId);
@@ -4073,21 +4079,26 @@ function normalizarNombre(s='') {
 }
 
 function solo4Digitos(s='') {
-  const t = String(s).replace(/\D+/g, '').slice(0,4);
+  const t = String(s).replace(/\D+/g, '').slice(-4);
   return /^\d{4}$/.test(t) ? t : '';
 }
 
-async function fetchAprobadosBasico() {
-  const { data, error } = await supabase
-    .from('inscripciones')
-    .select('id,nombre,cedula,telefono,cartones,referencia4dig')
-    .eq('estado','aprobado');
-  if (error) {
-    console.error('Error cargando aprobados:', error);
-    alert('No se pudieron cargar los aprobados.');
-    return [];
+async function fetchComprasParaDuplicados() {
+  const filas = [];
+  let ultimoId = 0;
+  // Paginar evita perder compras cuando se supera el límite de una consulta.
+  for (;;) {
+    const { data, error } = await solicitudEstadoAdmin(supabase.from('inscripciones')
+      .select('id,nombre,cedula,telefono,cartones,referencia4dig,estado')
+      .gt('id', ultimoId).order('id', { ascending: true }).limit(500));
+    if (error || !Array.isArray(data)) throw new Error('No se pudieron consultar todas las compras');
+    if (!data.length) return filas;
+    filas.push(...data);
+    const siguiente = Number(data[data.length - 1].id);
+    if (!Number.isSafeInteger(siguiente) || siguiente <= ultimoId) throw new Error('No se pudo completar la consulta');
+    ultimoId = siguiente;
+    if (data.length < 500) return filas;
   }
-  return data || [];
 }
 
 function renderDuplicadosAprobados(lista, tipoClave) {
@@ -4098,7 +4109,7 @@ function renderDuplicadosAprobados(lista, tipoClave) {
 
   if (!lista.length) {
     cont.innerHTML = `<p style="color:#4caf50;font-weight:600;">
-      No se encontraron duplicados por ${escaparHTML(tipoClave)} entre los aprobados.
+      No se encontraron duplicados por ${escaparHTML(tipoClave)} entre todas las compras.
     </p>`;
     return;
   }
@@ -4126,6 +4137,7 @@ function renderDuplicadosAprobados(lista, tipoClave) {
           return `
             <div class="persona-item">
               <strong>${escaparHTML(x.nombre || 'Sin nombre')}</strong><br>
+              <strong>${escaparHTML(({aprobado:'✅ Verificada',pendiente:'⏳ Pendiente de verificación',rechazado:'❌ Rechazada'})[x.estado] || '⏳ Sin verificar')}</strong><br>
               CI: ${escaparHTML(x.cedula || 'N/A')}
               ${x.telefono ? `<br>Tel: ${escaparHTML(x.telefono)}` : ''}
               ${carts ? `<br>Cartones: ${escaparHTML(carts)}` : ''}
@@ -4147,46 +4159,38 @@ function toggleDuplicado(id) {
   detalle.style.display =
     detalle.style.display === 'block' ? 'none' : 'block';
 }
-async function detectarDuplicadosAprobadosPorNombre() {
-  const rows = await fetchAprobadosBasico();
-  const mapa = new Map();
-  rows.forEach(r => {
-    const k = normalizarNombre(r.nombre);
-    if (!k) return;
-    if (!mapa.has(k)) mapa.set(k, []);
-    mapa.get(k).push(r);
-  });
-  
-  const duplicados = [];
-  const dupSet = new Set();
-  for (const [k, arr] of mapa.entries()) {
-    if (arr.length > 1) {
-      duplicados.push({ clave: k, items: arr });
-      dupSet.add(k);
-    }
-  }
-  
-  duplicados.sort((a,b) => (b.items.length - a.items.length) || a.clave.localeCompare(b.clave));
-  renderDuplicadosAprobados(duplicados, 'nombre');
+function detectarDuplicadosAprobadosPorNombre() {
+  return buscarDuplicadosAdmin('nombre');
 }
 
-async function detectarDuplicadosAprobadosPorReferencia() {
-  const rows = await fetchAprobadosBasico();
-  const mapa = new Map();
-  rows.forEach(r => {
-    const ref = solo4Digitos(r.referencia4dig);
-    if (!ref) return;
-    if (!mapa.has(ref)) mapa.set(ref, []);
-    mapa.get(ref).push(r);
-  });
-  
-  const duplicados = [];
-  for (const [ref, arr] of mapa.entries()) {
-    if (arr.length > 1) duplicados.push({ clave: ref, items: arr });
+function detectarDuplicadosAprobadosPorReferencia() {
+  return buscarDuplicadosAdmin('referencia');
+}
+
+async function buscarDuplicadosAdmin(tipoClave) {
+  const cont = document.getElementById('duplicadosAprobadosResultado');
+  const botones = ['btnDupNombreAprobados', 'btnDupReferenciaAprobados'].map(id => document.getElementById(id)).filter(Boolean);
+  if (botones.some(boton => boton.disabled)) return;
+  botones.forEach(boton => { boton.disabled = true; });
+  if (cont) cont.textContent = `Buscando duplicados por ${tipoClave} en todas las compras…`;
+  try {
+    const rows = await fetchComprasParaDuplicados();
+    const mapa = new Map();
+    rows.forEach(row => {
+      const clave = tipoClave === 'nombre' ? normalizarNombre(row.nombre) : solo4Digitos(row.referencia4dig);
+      if (!clave) return;
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push(row);
+    });
+    const duplicados = [...mapa].filter(([, items]) => items.length > 1).map(([clave, items]) => ({clave, items}));
+    duplicados.sort((a,b) => (b.items.length - a.items.length) || a.clave.localeCompare(b.clave));
+    renderDuplicadosAprobados(duplicados, tipoClave);
+  } catch (error) {
+    console.error('Error consultando duplicados:', error);
+    if (cont) cont.textContent = 'No se pudo completar la búsqueda. Vuelve a intentarlo; todavía no se han comprobado todas las compras.';
+  } finally {
+    botones.forEach(boton => { boton.disabled = false; });
   }
-  
-  duplicados.sort((a,b) => (b.items.length - a.items.length) || (a.clave.localeCompare(b.clave)));
-  renderDuplicadosAprobados(duplicados, 'referencia');
 }
 
 function imprimirLista() {
@@ -5290,6 +5294,7 @@ window.addEventListener('pagehide',()=>{
   else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
  }catch{/* An unavailable view bookmark never grants access. */}
 });
+
 
 
 
