@@ -1,7 +1,7 @@
 -- Reenvío accidental: misma cédula, últimos cuatro dígitos y archivo idéntico.
 -- El ETag lo calcula Storage; no se acepta una huella enviada por el navegador.
 -- La referencia 0000 queda excluida. Se conserva el RPC anterior para compatibilidad.
-create or replace function public.rpc_registrar_compra_idempotente(_compra jsonb)
+create or replace function bingo_security.registrar_compra_idempotente(_compra jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -64,6 +64,13 @@ begin
     'estado',existente.estado,'monto_bs',existente.monto_bs,'reenvio',false);
 end;
 $function$;
+revoke all on function bingo_security.registrar_compra_idempotente(jsonb) from public;
+grant execute on function bingo_security.registrar_compra_idempotente(jsonb) to anon,authenticated;
+
+-- El endpoint público solo delega; el acceso privilegiado queda en el esquema privado.
+create or replace function public.rpc_registrar_compra_idempotente(_compra jsonb)
+returns jsonb language sql security invoker set search_path = ''
+as $endpoint$ select bingo_security.registrar_compra_idempotente(_compra); $endpoint$;
 revoke all on function public.rpc_registrar_compra_idempotente(jsonb) from public;
 grant execute on function public.rpc_registrar_compra_idempotente(jsonb) to anon,authenticated;
 comment on function public.rpc_registrar_compra_idempotente(jsonb) is
