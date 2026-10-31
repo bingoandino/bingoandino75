@@ -9,7 +9,7 @@ function fixture(){
  w.estadoEnvioCompra={fase:'listo',compra:null,id:null};
  w.alert=msg=>w.aviso=msg;w.console.error=()=>{};
  w.eval(source.slice(source.indexOf('function guardarDatosInscripcion()'),source.indexOf('function confirmarCantidad()')));
- w.eval(source.slice(source.indexOf('async function enviarComprobante()'),source.indexOf('// ==================== fUNCIONES DE USUARIO')));
+ w.eval(source.slice(source.indexOf('// Una respuesta perdida'),source.indexOf('// ==================== fUNCIONES DE USUARIO')));
  return w;
 }
 test('normaliza formatos pegados y rechaza teléfonos inválidos antes de continuar',()=>{
@@ -39,3 +39,4 @@ test('un rechazo al registrar conserva reservas y explica el campo; oculta error
   }finally{w.close();}
  }
 });
+
