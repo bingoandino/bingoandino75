@@ -836,6 +836,7 @@
         }).finally(() => {
           pendiente = null;
           if (boton) { boton.disabled = deshabilitado; boton.textContent = texto; boton.removeAttribute('aria-busy'); }
+          global.actualizarBotonEnvioCompra?.();
         });
       return pendiente;
     };
@@ -889,7 +890,17 @@
         reservas:seleccion.map(numero => ({numero, sello:sellos.get(numero) || null})), etapa:document.querySelector('section:not(.oculto)')?.id || 'inscripcion'});
     }
     function borrar() { escribir(null); document.getElementById('retomar-compra')?.remove(); }
+    global.addEventListener('bingo:compra-confirmada', () => {
+      trabajando=false;envioIntentado=false;vence=0;sellos.clear();
+      global.clearTimeout(demora);global.clearInterval(reloj);reloj=null;
+      borrar();
+      for(const id of ['contadorReserva','contadorReservaSeleccion']) {
+        const nodo=document.getElementById(id);if(nodo)nodo.textContent='';
+      }
+      document.getElementById('avance-compra-estado')?.remove();
+    });
     function actualizarReloj() {
+      if (['confirmada','incierta'].includes(global.estadoEnvioCompra?.fase)) return;
       const restantes = vence ? Math.max(0, Math.ceil((vence - Date.now()) / 1000)) : null;
       for (const id of ['contadorReserva','contadorReservaSeleccion']) {
         const nodo = document.getElementById(id); if (!nodo) continue;
@@ -967,6 +978,7 @@
           const cedula=String(usuario.cedula || '').trim(), seleccion=numeros();
           if (!cedula || !seleccion.length) { sellos.clear(); vence=0; arrancarReloj(); guardar(); return false; }
           const {filas,enviadas}=await consultar(cedula,seleccion);
+          if (['confirmada','incierta'].includes(global.estadoEnvioCompra?.fase)) return false;
           if (String(usuario.cedula || '').trim() !== cedula) return false;
           // Si eligió otro cartón mientras llegaba la respuesta, comprobar la selección actual.
           if (numeros().join(',') !== seleccion.join(',')) continue;
@@ -979,7 +991,7 @@
     function programar() { global.clearTimeout(demora); demora=global.setTimeout(sincronizar,350); }
     for (const nombre of ['toggleCarton','seleccionarAleatorioSeguro']) {
       const original=global[nombre]; if (typeof original!=='function') continue;
-      global[nombre]=async function(...args) { const vacia=!numeros().length, inicio=Date.now(); const resultado=await original.apply(this,args); if(vacia && numeros().length){inicioLocal=inicio;vencida=false;} envioIntentado=false; trabajando=true; pintarSeleccion(); guardar(); programar(); return resultado; };
+      global[nombre]=async function(...args) { if(['enviando','incierta','confirmada'].includes(global.estadoEnvioCompra?.fase)){avisar('Comprueba la compra enviada antes de seleccionar otros cartones.');return;} const vacia=!numeros().length, inicio=Date.now(); const resultado=await original.apply(this,args); if(vacia && numeros().length){inicioLocal=inicio;vencida=false;} envioIntentado=false; trabajando=true; pintarSeleccion(); guardar(); programar(); return resultado; };
     }
     const cargar=global.cargarCartones;
     if(typeof cargar==='function') global.cargarCartones=async function(...args){const resultado=await cargar.apply(this,args);pintarSeleccion();return resultado;};
@@ -996,6 +1008,7 @@
     let envio=null;
     if(typeof enviar==='function') global.enviarComprobante=function(...args) {
       if(envio)return envio;
+      if (['confirmada','incierta'].includes(global.estadoEnvioCompra?.fase)) return global.comprobarEnvioCompra();
       const boton=document.getElementById('btnEnviarComprobante'), texto=boton?.textContent, deshabilitado=boton?.disabled;
       if(boton){boton.disabled=true;boton.textContent='Verificando reserva…';boton.setAttribute('aria-busy','true');}
       envio=(async()=>{
@@ -1004,7 +1017,7 @@
         enviando=true;envioIntentado=true;trabajando=true;guardar();
         try { return await enviar.apply(this,args); }
         finally { enviando=false;actualizarReloj(); }
-      })().finally(()=>{envio=null;if(boton){boton.disabled=deshabilitado;boton.textContent=texto;boton.removeAttribute('aria-busy');}});return envio;
+      })().finally(()=>{envio=null;if(boton){boton.disabled=deshabilitado;boton.textContent=texto;boton.removeAttribute('aria-busy');}global.actualizarBotonEnvioCompra?.();});return envio;
     };
     document.addEventListener('input', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
     document.addEventListener('change', evento=>{if(campos.includes(evento.target.id)){trabajando=true;guardar();}});
@@ -1129,5 +1142,6 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarHistorialCompra,{once:true});else instalarHistorialCompra();
 })(window);
+
 
 

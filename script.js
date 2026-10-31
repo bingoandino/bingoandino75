@@ -2673,7 +2673,60 @@ function urlCartonWebP(numero) {
   const urlBase = `${supabaseUrl}/storage/v1/object/public/cartones/${nombreCartonWebP(numero)}`;
   return agregarVersionCacheUrl(urlBase);
 }
+// Una respuesta perdida no convierte una compra recibida en una compra fallida.
+window.estadoEnvioCompra = { fase: 'listo', compra: null, id: null };
+function actualizarBotonEnvioCompra() {
+  const boton = document.getElementById('btnEnviarComprobante');
+  if (!boton) return;
+  const fase = window.estadoEnvioCompra?.fase;
+  if (fase === 'confirmada') { boton.hidden = true; boton.disabled = true; }
+  if (fase === 'incierta') { boton.disabled = false; boton.textContent = 'Comprobar mi compra'; }
+}
+function mostrarEstadoEnvioCompra(confirmada) {
+  const estado = window.estadoEnvioCompra;
+  let caja = document.getElementById('confirmacion-compra');
+  if (!caja) {
+    caja = document.createElement('div'); caja.id = 'confirmacion-compra';
+    caja.setAttribute('role', 'status'); caja.setAttribute('aria-live', 'polite');
+    caja.style.cssText = 'padding:18px;margin:12px 0;border:2px solid #d4af37;border-radius:12px;background:#fff8e7;color:#36144f';
+    document.getElementById('pago').prepend(caja);
+  }
+  caja.replaceChildren();
+  const mensaje = document.createElement('p');
+  mensaje.textContent = confirmada
+    ? `✅ Compra #${estado.id} recibida: ${estado.compra.cartones.length} cartones. Tu pago está pendiente de verificación. No necesitas enviarlo otra vez.`
+    : '⏳ Estamos comprobando si tu compra quedó registrada. No vuelvas a pagar ni selecciones otros cartones. Toca «Comprobar mi compra» o consulta con soporte.';
+  const enlace = document.createElement('a'); enlace.href = '/?verificar=1'; enlace.textContent = 'Verificar mi compra';
+  caja.append(mensaje, enlace);
+  actualizarBotonEnvioCompra();
+}
+function confirmarEnvioCompra(id) {
+  const estado = window.estadoEnvioCompra;
+  estado.fase = 'confirmada'; estado.id = Number(id);
+  clearInterval(timerReserva);
+  window.dispatchEvent(new CustomEvent('bingo:compra-confirmada'));
+  mostrarEstadoEnvioCompra(true);
+}
+async function comprobarEnvioCompra() {
+  const estado = window.estadoEnvioCompra;
+  if (estado.fase === 'confirmada') { mostrarEstadoEnvioCompra(true); return true; }
+  const compra = estado.compra;
+  if (!compra) return false;
+  try {
+    const { data, error } = await supabase.from('inscripciones')
+      .select('id,cartones,referencia4dig,estado').eq('cedula', compra.cedula)
+      .in('estado', ['pendiente', 'aprobado']);
+    if (error || !Array.isArray(data)) throw new Error('Consulta no disponible');
+    const recibida = data.find(fila => String(fila.referencia4dig) === compra.referencia4dig
+      && Array.isArray(fila.cartones) && fila.cartones.length === compra.cartones.length
+      && compra.cartones.every(n => fila.cartones.map(Number).includes(Number(n))));
+    if (recibida) { confirmarEnvioCompra(recibida.id); return true; }
+  } catch { /* Una consulta fallida nunca autoriza un nuevo envío. */ }
+  estado.fase = 'incierta'; mostrarEstadoEnvioCompra(false); return false;
+}
 async function enviarComprobante() {
+  if (['confirmada', 'incierta'].includes(window.estadoEnvioCompra?.fase)) return comprobarEnvioCompra();
+  if (window.estadoEnvioCompra?.fase === 'enviando') return;
   const boton = document.getElementById('btnEnviarComprobante');
   const textoOriginal = boton.textContent;
   boton.disabled = true;
@@ -2832,7 +2885,9 @@ if (duplicados.length > 0) {
   mostrarVentana('cartones');
   return;
 }
-    const { error: errorInsert } = await supabase.from('inscripciones').insert([{
+    window.estadoEnvioCompra.compra = { cedula: cedulaLimpia, referencia4dig, cartones: [...cartonesEnviar] };
+    window.estadoEnvioCompra.fase = 'enviando';
+    const { data: compraId, error: errorInsert } = await supabase.from('inscripciones').insert([{
       nombre: usuario.nombre,
       telefono: usuario.telefono,
       cedula: cedulaLimpia,
@@ -2851,6 +2906,9 @@ if (duplicados.length > 0) {
     }]);
 
     if (errorInsert) {
+      // Los rechazos explícitos de Postgres revierten toda la operación.
+      // Los errores de red se comprueban contra la compra antes de permitir continuar.
+      if (/^[0-9A-Z]{5}$/.test(errorInsert.code || '')) window.estadoEnvioCompra.fase = 'listo';
       // Mantén la reserva hasta su vencimiento para poder corregir o reintentar.
       // Solo muestra mensajes de validación conocidos, nunca detalles internos de SQL.
       const mensajes = {
@@ -2866,15 +2924,23 @@ if (duplicados.length > 0) {
       };
       throw new Error((mensajes[errorInsert.message] || 'No se pudo confirmar tu inscripción. Consulta tu compra antes de reenviar; si no aparece, contacta a soporte.') + ' No vuelvas a pagar.');
     }
-clearInterval(timerReserva);
-    alert('Inscripción y comprobante enviados con éxito');
-    location.reload();
+    if (!Number.isSafeInteger(Number(compraId)) || Number(compraId) < 1) {
+      throw new Error('No se recibió la confirmación de compra');
+    }
+    confirmarEnvioCompra(compraId);
   } catch (err) {
     console.error(err);
+    if (window.estadoEnvioCompra?.fase === 'confirmada') return;
+    if (window.estadoEnvioCompra?.fase === 'enviando') {
+      window.estadoEnvioCompra.fase = 'incierta';
+      await comprobarEnvioCompra();
+      return;
+    }
     alert(err.message || 'Ocurrió un error inesperado');
   } finally {
     boton.disabled = false;
     boton.textContent = textoOriginal;
+    window.actualizarBotonEnvioCompra?.();
   }
 }
 
@@ -5169,3 +5235,4 @@ window.addEventListener('pagehide',()=>{
   else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
  }catch{/* An unavailable view bookmark never grants access. */}
 });
+
