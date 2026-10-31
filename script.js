@@ -1405,7 +1405,7 @@ async function verListaAprobados() {
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}${item.origen_registro==='premio_dinamica'?'<br><small>🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small>🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small>🤖 Compra del bot</small>':''}</td>
+      <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.nombre || '')}${item.origen_registro==='premio_dinamica'?'<br><small>🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small>🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small>🤖 Compra del bot</small>':item.origen_registro==='soporte'?'<br><small>🧑‍💻 Compra de soporte</small>':''}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">${escaparHTML(item.cedula || '')}</td>
       <td style="border: 1px solid #ccc; padding: 8px;">
         ${escaparHTML(Array.isArray(item.cartones) ? item.cartones.join(', ') : '')}
@@ -3010,7 +3010,7 @@ cartonesOcupados = await fetchTodosLosOcupados();
     const filtroOrigen = document.getElementById('filtroOrigenSlot')?.value || 'todos';
     tr.hidden = !coincideOrigenInscripcion(filtroOrigen,tr.dataset.origenRegistro);
     tr.innerHTML = `
-      <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_dinamica'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small style="color:#64277f;font-weight:bold">🤖 Compra del bot</small>':''}</td>
+      <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_dinamica'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small style="color:#64277f;font-weight:bold">🤖 Compra del bot</small>':item.origen_registro==='soporte'?'<br><small style="color:#64277f;font-weight:bold">🧑‍💻 Compra de soporte</small>':''}</td>
       <td>
         <a href="${buildWhatsAppLink(item.telefono, `Hola ${escaparHTML(item.nombre)}, te escribo de parte del equipo de bingoandino75.`)}"
            target="_blank" rel="noopener">
@@ -5155,7 +5155,7 @@ console.log('✅ Sistema de sesión única configurado correctamente');
 function filtrarOrigenInscripciones(){const origen=document.getElementById('filtroOrigenSlot')?.value||'todos';document.querySelectorAll('#tabla-comprobantes tbody tr').forEach(tr=>{tr.hidden=!coincideOrigenInscripcion(origen,tr.dataset.origenRegistro);});}
 
 
-function coincideOrigenInscripcion(filtro,origen){return filtro==='todos'||(filtro==='compra'?(origen==='compra'||origen==='bot'):filtro===origen);}
+function coincideOrigenInscripcion(filtro,origen){return filtro==='todos'||(filtro==='compra'?(origen==='compra'||origen==='bot'||origen==='soporte'):filtro===origen);}
 
 // Keep the administrator's view in this tab without storing any new credentials.
 window.addEventListener('pagehide',()=>{
