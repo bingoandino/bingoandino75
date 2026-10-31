@@ -41,7 +41,7 @@
     const insertar=constructor.insert.bind(constructor);
     constructor.insert=function(...args){
      const filas=args[0];if(!Array.isArray(filas)||filas.length!==1)throw new Error('Envía una compra a la vez.');
-     const consulta=rpc('rpc_registrar_compra_segura',{_compra:filas[0]});
+     const consulta=rpc('rpc_registrar_compra_idempotente',{_compra:filas[0]});
      if(typeof consulta.setHeader!=='function')throw new Error('Actualiza la página para enviar la compra de forma segura.');
      return consulta.setHeader('x-bingo-reserva',token);
     };
@@ -1142,6 +1142,7 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',instalarHistorialCompra,{once:true});else instalarHistorialCompra();
 })(window);
+
 
 
 

@@ -3,7 +3,7 @@ const consultas=crearConsultasCompra();
 import {validateFile} from './files.js';
 import {responderConsultaGeneral} from './generales-cliente.js?v=20261028-soporte-whatsapp-1';
 import {Assistant,CONFIG,money} from './engine.js?v=20261028-ia-general-2';
-import {PurchaseAPI,Conversation} from './purchase.js?v=20261028-ia-general-2';
+import {PurchaseAPI,Conversation} from './purchase.js?v=20261031-reenvios-1';
 const $=id=>document.getElementById(id);let assistant=null,conversation=null,api=new PurchaseAPI(),busy=false,queue=Promise.resolve(),generation=0,selection=new Set(),objectURLs=[];
 const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=String(txt);return n;};
 function time(){return new Intl.DateTimeFormat('es-VE',{hour:'numeric',minute:'2-digit',timeZone:'America/Caracas'}).format(new Date());}
@@ -22,7 +22,7 @@ function bubble(message,user=false){const wrap=el('div','message'+(user?' user':
  }else if(message.type==='summary'){
  content=el('div','card-content');b.append(content);content.append(el('h3','summary-title','Vamos a revisar tus datos 📝'));const d=message.data;content.append(el('p','summary-group','Registro'));row(content,'Nombre',d.name);row(content,'Cédula',d.id);row(content,'Teléfono',d.phone);content.append(el('p','summary-group','Pago Móvil para recibir premios'));row(content,'Banco',d.bank);row(content,'Cédula',d.payId);row(content,'Teléfono',d.payPhone);
  }else if(message.type==='success'){
- content=el('div','card-content');b.append(content);content.append(el('div','success-icon','✓'),el('h3','success-text','Compra registrada'),el('span','state-badge','PENDIENTE DE VERIFICACIÓN'));
+ content=el('div','card-content');b.append(content);content.append(el('div','success-icon','✓'),el('h3','success-text',message.reenvio?'Esta compra ya fue recibida':'Compra registrada'),el('span','state-badge',({aprobado:'PAGO VERIFICADO',rechazado:'COMPRA RECHAZADA'})[message.estado]||'PENDIENTE DE VERIFICACIÓN'));
  row(content,'Cartones',message.quantity);row(content,'Total',money(message.total)+' Bs');pills(content,message.cards);content.append(el('p','card-foot','Participas cuando el pago esté aprobado.'));
  }else if(message.type==='catalog'){
  content=el('div','card-content');b.append(content);const button=el('button','inline-button','Ver cartones disponibles');button.onclick=()=>action(async()=>{await conversation.refresh();openCatalog();return [];});content.append(button);
@@ -53,3 +53,4 @@ async function boot(){try{const config=await api.config();assistant=new Assistan
 boot();
 
 setInterval(()=>{const foot=document.querySelector('.chat-foot');if(!conversation?.held||assistant?.state.submitted){foot.textContent='Asistente virtual · Compras pendientes de verificación';return;}const left=Math.max(0,Math.ceil((conversation.held.expires-Date.now())/1000));foot.textContent=left?`Reserva: ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')} · Completa el envío antes de vencer`:'Reserva vencida · Si ya pagaste, contacta a soporte';},1000);
+

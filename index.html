@@ -408,9 +408,12 @@
           <button onclick="ordenarPorCedula()" class="btn-sort">🔢 Cédula</button>
           <button onclick="ordenarPorReferencia()" class="btn-sort">#️⃣ Referencia</button>
            <button onclick="ordenarPendientesArriba()" class="btn-sort">⏳ Pendientes</button>
+          <button type="button" id="btnDupNombreAprobados" class="btn-sort">👤 Nombres duplicados</button>
+          <button type="button" id="btnDupReferenciaAprobados" class="btn-sort">#️⃣ Referencias duplicadas</button>
         </div>
       </div>
       
+      <div id="duplicadosAprobadosResultado" class="result-box" aria-live="polite"></div>
       <div class="table-wrapper">
         <label for="filtroOrigenSlot">Mostrar: </label><select id="filtroOrigenSlot" onchange="filtrarOrigenInscripciones()" style="margin:8px 0;padding:8px"><option value="todos">Todas las inscripciones</option><option value="compra">Compras (todas)</option><option value="bot">🤖 Compras del bot</option><option value="soporte">🧑‍💻 Compras de soporte</option><option value="premio_slot">🎁 Premios del slot</option></select><table id="tabla-comprobantes">
           <thead>
@@ -437,21 +440,7 @@
       </div>
     </div>
 
-    <div class="panel-section">
-      <div class="section-header">
-        <h3>🔍 Verificación de Duplicados</h3>
-      </div>
-      <div class="btn-group">
-        <button id="btnDupNombreAprobados" class="btn-admin">👤 Duplicados por Nombre</button>
-        <button id="btnDupReferenciaAprobados" class="btn-admin">#️⃣ Duplicados por Referencia</button>
-       
-      </div>
-      <div id="duplicadosAprobadosResultado" class="result-box"></div>
-      <div id="duplicadosResultado" class="result-box"></div>
-    </div>
-
-   
-
+    <div id="duplicadosResultado" class="result-box"></div>
     <div class="panel-section">
       <h3>✅ Lista de Aprobados</h3>
       <div id="listaAprobados" class="approved-list"></div>
@@ -720,8 +709,8 @@
 
 <script src="publicacion.js?v=20261025-ciruela-1-20261025-dorado-1"></script>
 <script src="jugar/acceso.js?v=20261026-real-1"></script>
-<script src="referencia.js?v=20261031-mensaje-compra-2"></script>
-<script src="script.js?v=20261031-aprobar-admin-3"></script>
+<script src="referencia.js?v=20261031-reenvios-1"></script>
+<script src="script.js?v=20261031-duplicados-reenvios-6"></script>
 
 <script src="enlaces-inicio.js?v=20261026-enlaces-1"></script>
 <script src="reset-key.js?v=20261026-correo-1"></script>
@@ -731,6 +720,7 @@
 <script src="asistente-widget.js?v=20261028-17"></script>
 </body>
 </html>
+
 
 
 
