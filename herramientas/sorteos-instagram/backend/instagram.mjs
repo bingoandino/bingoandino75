@@ -10,7 +10,7 @@ export function createInstagram(token, fetcher=fetch) {
     let data; try{data=await res.json();}catch{throw new InstagramError('Instagram devolvió una respuesta inválida.',502);}
     if (!res.ok || data.error) {
       const code = data.error?.code;
-      const message = code===190?'La conexión de Instagram venció. Debe renovarse.':code===10||code===200?'Meta no permitió leer estos comentarios. Hay que revisar los permisos.':code===4||code===613?'Instagram limitó temporalmente las consultas. Inténtalo más tarde.':'No se pudo consultar Instagram. Revisa la conexión y vuelve a cargar.';
+      const message = code===190?'La conexión de Instagram venció. Debe renovarse.':code===10||code===200?`Meta rechazó la consulta (código ${code}${Number.isInteger(data.error?.error_subcode)?`, subcódigo ${data.error.error_subcode}`:''}). Si continúa, verifica los permisos instagram_business_basic e instagram_business_manage_comments de @bingoandino75.`:code===4||code===613?'Instagram limitó temporalmente las consultas. Inténtalo más tarde.':'No se pudo consultar Instagram. Revisa la conexión y vuelve a cargar.';
       throw new InstagramError(message,502);
     }
     return data;
