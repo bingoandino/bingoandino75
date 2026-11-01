@@ -1,0 +1,11 @@
+
+.winner.has-photo-feature .trophy{display:none}
+.winner-avatar{width:124px;height:124px;border-radius:50%;border:5px solid #d7ad55;background:linear-gradient(145deg,#341554,#682f89);color:#fff5d7;box-shadow:0 8px 25px #4c1d6b2b,0 0 0 7px #f2e5be66;display:grid;place-items:center;overflow:hidden;margin:6px auto 22px;flex-shrink:0}
+.winner-avatar>span{font:800 62px/1 Manrope,sans-serif}.winner-avatar>img{width:100%;height:100%;object-fit:cover;display:block}
+.winner-avatar img[hidden],.winner-avatar span[hidden]{display:none}
+.winner-photo-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center;margin:10px 0 16px}
+.winner-photo-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.winner-photo-button,.winner-profile-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #d7bd91;background:#fffaed;color:#4b2969;border-radius:9px;padding:10px 12px;font-size:11px;font-weight:700;text-decoration:none}
+.winner-photo-button:hover,.winner-profile-link:hover{background:#f6e8c6}
+.winner-photo-error{font-size:11px;color:#9a3939}
+@media(max-width:720px){.winner-avatar{width:112px;height:112px}.winner-avatar>span{font-size:54px}.winner-photo-actions{gap:8px}}
