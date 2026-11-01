@@ -524,8 +524,8 @@ async function loginAdmin() {
       // MANEJO DE ERRORES ESPECÍFICOS
       if (result.error === "SESION_ACTIVA_OTRO_DISPOSITIVO") {
         errorDiv.innerHTML = `
-          ⚠️ <strong>¡Ya hay 2 sesiones activas!</strong><br><br>
-          Se permiten hasta 2 dispositivos/navegadores al mismo tiempo.<br><br>
+          ⚠️ <strong>¡Ya hay 4 sesiones activas!</strong><br><br>
+          Se permiten hasta 4 dispositivos/navegadores al mismo tiempo.<br><br>
           <strong>Solución:</strong><br>
           1. Ve al otro dispositivo/navegador<br>
           2. Cierra sesión allí primero<br>
@@ -533,7 +533,7 @@ async function loginAdmin() {
         `;
         errorDiv.className = 'warning';
       } else if (result.error === "SESION_ACTIVA") {
-        errorDiv.innerHTML = '⚠️ Ya hay 2 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.';
+        errorDiv.innerHTML = '⚠️ Ya hay 4 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.';
         errorDiv.className = 'warning';
       } else {
         errorDiv.textContent = result.error || 'Error de autenticación';
