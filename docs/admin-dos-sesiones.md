@@ -1,9 +1,9 @@
-# Administrador: máximo dos sesiones
+# Administrador: máximo cuatro sesiones
 
-El administrador admite dos dispositivos/navegadores simultáneos. Una tercera sesión recibe HTTP 403 con instrucciones para cerrar manualmente una de las otras dos. Nunca se reemplaza ni cierra una sesión por un nuevo intento de acceso. Se conserva la caducidad de seguridad existente y la renovación por actividad de verify-session.
+El administrador admite cuatro dispositivos/navegadores simultáneos. Una quinta sesión recibe HTTP 403 con instrucciones para cerrar manualmente otra sesión. Ningún nuevo intento reemplaza ni cierra sesiones existentes. Se conserva la caducidad de seguridad y la renovación por actividad de verify-session.
 
-La RPC admin_abrir_sesion es SECURITY INVOKER y solo service_role puede ejecutarla, después de la validación del administrador en admin-auth. Un bloqueo transaccional por correo y dos posiciones únicas en base de datos impiden carreras de apertura. Cada dispositivo activo mantiene su token al repetir el acceso. El logout exige el token y el dispositivo, y cierra exclusivamente esa sesión.
+La RPC `admin_abrir_sesion` es SECURITY INVOKER y únicamente `service_role` puede ejecutarla después de la validación del administrador en `admin-auth`. El bloqueo transaccional por correo y las cuatro posiciones protegidas por un índice único impiden aperturas concurrentes por encima del límite. Cada dispositivo existente conserva su token al volver a iniciar. El cierre de sesión requiere token y dispositivo y afecta exclusivamente a esa sesión.
 
-La actualización conserva los tokens y las sesiones existentes; solo añade su posición. Se mantienen las restricciones originales para tipos distintos de admin. No modifica contraseñas, OTP, datos de compras ni el acceso independiente del slot. Publicación: aplicar admin-dos-sesiones.sql, desplegar admin-auth con verify_jwt=false (ya valida al administrador dentro del código) y publicar los mensajes de script.js.
+La ampliación de dos a cuatro se aplica mediante `supabase/admin-cuatro-sesiones.sql`. Conserva sesiones activas, tokens, contraseñas, OTP, datos de compras y las restricciones para otros tipos de sesión. La función `admin-auth` debe mantener `verify_jwt=false`, pues realiza la verificación explícita de credenciales y OTP. Actualizar además los avisos en `script.js`.
 
-Validación aislada: dos sesiones, rechazo de la tercera, renovación sin reemplazo, logout selectivo, aperturas concurrentes, imposibilidad de eludir las posiciones, permisos, rutas OTP y contraseña, y rechazo sin autenticación.
+Validaciones: límite SQL de 1 a 4, quinto intento bloqueado, logout selectivo, renovación sin reemplazo, permisos de RPC y acceso con OTP.
