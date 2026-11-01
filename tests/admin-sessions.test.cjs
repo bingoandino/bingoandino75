@@ -58,10 +58,10 @@ test('contraseña y OTP recientes permiten cuatro sesiones y bloquean la quinta'
   const h=edge(testClient(async(name,args)=>{assert.equal(name,'admin_abrir_sesion');try{return{data:await open(args._device_id,args._email,args._authentication)}}catch(error){return{error}}}),
     {ADMIN_EMAIL:TEST_EMAIL,ADMIN_PASSWORD_HASH_SALTED:TEST_SALT+':'+await testHash()});
   const call=async device=>{
-   const first=await h(new Request('https://example.test',{method:'POST',
+   const first=await h(new Request('https://example.test',{method:'POST',headers:{'cf-connecting-ip':'test-start-'+device},
     body:JSON.stringify({action:'verify_credentials',email:TEST_EMAIL,password:TEST_PW,deviceId:device})}));
    assert.equal(first.status,200);const {loginProof}=await first.json();
-   return h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+adminJwt()},
+   return h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+adminJwt(),'cf-connecting-ip':'test-otp-'+device},
     body:JSON.stringify({action:'create_session_otp',email:TEST_EMAIL,deviceId:device,loginProof})}));
   };
   assert.equal((await call('phone')).status,200);
@@ -75,10 +75,11 @@ test('rechaza JWT sin OTP, OTP viejo, prueba ausente o alterada',async()=>{
  let opens=0;
  const h=edge(testClient(async()=>{opens++;return{data:{sessionToken:'mock'}}}),
   {ADMIN_EMAIL:TEST_EMAIL,ADMIN_PASSWORD_HASH_SALTED:TEST_SALT+':'+await testHash()});
- const first=await h(new Request('https://example.test',{method:'POST',
+ const first=await h(new Request('https://example.test',{method:'POST',headers:{'cf-connecting-ip':'test-start-adversarial'},
   body:JSON.stringify({action:'verify_credentials',email:TEST_EMAIL,password:TEST_PW,deviceId:'pc'})}));
  assert.equal(first.status,200);const {loginProof}=await first.json();
- const attempt=(token,proof=loginProof)=>h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+token},
+ let requestNumber=0;
+ const attempt=(token,proof=loginProof)=>h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+token,'cf-connecting-ip':'test-adversarial-'+(++requestNumber)},
   body:JSON.stringify({action:'create_session_otp',email:TEST_EMAIL,deviceId:'pc',loginProof:proof})}));
  assert.equal((await attempt(adminJwt('password'))).status,401);
  assert.equal((await attempt(adminJwt('otp',Math.floor(Date.now()/1000)-3600))).status,401);
