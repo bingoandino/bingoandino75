@@ -391,13 +391,13 @@ serve(async (req: Request) => {
         sessionToken,
         expiresAt,
         deviceId: finalDeviceId,
-        message: "Sesión creada (máximo 2 activas)",
+        message: "Sesión creada (máximo 4 activas)",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    if(String((error as any)?.message||'').includes('SESION_ACTIVA:'))return new Response(JSON.stringify({error:'SESION_ACTIVA',message:'Ya hay 2 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.'}),{status:403,headers:{...corsHeaders,'Content-Type':'application/json'}});
+    if(String((error as any)?.message||'').includes('SESION_ACTIVA:'))return new Response(JSON.stringify({error:'SESION_ACTIVA',message:'Ya hay 4 sesiones activas. Cierra sesión manualmente en uno de los otros dispositivos para entrar aquí.'}),{status:403,headers:{...corsHeaders,'Content-Type':'application/json'}});
     console.error("Error en admin-auth:", error);
 
     const e: any = error || {};
