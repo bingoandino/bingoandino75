@@ -21,8 +21,8 @@ function edge(slug,user){let handler,writes=0,reads=0;let src=read('supabase/fun
 for(const slug of ['admin-auth','create-session','verify-session','update-session'])test(slug+': una petición sin un usuario administrador verificado no modifica sesiones',async()=>{
  for(const user of [null,{id:'00000000-0000-0000-0000-000000000001',email:'otro@example.invalid',email_confirmed_at:'2026-01-01'}]){const e=edge(slug,user);const r=await e.run({email:'owner@example.invalid',deviceId:'ficticio',action:'create_session_otp'},user?'jwt-ficticio':null);assert.equal(r.status,401);assert.equal(e.stats().writes,0);}
 });
-test('un administrador verificado sí puede crear su sesión interna después del OTP',async()=>{
- const e=edge('admin-auth',{id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email:'owner@example.invalid',email_confirmed_at:'2026-01-01'});const r=await e.run({email:'owner@example.invalid',deviceId:'ficticio',action:'create_session_otp'},'jwt-ficticio');assert.equal(r.status,200);assert.equal(e.stats().writes,1);
+test('un JWT de administrador sin prueba de contraseña y OTP reciente no crea sesión',async()=>{
+ const e=edge('admin-auth',{id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email:'owner@example.invalid',email_confirmed_at:'2026-01-01'});const r=await e.run({email:'owner@example.invalid',deviceId:'ficticio',action:'create_session_otp'},'jwt-ficticio');assert.equal(r.status,401);assert.equal(e.stats().writes,0);
 });
 test('la credencial de reserva se añade al RPC y al envío sin cambiar lecturas ni publicarla en la URL',async()=>{
  const w=new JSDOM('',{runScripts:'outside-only',url:'https://example.test'}).window;const requests=[];
