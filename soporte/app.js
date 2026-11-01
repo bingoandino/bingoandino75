@@ -1,7 +1,7 @@
 import {SUPABASE_URL as BASE,PUBLIC_KEY} from '../slot/config.js';
 const $=id=>document.getElementById(id),AUTH='ba75-soporte-auth',PENDING='ba75-soporte-pending';
 const BANKS=[['0102','Venezuela'],['0104','Venezolano de Crédito'],['0105','Mercantil'],['0108','Provincial'],['0114','Bancaribe'],['0115','Exterior'],['0128','Caroní'],['0134','Banesco'],['0137','Sofitasa'],['0138','Plaza'],['0146','Bangente'],['0151','BFC'],['0156','100% Banco'],['0157','DelSur'],['0163','Tesoro'],['0166','Agrícola'],['0168','Bancrecer'],['0169','Mi Banco'],['0171','Activo'],['0172','Bancamiga'],['0173','BNC'],['0174','Banplus'],['0175','Bicentenario'],['0177','Banfanb'],['0178','N58'],['0191','BNC (0191)']];
-let auth=null,pending=null,panel=null,busy=false,codeSent=false,receipt=null,previewURL,refreshing,resendAfter=0;
+let auth=null,pending=null,panel=null,busy=false,codeSent=false,receipt=null,previewURL,refreshing,resendAfter=0,reserveError='';
 function savedAuth(){let local=null,tab=null;try{local=JSON.parse(localStorage.getItem(AUTH)||'null')}catch{}try{tab=JSON.parse(sessionStorage.getItem(AUTH)||'null')}catch{}const valid=x=>x&&typeof x.access_token==='string'&&typeof x.refresh_token==='string'&&Number.isFinite(x.expires_at);return [local,tab].filter(valid).sort((a,b)=>b.expires_at-a.expires_at)[0]||null;}
 function persistAuth(){for(const name of ['localStorage','sessionStorage'])try{const storage=window[name];if(auth)storage.setItem(AUTH,JSON.stringify(auth));else storage.removeItem(AUTH);}catch{}}
 auth=savedAuth();if(auth)persistAuth();try{pending=JSON.parse(sessionStorage.getItem(PENDING)||'null')}catch{}
@@ -12,11 +12,40 @@ async function authCall(path,body){const r=await fetch(BASE+'/auth/v1/'+path,{me
 async function refreshAccess(force=false){if(!refreshing){const previous=auth?.access_token;const work=async()=>{auth=savedAuth()||auth;if(!auth)throw Object.assign(Error('Ingresa nuevamente'),{status:401});if(auth.expires_at>Date.now()+60000&&(!force||auth.access_token!==previous))return;try{remember(await authCall('token?grant_type=refresh_token',{refresh_token:auth.refresh_token}));}catch(e){if(e.status===400||e.status===401){auth=null;persistAuth();}throw e;}};refreshing=(navigator.locks?.request?navigator.locks.request('ba75-soporte-refresh',work):work()).finally(()=>refreshing=null);}await refreshing;}
 async function token(){if(!auth)throw Object.assign(Error('Ingresa nuevamente'),{status:401});if(auth.expires_at<Date.now()+60000)await refreshAccess();return auth.access_token;}
 async function api(action,data={},publicCall=false,retry=true){const t=publicCall?PUBLIC_KEY:await token();const r=await fetch(BASE+'/functions/v1/soporte-compras',{method:'POST',headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({action,...data}),signal:AbortSignal.timeout(40000),cache:'no-store'});const d=await r.json();if(r.status===401&&!publicCall&&retry){await refreshAccess(true);return api(action,data,false,false);}if(!r.ok)throw Object.assign(Error(d.error||'No se pudo completar la operación'),{status:r.status});return d;}
-async function run(work){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await work()}catch(e){status(e.name==='TimeoutError'?'No se pudo confirmar. Consulta la misma gestión antes de repetirla.':e.message)}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);sync();}}
+async function run(work){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await work()}catch(e){const message=e.name==='TimeoutError'?'No se pudo confirmar. Consulta la misma gestión antes de repetirla.':e.message;status(message);if(work===reserveFromPayment)reserveError=message;}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);sync();updateResend();}}
 function savePending(){if(pending)sessionStorage.setItem(PENDING,JSON.stringify(pending));else sessionStorage.removeItem(PENDING);}
 function money(n){return Number(n).toLocaleString('es-VE',{maximumFractionDigits:2})+' Bs';}
-function sync(){const g=pending?.gestion,has=!!pending;for(const id of ['cedula','cantidad','mode','numbers','search'])$(id).disabled=has||busy;$('reserve').disabled=has||busy||!panel?.abierto;$('showAvailable').disabled=has||busy;$('addNumber').disabled=has||busy;$('submit').disabled=!g||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()||busy||!!pending?.compra;$('reservation').hidden=!g||g.estado!=='reservado';$('pendingRecovery').hidden=!pending||!!receipt;const price=g?.precio??panel?.precio;$('total').textContent=price?money(price*(g?.cartones.length||Number($('cantidad').value)||0)):'— Bs';$('priceDetail').textContent=price?money(price)+' por cartón':'';if(g){$('tickets').replaceChildren(...g.cartones.map(n=>{const s=document.createElement('span');s.className='ticket';s.textContent=String(n).padStart(4,'0');return s;}));}const frozen=!!pending?.compra;for(const id of ['nombre','telefono','banco','referencia','differentPayer','pagoCedula','pagoTelefono','pagoBanco','proof'])$(id).disabled=frozen||busy;}
-function timer(){const g=pending?.gestion;if(!g)return;const sec=Math.max(0,Math.ceil((Date.parse(g.vence)-Date.now())/1000));$('countdown').textContent=sec?'Reserva: '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'Reserva vencida';if(!sec)$('submit').disabled=true;}
+function sync(){
+ const g=pending?.gestion,has=!!pending;
+ const ready=!!g&&g.estado==='reservado'&&Date.parse(g.vence)>Date.now();
+ const expired=!!g&&g.estado==='reservado'&&!ready;
+ const recovery=!!pending?.compra;
+ for(const id of ['cedula','cantidad','mode','numbers','search'])$(id).disabled=has||busy;
+ $('reserve').disabled=has||busy||!panel?.abierto;
+ $('showAvailable').disabled=has||busy;
+ $('addNumber').disabled=has||busy;
+ $('submit').disabled=!ready||busy||recovery;
+ $('reservation').hidden=!g||g.estado!=='reservado';
+ $('pendingRecovery').hidden=!pending||!!receipt;
+ const action=$('reserveAtPayment');
+ action.hidden=ready||recovery||!!receipt;
+ action.disabled=busy||!panel?.abierto;
+ action.textContent=expired?'Renovar reserva de cartones':has?'Recuperar reserva de cartones':'Reservar cartones para continuar';
+ const helper=$('reserveAtPaymentStatus');
+ helper.textContent=reserveError||(recovery?'Hay una compra en proceso. Pulsa «Consultar gestión pendiente» antes de repetirla.':
+ !panel?.abierto?'Las ventas están cerradas. No se puede registrar la compra.':
+ ready?'Cartones reservados. Finaliza la compra antes de que termine el contador de 5 minutos.':
+ expired?'La reserva de 5 minutos venció. Toca «Renovar reserva de cartones». Conservaremos los datos y comprobaremos los mismos cartones.':
+ has?'La reserva todavía no está confirmada. Pulsa «Recuperar reserva de cartones».':
+ 'Primero reserva los cartones. Pulsa el botón de abajo para activar «Revisar compra».');
+ const price=g?.precio??panel?.precio;
+ $('total').textContent=price?money(price*(g?.cartones.length||Number($('cantidad').value)||0)):'— Bs';
+ $('priceDetail').textContent=price?money(price)+' por cartón':'';
+ if(g){$('tickets').replaceChildren(...g.cartones.map(n=>{const s=document.createElement('span');s.className='ticket';s.textContent=String(n).padStart(4,'0');return s;}));}
+ const frozen=recovery;
+ for(const id of ['nombre','telefono','banco','referencia','differentPayer','pagoCedula','pagoTelefono','pagoBanco','proof'])$(id).disabled=frozen||busy;
+}
+function timer(){const g=pending?.gestion;if(!g)return;const sec=Math.max(0,Math.ceil((Date.parse(g.vence)-Date.now())/1000));$('countdown').textContent=sec?'Reserva: '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'Reserva vencida';if(!sec){$('submit').disabled=true;if($('reserveAtPayment').hidden&&!pending?.compra)sync();}}
 setInterval(timer,1000);
 async function loadPanel(){panel=await api('panel');$('drawStatus').textContent=(panel.abierto?'Ventas abiertas':'Ventas cerradas')+' · '+money(panel.precio)+' por cartón';$('operator').textContent=panel.email;sync();}
 async function enter(){await loadPanel();$('login').hidden=true;$('app').hidden=false;$('sessionBar').hidden=false;if(pending)await recover();else if(selectionLink){restoreDraft(selectionLink.draft);await readShared();}}
@@ -74,9 +103,53 @@ $('mode').onchange=()=>{$('numbersField').hidden=$('mode').value!=='specific';};
 const draftIDs=['cedula','nombre','telefono','banco','cantidad','mode','numbers','referencia','pagoCedula','pagoTelefono','pagoBanco'];
 function draft(){return Object.fromEntries([...draftIDs.map(id=>[id,$(id).value]),['differentPayer',$('differentPayer').checked]]);}
 function restoreDraft(d){if(!d)return;for(const id of draftIDs)if(d[id]!=null)$(id).value=d[id];$('differentPayer').checked=!!d.differentPayer;updatePayer();$('mode').onchange();}
-$('reserve').onclick=()=>run(async()=>{for(const id of ['cedula','nombre','telefono','banco','cantidad'])if(!$(id).reportValidity())return;validateName();if(linkMatches())await readShared();let numbers=[];if($('mode').value==='specific'){if(!/^\s*\d+(?:\s*[,;\s]\s*\d+)*\s*$/.test($('numbers').value))throw Error('Escribe los números separados por comas');numbers=$('numbers').value.trim().split(/[,;\s]+/).map(Number);if(new Set(numbers).size!==numbers.length||numbers.length>Number($('cantidad').value))throw Error('Revisa los números repetidos y la cantidad');}pending={id:crypto.randomUUID(),draft:draft(),reserva:{cedula:$('cedula').value,cantidad:Number($('cantidad').value),numeros:numbers,anchor:panel.anchor,...(linkMatches()?{selectionToken:selectionLink.token,selectionRevision:sharedData.revision}:{})}};savePending();await reserveSame();});
-async function reserveSame(){let d;try{d=await api('reservar',{id:pending.id,...pending.reserva});}catch(e){if(e.status===409){pending=null;savePending();}throw e;}if(d.conflictos){pending=null;savePending();await loadPanel();throw Error('Estos cartones están ocupados: '+d.conflictos.join(', ')+'. Cámbialos y vuelve a reservar.');}pending.gestion=d.gestion;savePending();sync();timer();status('Cartones reservados durante 5 minutos. Adjunta el pago para continuar.');$('sharedSelectionStatus').textContent=selectionLink?'✓ Cartones reservados. El cliente verá la confirmación en su enlace.':'';}
-$('release').onclick=()=>run(async()=>{if(pending?.compra)throw Error('Consulta primero el resultado de esta compra');await api('liberar',{id:pending.id});pending=null;savePending();clearSelectionLink();await loadPanel();status('Reserva liberada. Puedes cambiar los cartones.');});
+async function startReserve(){
+ reserveError='';
+ for(const id of ['cedula','nombre','telefono','banco','cantidad'])if(!$(id).reportValidity()){reserveError='Completa los datos del cliente y la cantidad en los pasos 1 y 2.';return;}
+ validateName();
+ if(linkMatches())await readShared();
+ let numbers=[];
+ if($('mode').value==='specific'){
+   if(!/^\s*\d+(?:\s*[,;\s]\s*\d+)*\s*$/.test($('numbers').value))throw Error('Escribe los números separados por comas');
+   numbers=$('numbers').value.trim().split(/[,;\s]+/).map(Number);
+   if(new Set(numbers).size!==numbers.length||numbers.length>Number($('cantidad').value))throw Error('Revisa los números repetidos y la cantidad');
+ }
+ pending={id:crypto.randomUUID(),draft:draft(),reserva:{cedula:$('cedula').value,cantidad:Number($('cantidad').value),numeros:numbers,anchor:panel.anchor,...(linkMatches()?{selectionToken:selectionLink.token,selectionRevision:sharedData.revision}:{})}};
+ savePending();
+ await reserveSame();
+}
+$('reserve').onclick=()=>run(startReserve);
+async function reserveFromPayment(){
+ reserveError='';
+ if(pending?.compra){await recover();return;}
+ if(!panel)await loadPanel();
+ if(!panel?.abierto)throw Error('Las ventas están cerradas. No se puede reservar.');
+ if(!pending){await startReserve();return;}
+ if(!pending.gestion){
+   await recover();
+   if(!pending)await startReserve();
+   return;
+ }
+ const g=pending.gestion;
+ if(g.estado==='reservado'&&Date.parse(g.vence)>Date.now()){sync();return;}
+ if(g.estado!=='reservado'){
+   await recover();
+   if(!pending)await startReserve();
+   return;
+ }
+ const previousNumbers=[...g.cartones];
+ await api('liberar',{id:pending.id});
+ pending=null;savePending();
+ // Mantener los mismos cartones, sin cambiar números silenciosamente.
+ $('mode').value='specific';$('numbers').value=previousNumbers.join(', ');
+ $('mode').onchange();showRequested();
+ await loadPanel();
+ await startReserve();
+ if(pending?.gestion)status('Reserva renovada con los mismos cartones. Finaliza la compra antes de 5 minutos.');
+}
+$('reserveAtPayment').onclick=()=>run(reserveFromPayment);
+async function reserveSame(){let d;try{d=await api('reservar',{id:pending.id,...pending.reserva});}catch(e){if(e.status===409){pending=null;savePending();}throw e;}if(d.conflictos){pending=null;savePending();await loadPanel();throw Error('Estos cartones están ocupados: '+d.conflictos.join(', ')+'. Cámbialos y vuelve a reservar.');}pending.gestion=d.gestion;reserveError='';savePending();sync();timer();status('Cartones reservados durante 5 minutos. Adjunta el pago para continuar.');$('sharedSelectionStatus').textContent=selectionLink?'✓ Cartones reservados. El cliente verá la confirmación en su enlace.':'';}
+$('release').onclick=()=>run(async()=>{if(pending?.compra)throw Error('Consulta primero el resultado de esta compra');await api('liberar',{id:pending.id});pending=null;reserveError='';savePending();clearSelectionLink();await loadPanel();status('Reserva liberada. Puedes cambiar los cartones.');});
 function updatePayer(){const different=$('differentPayer').checked;$('payerFields').hidden=!different;for(const id of ['pagoCedula','pagoTelefono','pagoBanco'])$(id).required=different;}
 $('differentPayer').onchange=updatePayer;
 function validateName(){const name=$('nombre').value.trim().replace(/\s+/g,' ');if(/[\p{N}\p{Cc}<>]/u.test(name)||name.split(' ').filter(x=>/\p{L}/u.test(x)).length<2)throw Error('Escribe nombre y apellido, sin números');$('nombre').value=name;}
