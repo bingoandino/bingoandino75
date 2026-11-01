@@ -1,7 +1,7 @@
 import {SUPABASE_URL as BASE,PUBLIC_KEY} from '../slot/config.js';
 const $=id=>document.getElementById(id),AUTH='ba75-soporte-auth',PENDING='ba75-soporte-pending';
 const BANKS=[['0102','Venezuela'],['0104','Venezolano de Crédito'],['0105','Mercantil'],['0108','Provincial'],['0114','Bancaribe'],['0115','Exterior'],['0128','Caroní'],['0134','Banesco'],['0137','Sofitasa'],['0138','Plaza'],['0146','Bangente'],['0151','BFC'],['0156','100% Banco'],['0157','DelSur'],['0163','Tesoro'],['0166','Agrícola'],['0168','Bancrecer'],['0169','Mi Banco'],['0171','Activo'],['0172','Bancamiga'],['0173','BNC'],['0174','Banplus'],['0175','Bicentenario'],['0177','Banfanb'],['0178','N58'],['0191','BNC (0191)']];
-let auth=null,pending=null,panel=null,busy=false,codeSent=false,receipt=null,previewURL,refreshing;
+let auth=null,pending=null,panel=null,busy=false,codeSent=false,receipt=null,previewURL,refreshing,resendAfter=0;
 function savedAuth(){let local=null,tab=null;try{local=JSON.parse(localStorage.getItem(AUTH)||'null')}catch{}try{tab=JSON.parse(sessionStorage.getItem(AUTH)||'null')}catch{}const valid=x=>x&&typeof x.access_token==='string'&&typeof x.refresh_token==='string'&&Number.isFinite(x.expires_at);return [local,tab].filter(valid).sort((a,b)=>b.expires_at-a.expires_at)[0]||null;}
 function persistAuth(){for(const name of ['localStorage','sessionStorage'])try{const storage=window[name];if(auth)storage.setItem(AUTH,JSON.stringify(auth));else storage.removeItem(AUTH);}catch{}}
 auth=savedAuth();if(auth)persistAuth();try{pending=JSON.parse(sessionStorage.getItem(PENDING)||'null')}catch{}
@@ -20,8 +20,50 @@ function timer(){const g=pending?.gestion;if(!g)return;const sec=Math.max(0,Math
 setInterval(timer,1000);
 async function loadPanel(){panel=await api('panel');$('drawStatus').textContent=(panel.abierto?'Ventas abiertas':'Ventas cerradas')+' · '+money(panel.precio)+' por cartón';$('operator').textContent=panel.email;sync();}
 async function enter(){await loadPanel();$('login').hidden=true;$('app').hidden=false;$('sessionBar').hidden=false;if(pending)await recover();else if(selectionLink){restoreDraft(selectionLink.draft);await readShared();}}
-$('loginForm').onsubmit=e=>{e.preventDefault();run(async()=>{$('loginError').textContent='';try{if(!codeSent){const d=await api('login',{email:$('email').value.trim()},true);codeSent=true;$('email').readOnly=true;$('codeField').hidden=false;$('code').required=true;$('changeEmail').hidden=false;$('loginSubmit').textContent='Verificar código';$('loginError').textContent=d.message;$('code').focus();}else{const d=await authCall('verify',{email:$('email').value.trim().toLowerCase(),token:$('code').value.trim(),type:'email'});remember(d);await enter();$('code').value='';}}catch(e){$('loginError').textContent=e.message;throw e;}});};
-$('changeEmail').onclick=()=>{codeSent=false;$('email').readOnly=false;$('codeField').hidden=true;$('code').required=false;$('code').value='';$('changeEmail').hidden=true;$('loginSubmit').textContent='Enviar código';};
+function updateResend(){
+  const b=$('resendCode');if(!b)return;
+  b.hidden=!codeSent;
+  const seconds=Math.max(0,Math.ceil((resendAfter-Date.now())/1000));
+  b.disabled=busy||seconds>0;
+  b.textContent=seconds?'Reenviar código ('+seconds+' s)':'Reenviar código';
+}
+setInterval(updateResend,1000);
+async function sendLoginCode(){
+  const d=await api('login',{email:$('email').value.trim()},true);
+  if(d.sent!==true)throw Error('No se confirmó la solicitud de acceso');
+  codeSent=true;resendAfter=Date.now()+60000;
+  $('email').readOnly=true;$('codeField').hidden=false;$('code').required=true;
+  $('changeEmail').hidden=false;$('loginSubmit').textContent='Verificar código';
+  $('code').value='';
+  $('loginError').textContent='Solicitud recibida. Revisa tu correo y Spam. Por seguridad se permiten hasta 6 solicitudes por hora; si llegaste al límite, espera una hora antes de reenviar.';
+  $('code').focus();updateResend();
+}
+$('loginForm').onsubmit=e=>{
+  e.preventDefault();
+  run(async()=>{
+    $('loginError').textContent='';
+    try{
+      if(!codeSent)await sendLoginCode();
+      else{
+        const d=await authCall('verify',{email:$('email').value.trim().toLowerCase(),token:$('code').value.trim(),type:'email'});
+        remember(d);await enter();$('code').value='';
+      }
+    }catch(e){$('loginError').textContent=e.message;throw e;}
+  });
+};
+$('resendCode').onclick=()=>{
+  if(!codeSent||Date.now()<resendAfter||busy)return;
+  run(async()=>{
+    try{await sendLoginCode();}
+    catch(e){$('loginError').textContent=e.message;throw e;}
+  });
+};
+$('changeEmail').onclick=()=>{
+  codeSent=false;resendAfter=0;$('email').readOnly=false;
+  $('codeField').hidden=true;$('code').required=false;$('code').value='';
+  $('changeEmail').hidden=true;$('loginSubmit').textContent='Enviar código';
+  $('loginError').textContent='';updateResend();
+};
 $('logout').onclick=()=>run(async()=>{if(pending?.compra){status('Consulta primero la compra sin confirmar antes de salir.');return;}if(pending){await api('liberar',{id:pending.id});pending=null;savePending();}try{await fetch(BASE+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+await token()},signal:AbortSignal.timeout(10000)})}catch{}auth=null;clearSelectionLink();persistAuth();location.reload();});
 function normalizedPhone(s){let n=s.replace(/\D/g,'');if(n.startsWith('58'))n='0'+n.slice(2);if(n.length===10)n='0'+n;return n;}
 function normalizedBank(value){const raw=String(value||''),code=raw.match(/\b[0-9]{4}\b/)?.[0];if(BANKS.some(b=>b[0]===code))return code;const name=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const aliases=[['mercantil','0105'],['venezolano','0104'],['venezuela','0102'],['vzla','0102'],['banesco','0134'],['bancaribe','0114'],['provincial','0108'],['provicial','0108'],['bnc','0191']];return aliases.find(a=>name.includes(a[0]))?.[1]||BANKS.find(b=>name.includes(b[1].normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()))?.[0]||'';}
