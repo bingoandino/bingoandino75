@@ -1309,7 +1309,7 @@ async function verificarSesionInicial() {
   // Ocultar panel y login mientras se verifica
   document.getElementById('admin-panel')?.classList.add('oculto');
   document.getElementById('admin-login')?.classList.add('oculto');
-  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
+  if ((document.getElementById('ganadores')?.classList.contains('oculto') !== false && document.getElementById('premios-pagados')?.classList.contains('oculto') !== false)) document.getElementById('bienvenida')?.classList.remove('oculto');
 
   const sessionToken = sessionStorage.getItem('admin_session_token');
 
@@ -1366,7 +1366,7 @@ async function verificarSesionInicial() {
 
   document.getElementById('admin-login')?.classList.add('oculto');
   document.getElementById('admin-panel')?.classList.add('oculto');
-  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
+  if ((document.getElementById('ganadores')?.classList.contains('oculto') !== false && document.getElementById('premios-pagados')?.classList.contains('oculto') !== false)) document.getElementById('bienvenida')?.classList.remove('oculto');
 }
  } catch (error) {
   console.error('❌ Error verificando sesión inicial:', error);
@@ -1386,7 +1386,7 @@ async function verificarSesionInicial() {
 
   document.getElementById('admin-login')?.classList.add('oculto');
   document.getElementById('admin-panel')?.classList.add('oculto');
-  if (document.getElementById('ganadores')?.classList.contains('oculto') !== false) document.getElementById('bienvenida')?.classList.remove('oculto');
+  if ((document.getElementById('ganadores')?.classList.contains('oculto') !== false && document.getElementById('premios-pagados')?.classList.contains('oculto') !== false)) document.getElementById('bienvenida')?.classList.remove('oculto');
 }
 }
 // ==================== FUNCIONES FALTANTES QUE NECESITA EL HTML ====================
@@ -5294,6 +5294,7 @@ window.addEventListener('pagehide',()=>{
   else if(sesionActiva)sessionStorage.setItem('admin_vista_panel_v1','publica');
  }catch{/* An unavailable view bookmark never grants access. */}
 });
+
 
 
 
