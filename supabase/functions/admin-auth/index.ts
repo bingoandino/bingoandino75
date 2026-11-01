@@ -155,6 +155,45 @@ async function isDeviceKnown(
 }
 
 
+
+const LOGIN_PROOF_TTL=10*60*1000, LOGIN_SKEW=60*1000;
+// Prueba de contraseña firmada en servidor, válida solo diez minutos.
+// No se guarda ni devuelve ninguna contraseña.
+async function signedProof(email:string,device:string,issued:number):Promise<string>{
+ const secret=Deno.env.get("ADMIN_LOGIN_PROOF_SECRET") || Deno.env.get("ADMIN_PASSWORD_HASH_SALTED");
+ if(!secret)throw new Error("Falta secreto de inicio de sesión");
+ const enc=new TextEncoder(),key=await crypto.subtle.importKey("raw",
+  enc.encode("bingo-admin-proof:"+secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ return encodeHex(new Uint8Array(await crypto.subtle.sign("HMAC",key,enc.encode(email+"\n"+device+"\n"+issued))));
+}
+async function newProof(email:string,device:any){
+ if(typeof device!=="string"||!device||device.length>200)throw new Error("Dispositivo inválido");
+ const t=Date.now();return t+"."+(await signedProof(email,device,t));
+}
+async function verifyProof(email:string,device:any,proof:any):Promise<number|null>{
+ if(typeof device!=="string"||!device||device.length>200||typeof proof!=="string"||proof.length>100)return null;
+ const parts=proof.split(".");if(parts.length!==2||!/^\d{13}$/.test(parts[0])||!/^[0-9a-f]{64}$/.test(parts[1]))return null;
+ const t=Number(parts[0]),now=Date.now();
+ if(t>now+LOGIN_SKEW||now-t>LOGIN_PROOF_TTL)return null;
+ return timingSafeCompare(parts[1],await signedProof(email,device,t))?t:null;
+}
+// Solo se examinan las afirmaciones después de que auth.getUser() validó
+// el token con Supabase. Un token inventado no pasa esa verificación.
+function freshOtp(req:Request,uid:string,proofTime:number):boolean{
+ try{
+  const token=(req.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"");
+  const p=token.split(".")[1];if(!p||p.length>8192)return false;
+  const data=p.replace(/-/g,"+").replace(/_/g,"/");
+  const claims=JSON.parse(atob(data.padEnd(Math.ceil(data.length/4)*4,"=")));
+  const now=Date.now();
+  if(claims.sub!==uid||claims.role!=="authenticated"||!Number.isFinite(claims.exp)||claims.exp*1000<=now)return false;
+  return Array.isArray(claims.amr)&&claims.amr.some((m:any)=>
+   m&&m.method==="otp"&&Number.isFinite(m.timestamp)&&
+   m.timestamp*1000>=proofTime-LOGIN_SKEW&&
+   m.timestamp*1000<=now+LOGIN_SKEW&&now-m.timestamp*1000<=LOGIN_PROOF_TTL);
+ }catch{return false;}
+}
+
 const BINGO_ADMIN_ID = "5121c2ba-c8f1-40f8-8b3e-130a75f60ac5";
 async function verifiedBingoAdmin(req: Request) {
   const token=(req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
@@ -196,7 +235,7 @@ serve(async (req: Request) => {
 
   try {
     // Parsear cuerpo con acciones nuevas
-    const { email, password, deviceId, sessionToken: logoutToken, action = 'login' } = await req.json();
+    const { email, password, deviceId, loginProof, sessionToken: logoutToken, action = 'login' } = await req.json();
     if(action!=="verify_credentials") {
       const verified=await verifiedBingoAdmin(req);
       if(!verified || String(email || "").trim().toLowerCase()!==verified.email?.toLowerCase()) {
@@ -271,6 +310,7 @@ serve(async (req: Request) => {
           JSON.stringify({
             valid: true,
             email: result.email,
+            loginProof: await newProof(result.email!,deviceId),
             message: "Credenciales verificadas correctamente"
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -294,6 +334,14 @@ serve(async (req: Request) => {
           JSON.stringify({ error: "Email y deviceId requeridos" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+
+      const issued=await verifyProof(String(email).trim().toLowerCase(),deviceId,loginProof);
+      const otpAdmin=await verifiedBingoAdmin(req);
+      if(issued===null||!otpAdmin||!freshOtp(req,otpAdmin.id,issued)){
+        return new Response(JSON.stringify({error:"Se requiere contraseña y código reciente del correo."}),
+         {status:401,headers:{...corsHeaders,"Content-Type":"application/json"}});
       }
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -323,6 +371,9 @@ serve(async (req: Request) => {
       );
     }
 
+    // No se admiten rutas heredadas de creación directa sin OTP.
+    return new Response(JSON.stringify({error:"Utiliza la contraseña y el código del correo."}),
+      {status:403,headers:{...corsHeaders,"Content-Type":"application/json"}});
     // ========== ACCIÓN ORIGINAL: LOGIN COMPLETO ==========
     if (!email || !password || typeof email !== "string" || typeof password !== "string") {
       return new Response(

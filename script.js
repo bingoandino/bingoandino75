@@ -468,6 +468,7 @@ function mostrarAlertaSesionDuplicada() {
 // ==================== LOGIN CON DOBLE FACTOR ====================
 // ==================== LOGIN SEGURO CON EDGE FUNCTION ====================
 async function loginAdmin() {
+  sessionStorage.removeItem('pending_admin_login_proof');
   const email = document.getElementById('admin-email').value.trim();
   const password = document.getElementById('admin-password').value;
   const errorDiv = document.getElementById('admin-error');
@@ -551,6 +552,12 @@ async function loginAdmin() {
     // Guardar solo datos necesarios, nunca la contraseña
 sessionStorage.setItem('pending_email', email.toLowerCase().trim());
 sessionStorage.setItem('pending_deviceId', deviceId);
+if (!result.loginProof) {
+  errorDiv.textContent = 'Actualiza la página e intenta el acceso nuevamente.';
+  errorDiv.className = 'error';
+  return;
+}
+sessionStorage.setItem('pending_admin_login_proof', result.loginProof);
 
 errorDiv.innerHTML = '✅ <strong>Credenciales correctas</strong><br>📧 Enviando código de verificación...';
 errorDiv.className = 'success';
@@ -684,7 +691,7 @@ async function verificarOTP() {
   const email = sessionStorage.getItem('pending_email');
   const deviceId = sessionStorage.getItem('pending_deviceId');
   
-  console.log('🔍 Verificando OTP...', { email, deviceId, otpCode });
+  console.log('🔍 Verificando código del correo...');
   
   if (!otpCode || otpCode.length !== 6) {
     mostrarErrorOTP('❌ Ingresa un código de 6 dígitos');
@@ -738,6 +745,7 @@ async function verificarOTP() {
         body: JSON.stringify({ 
           email: email.toLowerCase().trim(), 
           deviceId: deviceId,
+          loginProof: sessionStorage.getItem('pending_admin_login_proof'),
           action: 'create_session_otp' // ¡IMPORTANTE!
         })
       }
@@ -779,6 +787,7 @@ localStorage.removeItem('session_expires');
     sessionStorage.removeItem('pending_email');
     sessionStorage.removeItem('pending_deviceId');
     sessionStorage.removeItem('pending_password');
+    sessionStorage.removeItem('pending_admin_login_proof');
                              
     
     // 4. MOSTRAR ÉXITO Y REDIRIGIR
@@ -820,6 +829,7 @@ async function crearSesionUnicaOTP(email, deviceId) {
         body: JSON.stringify({ 
           email: email.toLowerCase().trim(), 
           deviceId: deviceId,
+          loginProof: sessionStorage.getItem('pending_admin_login_proof'),
           action: 'create_session_otp' // Nueva acción para crear sesión después de OTP
         })
       }
@@ -850,6 +860,7 @@ async function crearSesionUnicaOTP(email, deviceId) {
     sessionStorage.removeItem('pending_email');
     sessionStorage.removeItem('pending_deviceId');
     sessionStorage.removeItem('pending_password');
+    sessionStorage.removeItem('pending_admin_login_proof');
     
     // Mostrar éxito y redirigir
     const errorDiv = document.getElementById('admin-error');
@@ -917,6 +928,7 @@ function cancelarOTP() {
   sessionStorage.removeItem('pending_email');
   sessionStorage.removeItem('pending_deviceId');
   sessionStorage.removeItem('pending_password');
+    sessionStorage.removeItem('pending_admin_login_proof');
   
   // Ocultar OTP
   const otpContainer = document.getElementById('otp-container');

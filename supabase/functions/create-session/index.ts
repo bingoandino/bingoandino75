@@ -32,6 +32,9 @@ serve(async (req) => {
     const verified=await verifiedBingoAdmin(req);
     if(!verified) return new Response(JSON.stringify({error:"No autorizado",valid:false}),{status:401,headers:{...corsHeaders,"Content-Type":"application/json"}});
 
+    // Esta ruta ya no es utilizada por la página y nunca debe crear nuevas sesiones.
+    return new Response(JSON.stringify({error:"Ruta anterior de acceso deshabilitada"}),
+      {status:403,headers:{...corsHeaders,"Content-Type":"application/json"}});
     const { user_id, user_email, sessionToken, device_id, ip_address, user_agent } = await req.json();
     if(String(user_email || "").trim().toLowerCase()!==verified.email?.toLowerCase()) return new Response(JSON.stringify({error:"No autorizado"}),{status:403,headers:{...corsHeaders,"Content-Type":"application/json"}});
 

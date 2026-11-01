@@ -40,19 +40,52 @@ test('concurrent attempts cannot admit a fifth; expired flags are not evicted by
 });
 function edge(client,env={}){
  let handler;const source=fs.readFileSync('supabase/functions/admin-auth/index.ts','utf8').replace(/^import .*;$/gm,'');
- const ctx={Request,Response,crypto,TextEncoder,Uint8Array,Date,Map,console,setTimeout,encodeHex:b=>Buffer.from(b).toString('hex'),serve:h=>handler=h,createClient:()=>client,Deno:{env:{get:k=>({SUPABASE_URL:'https://example.test',SUPABASE_SERVICE_ROLE_KEY:'test-server-only',...env})[k]}}};
+ const ctx={Request,Response,crypto,TextEncoder,Uint8Array,Date,Map,console,setTimeout,atob,encodeHex:b=>Buffer.from(b).toString('hex'),serve:h=>handler=h,createClient:()=>client,Deno:{env:{get:k=>({SUPABASE_URL:'https://example.test',SUPABASE_SERVICE_ROLE_KEY:'test-server-only',...env})[k]}}};
  vm.runInNewContext(stripTypeScriptTypes(source),ctx);return handler;
 }
-test('actual OTP handler uses the atomic RPC and returns a clear 403 when four slots are occupied',async()=>{
+const TEST_UID='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5';
+const TEST_EMAIL='admin@example.test';
+const TEST_PW='password-for-tests',TEST_SALT='aa';
+const testHash=async()=>Buffer.from(await crypto.subtle.digest('SHA-256',Buffer.concat([Buffer.from(TEST_PW),Buffer.from(TEST_SALT,'hex')]))).toString('hex');
+const adminJwt=(method='otp',ts=Math.floor(Date.now()/1000))=>'header.'+Buffer.from(JSON.stringify({
+ sub:TEST_UID,role:'authenticated',exp:Math.floor(Date.now()/1000)+3600,amr:[{method,timestamp:ts}]
+})).toString('base64url')+'.signature';
+function testClient(rpc){
+ return {auth:{getUser:async()=>({data:{user:{id:TEST_UID,email:TEST_EMAIL,email_confirmed_at:'2026-10-28'}}})},rpc};
+}
+test('contraseña y OTP recientes permiten cuatro sesiones y bloquean la quinta',async()=>{
  const {db,open}=await fixture();try{
- const handler=edge({auth:{getUser:async()=>({data:{user:{id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email:'admin@example.test',email_confirmed_at:'2026-10-28'}}})},rpc:async(name,args)=>{assert.equal(name,'admin_abrir_sesion');try{return {data:await open(args._device_id,args._email,args._authentication)}}catch(error){return {error}}}});
- const call=device=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer test-otp-token'},body:JSON.stringify({action:'create_session_otp',email:'admin@example.test',deviceId:device})}));
- const ok=await call('phone');assert.equal(ok.status,200);assert((await ok.json()).sessionToken);
- assert.equal((await call('tablet')).status,200);
- assert.equal((await call('laptop')).status,200);
- const blocked=await call('fifth');assert.equal(blocked.status,403);const message=await blocked.json();assert.equal(message.error,'SESION_ACTIVA');assert.match(message.message,/4 sesiones activas.*manualmente/);
- assert.equal((await db.query('select count(*)::int n from public.sesiones_activas where activa')).rows[0].n,4);
+  const h=edge(testClient(async(name,args)=>{assert.equal(name,'admin_abrir_sesion');try{return{data:await open(args._device_id,args._email,args._authentication)}}catch(error){return{error}}}),
+    {ADMIN_EMAIL:TEST_EMAIL,ADMIN_PASSWORD_HASH_SALTED:TEST_SALT+':'+await testHash()});
+  const call=async device=>{
+   const first=await h(new Request('https://example.test',{method:'POST',
+    body:JSON.stringify({action:'verify_credentials',email:TEST_EMAIL,password:TEST_PW,deviceId:device})}));
+   assert.equal(first.status,200);const {loginProof}=await first.json();
+   return h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+adminJwt()},
+    body:JSON.stringify({action:'create_session_otp',email:TEST_EMAIL,deviceId:device,loginProof})}));
+  };
+  assert.equal((await call('phone')).status,200);
+  assert.equal((await call('tablet')).status,200);
+  assert.equal((await call('laptop')).status,200);
+  const fifth=await call('fifth');assert.equal(fifth.status,403);assert.match((await fifth.json()).message,/4 sesiones activas/);
+  assert.equal((await db.query('select count(*)::int n from public.sesiones_activas where activa')).rows[0].n,4);
  }finally{await db.close()}
+});
+test('rechaza JWT sin OTP, OTP viejo, prueba ausente o alterada',async()=>{
+ let opens=0;
+ const h=edge(testClient(async()=>{opens++;return{data:{sessionToken:'mock'}}}),
+  {ADMIN_EMAIL:TEST_EMAIL,ADMIN_PASSWORD_HASH_SALTED:TEST_SALT+':'+await testHash()});
+ const first=await h(new Request('https://example.test',{method:'POST',
+  body:JSON.stringify({action:'verify_credentials',email:TEST_EMAIL,password:TEST_PW,deviceId:'pc'})}));
+ assert.equal(first.status,200);const {loginProof}=await first.json();
+ const attempt=(token,proof=loginProof)=>h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+token},
+  body:JSON.stringify({action:'create_session_otp',email:TEST_EMAIL,deviceId:'pc',loginProof:proof})}));
+ assert.equal((await attempt(adminJwt('password'))).status,401);
+ assert.equal((await attempt(adminJwt('otp',Math.floor(Date.now()/1000)-3600))).status,401);
+ assert.equal((await attempt(adminJwt(),null)).status,401);
+ assert.equal((await attempt(adminJwt(),loginProof.slice(0,-1)+'0')).status,401);
+ assert.equal((await attempt(adminJwt(),loginProof.replace(/^\d+/,String(Date.now()-3600000)))).status,401);
+ assert.equal((await attempt(adminJwt())).status,200);assert.equal(opens,1);
 });
 test('schema prevents bypassing four slots and logout handler scopes closure to the requesting token and device',async()=>{
  const {db,open}=await fixture();try{
@@ -63,12 +96,9 @@ test('schema prevents bypassing four slots and logout handler scopes closure to 
  }finally{await db.close()}
 });
 
-test('legacy password route uses the same four-session limit and unauthenticated creation is rejected',async()=>{
- const {db,open}=await fixture();try{
-  const password='test-only-password',salt='aa',hash=Buffer.from(await crypto.subtle.digest('SHA-256',Buffer.concat([Buffer.from(password),Buffer.from(salt,'hex')]))).toString('hex');
-  const client={auth:{getUser:async()=>({data:{user:{id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email:'admin@example.test',email_confirmed_at:'2026-10-28'}}})},rpc:async(name,args)=>{try{return {data:await open(args._device_id,args._email,args._authentication)}}catch(error){return {error}}}};
-  const handler=edge(client,{ADMIN_EMAIL:'admin@example.test',ADMIN_PASSWORD_HASH_SALTED:salt+':'+hash});
-  const call=(device,authorize=true)=>handler(new Request('https://example.test',{method:'POST',headers:authorize?{Authorization:'Bearer test'}:{},body:JSON.stringify({action:'login',email:'admin@example.test',deviceId:device,password})}));
-  assert.equal((await call('phone')).status,200);assert.equal((await call('tablet')).status,200);assert.equal((await call('laptop')).status,200);assert.equal((await call('fifth')).status,403);assert.equal((await call('fifth',false)).status,401);
- }finally{await db.close()}
+test('ruta de contraseña sin OTP ya no crea sesiones',async()=>{
+ let writes=0;const h=edge(testClient(async()=>{writes++;return{data:{}}}));
+ const r=await h(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+adminJwt()},
+  body:JSON.stringify({action:'login',email:TEST_EMAIL,deviceId:'pc',password:'anything'})}));
+ assert.equal(r.status,403);assert.equal(writes,0);
 });
