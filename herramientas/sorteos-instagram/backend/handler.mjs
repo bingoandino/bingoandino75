@@ -59,7 +59,7 @@ export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=O
     const maxPages=b.batch===true?5:1,started=Date.now(),seen=new Set(after?[after]:[]);
     let cursor=after,items=[],pages=0;
     do{
-     const current=page(await graph(b.media+'/comments',{fields:'id,text,username,from,timestamp,hidden',limit:100,after:cursor}));
+     const current=page(await graph(b.media+'/comments',{fields:'id,text,username,timestamp,hidden',limit:100,after:cursor}));
      items.push(...current.items);pages++;
      if(current.next&&seen.has(current.next))throw new InstagramError('Instagram repitió una página. Vuelve a cargar.',502);
      if(current.next)seen.add(current.next);cursor=current.next;
