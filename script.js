@@ -4447,27 +4447,28 @@ async function subirCartones() {
 }
 
 async function borrarCartones() {
-  const { data: claveData, error: claveError } = await supabase
-    .from('configuracion')
-    .select('valore')
-    .eq('clave', 'clave_borrar_cartones')
-    .single();
-
-  if (claveError || !claveData) {
-    alert("Error al obtener la clave de seguridad. Contacta al administrador.");
-    console.error('Error obteniendo clave:', claveError);
-    return;
-  }
-
-  const claveCorrecta = claveData.valore;
+  // La clave se verifica exclusivamente en el servidor; jamás consultar
+  // el valor guardado en configuracion desde el navegador.
   const claveIngresada = prompt("Ingrese la clave de seguridad para borrar todos los cartones:");
-
   if (!claveIngresada) {
     alert("Operación cancelada.");
     return;
   }
 
-  if (claveIngresada.trim() !== claveCorrecta.trim()) {
+  let claveValida = false;
+  try {
+    const { data, error } = await supabase.rpc('rpc_validar_clave_borrar_cartones', {
+      _clave: claveIngresada
+    });
+    if (error) throw error;
+    claveValida = data === true;
+  } catch (error) {
+    console.error('No se pudo validar la autorización de borrado:', error);
+    alert("No se pudo validar la autorización. Vuelve a ingresar al administrador e intenta otra vez. No se borraron los cartones.");
+    return;
+  }
+
+  if (!claveValida) {
     alert("Clave incorrecta. No se borraron los cartones.");
     return;
   }
