@@ -29,7 +29,7 @@
 <link rel="stylesheet" href="asistente-widget.css?v=20261028-2">
 <link rel="stylesheet" href="admin-compacto.css?v=20261031-1">
 <script src="admin-compacto.js?v=20261031-1" defer></script>
-</head>
+<link rel="stylesheet" href="premios-pagados.css?v=1"></head>
 <body>
   <div id="overlay-carga" style="
   position: fixed;
@@ -76,6 +76,7 @@
     <button class="inicio-enlace" onclick="mostrarVentana('lista-aprobados')"><span class="inicio-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 10h6M9 14h6M9 18h4"/></svg></span><span class="inicio-etiqueta">Lista de aprobados</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
     <button class="inicio-enlace" onclick="mostrarVentana('top-compradores')"><span class="inicio-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0ZM7 5H3v2a4 4 0 0 0 5 4M17 5h4v2a4 4 0 0 1-5 4M12 13v6M8 21h8M9 19h6"/></svg></span><span class="inicio-etiqueta">Top compradores</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
     <button class="inicio-enlace" onclick="mostrarSeccion('ganadores')"><span class="inicio-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7"/></svg></span><span class="inicio-etiqueta">Historial de ganadores</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
+    <button class="inicio-enlace" onclick="abrirPremiosPagados()"><span class="inicio-icono" aria-hidden="true">🏆</span><span class="inicio-etiqueta">Premios pagados</span><span class="inicio-flecha" aria-hidden="true">›</span></button>
     <!-- Redes sociales y enlaces legales - pantalla de inicio -->
     <button id="btnInstalarBingo" type="button" class="inicio-enlace" aria-controls="ayudaInstalarBingo" aria-expanded="false"><span aria-hidden="true">📲</span> <span class="inicio-etiqueta">Instálame</span><span class="inicio-flecha" aria-hidden="true">↓</span></button>
     <div id="ayudaInstalarBingo" hidden role="status" style="padding:14px;text-align:left;color:#351044;background:#fff8e9;border:1px solid #cba45a;border-radius:14px;margin-bottom:12px"></div>
@@ -118,6 +119,8 @@
 
   </section>
 
+<section id="premios-pagados" class="oculto"><button type="button" onclick="mostrarSeccion('inicio')">← Inicio</button><h2>🏆 Premios pagados</h2><p class="pp-intro">Así celebramos a nuestros ganadores 💜<br>Toca una imagen para ver sus comprobantes en grande.</p><div class="pp-fecha"><label for="pp-fecha">Fecha del sorteo</label><input id="pp-fecha" type="date"></div><p id="pp-estado" role="status" aria-live="polite"></p><button id="pp-reintentar" type="button">Actualizar</button><button id="pp-compartir" type="button" hidden>Compartir esta fecha</button><div id="pp-lista"></div></section>
+<dialog id="pp-modal" aria-labelledby="pp-foto-titulo"><div class="pp-modal-barra"><h3 id="pp-foto-titulo">Comprobantes</h3><button id="pp-cerrar" type="button" aria-label="Cerrar imagen">×</button></div><p id="pp-foto-estado" role="status"></p><img id="pp-foto" alt="Comprobantes de premios pagados"></dialog>
 <section id="ganadores" class="oculto">
   <div id="listaGanadores"></div>
   <button onclick="mostrarSeccion('bienvenida')">inicio</button>
@@ -720,8 +723,9 @@
 <script src="inicio-flyer.js?v=20261025-compacto-1"></script>
 <script src="verificar-enlace.js?v=20261027-1"></script>
 <script src="asistente-widget.js?v=20261028-17"></script>
-</body>
+<script src="premios-pagados.js?v=1"></script></body>
 </html>
+
 
 
 
