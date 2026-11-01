@@ -24,20 +24,18 @@ function sync(){
  $('reserve').disabled=has||busy||!panel?.abierto;
  $('showAvailable').disabled=has||busy;
  $('addNumber').disabled=has||busy;
- $('submit').disabled=!ready||busy||recovery;
+ // Registrar compra realiza la reserva automáticamente; solo se bloquea durante el envío,
+ // si hay una compra sin confirmar o si las ventas están cerradas.
+ $('submit').disabled=busy||recovery||!panel?.abierto;
  $('reservation').hidden=!g||g.estado!=='reservado';
  $('pendingRecovery').hidden=!pending||!!receipt;
- const action=$('reserveAtPayment');
- action.hidden=ready||recovery||!!receipt;
- action.disabled=busy||!panel?.abierto;
- action.textContent=expired?'Renovar reserva de cartones':has?'Recuperar reserva de cartones':'Reservar cartones para continuar';
  const helper=$('reserveAtPaymentStatus');
- helper.textContent=reserveError||(recovery?'Hay una compra en proceso. Pulsa «Consultar gestión pendiente» antes de repetirla.':
+ helper.textContent=reserveError||(recovery?'Hay una compra en proceso. Consulta esa misma gestión antes de volver a registrar.':
  !panel?.abierto?'Las ventas están cerradas. No se puede registrar la compra.':
- ready?'Cartones reservados. Finaliza la compra antes de que termine el contador de 5 minutos.':
- expired?'La reserva de 5 minutos venció. Toca «Renovar reserva de cartones». Conservaremos los datos y comprobaremos los mismos cartones.':
- has?'La reserva todavía no está confirmada. Pulsa «Recuperar reserva de cartones».':
- 'Primero reserva los cartones. Pulsa el botón de abajo para activar «Revisar compra».');
+ ready?'Los cartones están reservados. Pulsa «Registrar compra» para completar el registro.':
+ expired?'La reserva venció. Al registrar se intentarán reservar nuevamente los mismos cartones.':
+ has?'Al registrar se recuperará la reserva de cartones.':
+ 'Pulsa «Registrar compra». El sistema reservará los cartones y enviará el comprobante automáticamente.');
  const price=g?.precio??panel?.precio;
  $('total').textContent=price?money(price*(g?.cartones.length||Number($('cantidad').value)||0)):'— Bs';
  $('priceDetail').textContent=price?money(price)+' por cartón':'';
@@ -45,7 +43,7 @@ function sync(){
  const frozen=recovery;
  for(const id of ['nombre','telefono','banco','referencia','differentPayer','pagoCedula','pagoTelefono','pagoBanco','proof'])$(id).disabled=frozen||busy;
 }
-function timer(){const g=pending?.gestion;if(!g)return;const sec=Math.max(0,Math.ceil((Date.parse(g.vence)-Date.now())/1000));$('countdown').textContent=sec?'Reserva: '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'Reserva vencida';if(!sec){$('submit').disabled=true;if($('reserveAtPayment').hidden&&!pending?.compra)sync();}}
+function timer(){const g=pending?.gestion;if(!g)return;const sec=Math.max(0,Math.ceil((Date.parse(g.vence)-Date.now())/1000));$('countdown').textContent=sec?'Reserva: '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):'Reserva vencida';if(!sec&&$('reserveAtPaymentStatus').textContent.startsWith('Los cartones están reservados'))sync();}
 setInterval(timer,1000);
 async function loadPanel(){panel=await api('panel');$('drawStatus').textContent=(panel.abierto?'Ventas abiertas':'Ventas cerradas')+' · '+money(panel.precio)+' por cartón';$('operator').textContent=panel.email;sync();}
 async function enter(){await loadPanel();$('login').hidden=true;$('app').hidden=false;$('sessionBar').hidden=false;if(pending)await recover();else if(selectionLink){restoreDraft(selectionLink.draft);await readShared();}}
@@ -147,7 +145,6 @@ async function reserveFromPayment(){
  await startReserve();
  if(pending?.gestion)status('Reserva renovada con los mismos cartones. Finaliza la compra antes de 5 minutos.');
 }
-$('reserveAtPayment').onclick=()=>run(reserveFromPayment);
 async function reserveSame(){let d;try{d=await api('reservar',{id:pending.id,...pending.reserva});}catch(e){if(e.status===409){pending=null;savePending();}throw e;}if(d.conflictos){pending=null;savePending();await loadPanel();throw Error('Estos cartones están ocupados: '+d.conflictos.join(', ')+'. Cámbialos y vuelve a reservar.');}pending.gestion=d.gestion;reserveError='';savePending();sync();timer();status('Cartones reservados durante 5 minutos. Adjunta el pago para continuar.');$('sharedSelectionStatus').textContent=selectionLink?'✓ Cartones reservados. El cliente verá la confirmación en su enlace.':'';}
 $('release').onclick=()=>run(async()=>{if(pending?.compra)throw Error('Consulta primero el resultado de esta compra');await api('liberar',{id:pending.id});pending=null;reserveError='';savePending();clearSelectionLink();await loadPanel();status('Reserva liberada. Puedes cambiar los cartones.');});
 function updatePayer(){const different=$('differentPayer').checked;$('payerFields').hidden=!different;for(const id of ['pagoCedula','pagoTelefono','pagoBanco'])$(id).required=different;}
@@ -157,9 +154,37 @@ $('proof').onchange=()=>{if(previewURL)URL.revokeObjectURL(previewURL);const f=$
 async function jpeg(file){if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760)throw Error('Adjunta una captura JPG, PNG o WebP de hasta 10 MB');const image=await createImageBitmap(file);try{const scale=Math.min(1,1600/Math.max(image.width,image.height));const canvas=document.createElement('canvas');canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.88));if(!blob||blob.size>5242880)throw Error('La imagen es demasiado grande');return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(blob);});}finally{image.close();}}
 function purchase(){const different=$('differentPayer').checked;return {nombre:$('nombre').value.trim(),telefono:$('telefono').value,banco:$('banco').value,referencia:$('referencia').value,pago_cedula:different?$('pagoCedula').value:$('cedula').value,pago_telefono:different?$('pagoTelefono').value:$('telefono').value,pago_banco:different?$('pagoBanco').value:$('banco').value};}
 function appendText(container,lines){container.replaceChildren();for(const line of lines){const p=document.createElement('p');p.textContent=line;container.append(p);}}
-$('purchaseForm').onsubmit=e=>{e.preventDefault();try{validateName();if(!pending?.gestion||Date.parse(pending.gestion.vence)<=Date.now())throw Error('Reserva primero los cartones');const g=pending.gestion;appendText($('reviewText'),[$('nombre').value+' · C.I. '+g.cedula,'Cartones: '+g.cartones.join(', '),'Total: '+money(g.precio*g.cartones.length),'Referencia: '+$('referencia').value]);$('review').showModal();}catch(e){status(e.message)}};
-$('cancel').onclick=()=>$('review').close();
-$('confirm').onclick=()=>run(async()=>{$('review').close();status('Preparando la captura del pago…');const image=await jpeg($('proof').files[0]);pending.draft=draft();savePending();await api('upload',{id:pending.id,anchor:pending.gestion.anchor,image});pending.compra=purchase();savePending();sync();status('Registrando compra. Espera la confirmación…');await submitSame();});
+async function registerPurchase(){
+ if(pending?.compra)throw Error('Hay una compra pendiente de confirmación. Consulta esa gestión antes de repetirla.');
+ if(!$('purchaseForm').reportValidity())return;
+ validateName();
+ if(!panel?.abierto)throw Error('Las ventas están cerradas. No se puede registrar la compra.');
+ if(!pending?.gestion||pending.gestion.estado!=='reservado'||Date.parse(pending.gestion.vence)<=Date.now()){
+  status('Reservando cartones…');
+  await reserveFromPayment();
+ }
+ const g=pending?.gestion;
+ if(!g||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()){
+  if(!$('purchaseForm').reportValidity())return;
+  throw Error('No se pudieron reservar los cartones. Revisa los datos y vuelve a intentarlo.');
+ }
+ status('Preparando la captura del pago…');
+ const image=await jpeg($('proof').files[0]);
+ pending.draft=draft();savePending();
+ await api('upload',{id:pending.id,anchor:g.anchor,image});
+ pending.compra=purchase();savePending();sync();
+ status('Registrando compra. Espera la confirmación…');
+ await submitSame();
+}
+$('purchaseForm').onsubmit=e=>{
+ e.preventDefault();
+ run(async()=>{
+  const button=$('submit');
+  button.textContent='Registrando compra…';
+  try{await registerPurchase();}
+  finally{button.textContent='Registrar compra';}
+ });
+};
 async function submitSame(){try{const d=await api('registrar',{id:pending.id,anchor:pending.gestion.anchor,precio:pending.gestion.precio,compra:pending.compra});showReceipt(d.recibo);}catch(e){if(e.status===409){delete pending.compra;savePending();}throw e;}}
 function showReceipt(r){receipt=r;pending=null;savePending();$('purchaseForm').hidden=true;$('success').hidden=false;appendText($('receipt'),[r.nombre,'Compra #'+r.id+' · '+r.cartones.length+' cartones · '+money(r.monto),'Cartones: '+r.cartones.join(', '),'Estado al registrar: pendiente de verificación']);$('message').value='💜 '+r.nombre+', registramos tu compra de '+r.cartones.length+' cartón'+(r.cartones.length===1?'':'es')+'.\n🎟️ '+r.cartones.join(', ')+'\n⏳ Tu pago está pendiente de verificación.\nConsulta el estado y tus cartones aquí:\nhttps://bingoandino75.com/?verificar=1';status('Compra registrada. El bot verificará el pago.');sync();}
 async function recover(){if(!pending)return;restoreDraft(pending.draft);const d=await api('resultado',{id:pending.id});const g=d.gestion;if(g?.recibo){showReceipt(g.recibo);return;}if(!g){if(pending.compra)throw Error('No se encontró la gestión. Revisa el historial antes de continuar');await reserveSame();return;}pending.gestion=g;savePending();if(pending.compra){await submitSame();return;}sync();if(!d.vigente||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()){await api('liberar',{id:pending.id});pending=null;savePending();sync();status('La reserva anterior venció o el sorteo cambió. Revisa y selecciona nuevamente.');}else status('Reserva recuperada. Adjunta la captura para continuar.');}
