@@ -4,13 +4,13 @@ Estado: código y migración preparados. No se han aplicado cambios a Supabase n
 
 ## Uso previsto
 
-1. Generar los pagos y pegar los comprobantes de todos los ganadores del día en este dispositivo.
+1. Generar los pagos. Junto al nombre de cada ganador aparecen `Pegar resultado` y `Pegar comprobante`, uno al lado del otro. Pegar la captura del bingo y su comprobante de transferencia; si el navegador no permite pegar, el mismo botón abre las fotos. Ambas imágenes quedan guardadas por ganador en este dispositivo.
 2. Elegir `Publicar comprobantes del día`.
 3. Revisar la fecha y cada imagen pública. Incluye nombre/cartón y la cobertura parcial ya acordada; los originales no salen de IndexedDB.
 4. Marcar la confirmación de revisión y pulsar `Confirmar y publicar comprobantes`.
 5. Compartir el enlace a `https://bingoandino75.com/?premios=AAAA-MM-DD`.
 
-Cada ronda se publica como una imagen completa (collage cuando tiene varios ganadores) y una miniatura JPEG. No se publican datos del registro ni campos bancarios en JSON. Los datos visibles dentro de la captura son los revisados en la vista previa.
+Cada ganador se presenta con su nombre/cartón, su captura original del resultado del bingo y debajo su pago con cobertura parcial. Cada ronda se publica como una imagen completa (collage de estas parejas cuando tiene varios ganadores) y una miniatura JPEG. Las rondas normales requieren ambas capturas; en Top, pozo y consolación el resultado es opcional. No hay lectura OCR ni comprobación automática del número del cartón: el operador revisa la asociación antes de publicar. Cambiar cualquiera de las dos capturas invalida la vista previa anterior. No se publican datos del registro ni campos bancarios en JSON. Los datos visibles dentro de la captura son los revisados en la vista previa.
 
 La web carga miniaturas al acercarse a la pantalla; al tocarlas descarga la imagen completa y abre el visor, con cierre y zoom nativo. La fecha se puede cambiar con el calendario. Hay estados vacíos y de error.
 
