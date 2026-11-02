@@ -185,13 +185,13 @@ $$;
 revoke all on function public.fidelidad_estado(date) from public, anon, authenticated;
 grant execute on function public.fidelidad_estado(date) to service_role;
 
-create or replace function public.fidelidad_girar(_sabado date,_giro uuid,_premio text)
+create or replace function fidelidad.girar_en_fecha(_sabado date,_giro uuid,_premio text,_hoy date)
 returns jsonb language plpgsql volatile security definer set search_path=''
 as $$
 declare _ganador record; _anterior record; _dias int;
 begin
  if _sabado is null or extract(isodow from _sabado)<>6
-   or _sabado<>(now() at time zone 'America/Caracas')::date
+   or _sabado<>_hoy
  then raise exception 'Fidelidad solo puede sortearse el sábado por la noche'; end if;
  if _giro is null or length(trim(coalesce(_premio,''))) not between 1 and 60
  then raise exception 'Premio o giro inválido';end if;
@@ -216,6 +216,14 @@ begin
  values(_giro,_sabado,_ganador.cedula,_ganador.nombre,_ganador.carton,trim(_premio));
  return jsonb_build_object('drawId',_giro,'name',_ganador.nombre,'ticket',_ganador.carton,'prize',trim(_premio));
 end;
+$$;
+revoke all on function fidelidad.girar_en_fecha(date,uuid,text,date) from public, anon, authenticated;
+-- La única entrada pública invocable por el servicio utiliza la fecha real de Caracas.
+-- _hoy existe solo en el procedimiento privado para pruebas sin usar relojes falsos.
+create or replace function public.fidelidad_girar(_sabado date,_giro uuid,_premio text)
+returns jsonb language sql volatile security definer set search_path=''
+as $$
+ select fidelidad.girar_en_fecha(_sabado,_giro,_premio,(now() at time zone 'America/Caracas')::date);
 $$;
 revoke all on function public.fidelidad_girar(date,uuid,text) from public, anon, authenticated;
 grant execute on function public.fidelidad_girar(date,uuid,text) to service_role;
