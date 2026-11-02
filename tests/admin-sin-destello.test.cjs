@@ -20,6 +20,10 @@ function sessionRefresh({restoreAdmin=true}={}){
   '<section id="admin-panel" class="oculto"></section>'
  ].join(''),{url:'https://bingoandino75.com',runScripts:'outside-only'});
  const w=dom.window;
+ if(restoreAdmin){
+  w.sessionStorage.setItem('admin_session_token','sesion-test');
+  w.sessionStorage.setItem('admin_vista_panel_v1','panel');
+ }
  let completeVerification,verifying=false;
  const gate=new Promise(resolve=>{completeVerification=resolve;});
  const methods=[
@@ -60,7 +64,8 @@ test('Un visitante sin sesión también puede ver Inicio tras cargar',async()=>{
  const f=sessionRefresh({restoreAdmin:false});
  try{
   f.w.dispatchEvent(new f.w.Event('DOMContentLoaded'));await flush();
-  assert.equal(f.w.document.getElementById('overlay-carga').style.display,'flex');
+  // Para visitantes no se retrasa la pantalla principal.
+  assert.equal(f.w.document.getElementById('overlay-carga').style.display,'none');
   f.done();await flush();
   assert.equal(f.w.document.getElementById('overlay-carga').style.display,'none');
   assert.equal(f.w.document.getElementById('bienvenida').classList.contains('oculto'),false);
