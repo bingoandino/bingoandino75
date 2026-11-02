@@ -100,6 +100,37 @@ let credencialesVerificadas = {
 };
 
 let reenviosRealizados = 0;
+// El código del administrador se envía por Supabase Auth; no afecta el sistema de compras.
+const ADMIN_OTP_ESPERA_MS = 60000;
+let adminOtpEnviando = false;
+let adminOtpReloj = null;
+function segundosEsperaAdminOTP(){
+  const t=Number(sessionStorage.getItem('admin_otp_solicitado_en')||0);
+  return Math.max(0,Math.ceil((t+ADMIN_OTP_ESPERA_MS-Date.now())/1000));
+}
+function actualizarReenvioAdminOTP(){
+  const b=document.getElementById('otp-resend');
+  if(!b)return;
+  const segundos=segundosEsperaAdminOTP();
+  b.disabled=adminOtpEnviando||segundos>0;
+  b.textContent=adminOtpEnviando?'Solicitando código…':segundos>0?'Solicitar otro código ('+segundos+' s)':'Solicitar otro código';
+}
+function iniciarEsperaAdminOTP(){
+  sessionStorage.setItem('admin_otp_solicitado_en',String(Date.now()));
+  actualizarReenvioAdminOTP();
+  if(adminOtpReloj)clearInterval(adminOtpReloj);
+  adminOtpReloj=setInterval(()=>{
+    actualizarReenvioAdminOTP();
+    if(segundosEsperaAdminOTP()===0){clearInterval(adminOtpReloj);adminOtpReloj=null;}
+  },1000);
+}
+function mensajeErrorAdminOTP(e){
+  const codigo=String(e?.code||'').toLowerCase();
+  const mensaje=String(e?.message||'');
+  if(e?.status===429||codigo.includes('rate_limit')||/rate.limit|only request this after/i.test(mensaje))
+    return '⏳ Supabase está limitando las solicitudes de código. Espera al menos 1 minuto antes de volver a pedirlo.';
+  return '❌ No se pudo solicitar el código: '+(mensaje||'error del servicio de correo');
+}
 // Timeout de sesión (30 minutos)
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 console.log('✅ SESSION_TIMEOUT =', SESSION_TIMEOUT, 'ms =', SESSION_TIMEOUT/60000, 'minutos');
@@ -562,6 +593,14 @@ sessionStorage.setItem('pending_admin_login_proof', result.loginProof);
 errorDiv.innerHTML = '✅ <strong>Credenciales correctas</strong><br>📧 Enviando código de verificación...';
 errorDiv.className = 'success';
 
+// Evitar solicitar varias veces durante el límite del proveedor.
+const esperaOTP=segundosEsperaAdminOTP();
+if(esperaOTP>0){
+  errorDiv.textContent='⏳ Se solicitó un código recientemente. Espera '+esperaOTP+' segundos antes de pedir otro.';
+  errorDiv.className='info';
+  document.getElementById('admin-password').value='';
+  return;
+}
 // Enviar OTP
 const { error: otpError } = await supabase.auth.signInWithOtp({
   email: email.toLowerCase().trim(),
@@ -574,7 +613,8 @@ const { error: otpError } = await supabase.auth.signInWithOtp({
 if (otpError) {
   console.error('❌ Error enviando OTP:', otpError);
 
-  errorDiv.textContent = '❌ No se pudo enviar el código OTP. Intenta de nuevo.';
+  errorDiv.textContent = mensajeErrorAdminOTP(otpError);
+  if(otpError.status===429)iniciarEsperaAdminOTP();
   errorDiv.className = 'error';
 
   document.getElementById('admin-password').value = '';
@@ -583,7 +623,8 @@ if (otpError) {
 
 document.getElementById('admin-password').value = '';
     
-    console.log('✅ OTP enviado a:', email);
+    console.log('✅ Solicitud OTP aceptada por Supabase');
+    iniciarEsperaAdminOTP();
     
     // ========== PASO 3: MOSTRAR INTERFAZ OTP ==========
     mostrarInterfazOTP(email);
@@ -633,7 +674,7 @@ function mostrarInterfazOTP(email) {
     otpContainer.innerHTML = `
       <h3 style="color: #4CAF50; margin-top: 0;">🔐 Verificación en Dos Pasos</h3>
       <p>✅ <strong>Credenciales verificadas</strong></p>
-      <p>📧 Código enviado a: <strong id="otp-email-display">${escaparHTML(email)}</strong></p>
+      <p>📧 Código solicitado para: <strong id="otp-email-display">${escaparHTML(email)}</strong></p>
       
       <div style="margin: 15px 0;">
         <label for="otp-code"><strong>Código de 6 dígitos:</strong></label><br>
@@ -650,9 +691,9 @@ function mostrarInterfazOTP(email) {
           ✅ Verificar Código
         </button>
         
-        <button onclick="reenviarOTP()" 
+        <button id="otp-resend" onclick="reenviarOTP()" 
                 style="background: #FF9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">
-          🔄 Reenviar
+          🔄 Solicitar otro código
         </button>
         
         <button onclick="cancelarOTP()" 
@@ -675,8 +716,9 @@ function mostrarInterfazOTP(email) {
     document.getElementById('otp-email-display').textContent = email;
   }
   
-  // Iniciar timer
+  // Mostrar el tiempo antes de solicitar otro código.
   iniciarTimerOTP();
+  actualizarReenvioAdminOTP();
   
   // Enfocar campo OTP
   setTimeout(() => {
@@ -893,30 +935,27 @@ async function crearSesionUnicaOTP(email, deviceId) {
 
 async function reenviarOTP() {
   const email = sessionStorage.getItem('pending_email');
-  
-  if (!email) {
-    mostrarErrorOTP('❌ No hay email pendiente');
-    return;
-  }
-  
-  try {
-    mostrarErrorOTP('🔄 Reenviando código...');
-    
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: { shouldCreateUser: false }
+  if(!email){mostrarErrorOTP('❌ No hay un acceso pendiente. Vuelve a ingresar con tu contraseña.');return;}
+  const segundos=segundosEsperaAdminOTP();
+  if(segundos>0){mostrarErrorOTP('⏳ Espera '+segundos+' segundos antes de solicitar otro código. Revisa Recibidos y Spam.');return;}
+  if(adminOtpEnviando)return;
+  adminOtpEnviando=true;actualizarReenvioAdminOTP();
+  try{
+    mostrarErrorOTP('🔄 Solicitando un nuevo código…');
+    const {error}=await supabase.auth.signInWithOtp({
+      email:email,
+      options:{shouldCreateUser:false,emailRedirectTo:window.location.origin}
     });
-    
-    if (error) throw error;
-    
-    mostrarErrorOTP('✅ Código reenviado');
-    
-    // Reiniciar timer
+    if(error)throw error;
+    iniciarEsperaAdminOTP();
+    mostrarErrorOTP('✅ Supabase aceptó la solicitud. Comprueba Recibidos, Spam y Promociones en el correo autorizado.');
     iniciarTimerOTP();
-    
-  } catch (error) {
-    console.error('Error reenviando OTP:', error);
-    mostrarErrorOTP('❌ Error reenviando código');
+  }catch(error){
+    console.error('Error al solicitar OTP:',error);
+    if(error.status===429)iniciarEsperaAdminOTP();
+    mostrarErrorOTP(mensajeErrorAdminOTP(error));
+  }finally{
+    adminOtpEnviando=false;actualizarReenvioAdminOTP();
   }
 }
 
