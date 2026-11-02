@@ -111,7 +111,8 @@ export function createHandler({rpc,authUser,sendOtp,rotateInstagramToken=async()
         const alternative=page(await graph(b.media+'/comments',{fields:'id,text,username,from,timestamp,hidden',limit:100,after:cursor}));
         current=alternative;withFrom=true;
        }catch(err){
-        if(!(err instanceof InstagramError))throw err;
+        // "from" puede estar restringido (código 200); no ocultar errores de red ni de rate limit.
+        if(!(err instanceof InstagramError)||!err.message.includes('Meta rechazó la consulta (código 200'))throw err;
        }
       }
       const missing=current.items.filter(comment=>!hasAuthor(comment)).length;
