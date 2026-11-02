@@ -1888,14 +1888,16 @@ function renderizarBotonesPromociones() {
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Inicializando sistema...');
     sistemaListo = false;
-  // Crear ta¿'bl ses nxiste
-   document.getElementById('modal-terminos').classList.remove('oculto');
-   await obtenerTotalCartones();
-  await cargarLinkWhatsapp();
-  await cargarVersionCartones();
-  document.getElementById('overlay-carga').style.display = 'none';
+  // Mantener la pantalla de carga hasta confirmar si debe volver al administrador.
+  // Así no se muestra Inicio por un instante al refrescar una sesión válida.
+  const overlayInicio = document.getElementById('overlay-carga');
+  try {
+    document.getElementById('modal-terminos').classList.remove('oculto');
+    await obtenerTotalCartones();
+    await cargarLinkWhatsapp();
+    await cargarVersionCartones();
 
-  await Promise.all([
+    await Promise.all([
     cargarDatosClienteLocal(),
   activarProgresoCartonesRealtime(),
   generarCartones(),
@@ -1907,11 +1909,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     cargarPromocionesConfig()
   ]);
 
-  await verificarSesionInicial();
+    await verificarSesionInicial();
+  } finally {
+    // Incluso si falla una petición de red, no dejar la página tapada.
+    if (overlayInicio) overlayInicio.style.display = 'none';
+  }
 
-
-  
- 
   // Event listes pefos
   document.getElementById('guardarPromocionesBtn')?.addEventListener('click', guardarPromociones);
   document.getElementById('btnDupNombreAprobados')?.addEventListener('click', detectarDuplicadosAprobadosPorNombre);
