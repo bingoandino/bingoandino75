@@ -1396,11 +1396,11 @@ async function verificarSesionInicial() {
 
       // Verificación exitosa: restaurar la vista ANTES de pedir datos.
       // Una falla de red al cargar inscripciones no debe cerrar una sesión válida.
-      if (sessionStorage.getItem('admin_vista_panel_v1') === 'panel') {
+      if (sessionStorage.getItem('admin_vista_panel_v1') !== 'publica') {
         document.querySelectorAll('section').forEach(sec => sec.classList.add('oculto'));
         document.getElementById('admin-panel')?.classList.remove('oculto');
         document.getElementById('modal-terminos')?.classList.add('oculto');
-        restaurarTabAdmin();
+        if (typeof restaurarTabAdmin === 'function') restaurarTabAdmin();
       }
       iniciarDetectorActividad();
       resetInactivityTimer();
