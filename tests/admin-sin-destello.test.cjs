@@ -76,6 +76,6 @@ test('La verificación siempre precede al cierre de pantalla de carga',()=>{
  const finallyHide=init.lastIndexOf("overlayInicio.style.display = 'none'");
  assert.ok(verify>=0&&finallyHide>verify);
  assert.match(init,/finally\s*\{/);
- assert.match(html,/script\.js\?v=20261102-admin-sin-parpadeo-1/);
+ assert.match(html,/script\.js\?v=20261102-admin-buscar-1/);
  assert.match(html,/background: linear-gradient\(145deg, #25102f, #441857\)/);
 });
