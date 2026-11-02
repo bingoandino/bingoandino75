@@ -1,6 +1,5 @@
 import {createInstagram,page,InstagramError} from './instagram.mjs';
 import {verifyPassword,validPassword,passwordHash,randomToken,digest,rateKey} from './access-core.mjs';
-const ACCOUNT='17841474850831756';
 const OWNER_EMAIL='bingoandino75@gmail.com';
 const ORIGINS=new Set(['https://bingoandino75.com','https://www.bingoandino75.com','https://bingoandino.github.io']);
 export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=ORIGINS}){
@@ -51,7 +50,31 @@ export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=O
    if(op!=='instagram')return reply({error:'Solicitud inválida.'},400);
    const after=b.after;if(after&&(typeof after!=='string'||after.length>4000))return reply({error:'Cursor inválido.'},400);
    const graph=createInstagram(c.instagram_token,fetcher);
-   if(b.action==='media')return reply(page(await graph(ACCOUNT+'/media',{fields:'id,permalink,timestamp,caption,comments_count,username',limit:100,after})));
+   // Diagnóstico de lectura solo después de validar la sesión de sorteos.
+   if(b.action==='diagnose'){
+    let stage='perfil';
+    try{
+     const me=await graph('me',{fields:'id,username'});
+     if(!/^[0-9]{5,30}$/.test(String(me.id||'')))return reply({ok:false,stage:'perfil',message:'Instagram no devolvió el identificador de la cuenta conectada.'});
+     if(String(me.username||'').toLowerCase()!=='bingoandino75')return reply({ok:false,stage:'cuenta',message:'Instagram está conectado a otra cuenta. Hay que autorizar @bingoandino75.'});
+     stage='publicaciones';
+     const mediaPage=page(await graph(me.id+'/media',{fields:'id,permalink,timestamp,caption,comments_count,username',limit:1}));
+     if(!mediaPage.items.length)return reply({ok:true,stage:'publicaciones',message:'Conexión y lectura de publicaciones correctas. No hay publicaciones para comprobar comentarios.'});
+     stage='comentarios';
+     page(await graph(mediaPage.items[0].id+'/comments',{fields:'id,text,username,timestamp,hidden',limit:1}));
+     return reply({ok:true,stage:'comentarios',message:'Conexión correcta con @bingoandino75: publicaciones y comentarios accesibles.'});
+    }catch(err){
+     if(err instanceof InstagramError)return reply({ok:false,stage,message:err.message});
+     throw err;
+    }
+   }
+   if(b.action==='media'){
+    // Resolver el identificador de cuenta desde el token evita usar un ID fijo que puede no coincidir.
+    const me=await graph('me',{fields:'id,username'});
+    if(!/^[0-9]{5,30}$/.test(String(me.id||'')))return reply({error:'Instagram no devolvió el identificador de la cuenta conectada.'},502);
+    if(String(me.username||'').toLowerCase()!=='bingoandino75')return reply({error:'La cuenta conectada no es @bingoandino75. Vuelve a autorizar la cuenta del bingo.'},403);
+    return reply(page(await graph(me.id+'/media',{fields:'id,permalink,timestamp,caption,comments_count,username',limit:100,after})));
+   }
    if(b.action==='comments'&&typeof b.media==='string'&&/^\d{5,30}$/.test(b.media)){
     const media=await graph(b.media,{fields:'id,username,permalink,comments_count'});
     if(String(media.username).toLowerCase()!=='bingoandino75')return reply({error:'Solo se admiten publicaciones de @bingoandino75.'},403);
