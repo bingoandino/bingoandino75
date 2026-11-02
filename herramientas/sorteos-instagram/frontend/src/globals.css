@@ -16,3 +16,5 @@
 .winner-photo-button:hover,.winner-profile-link:hover{background:#f6e8c6}
 .winner-photo-error{font-size:11px;color:#9a3939}
 @media(max-width:720px){.winner-avatar{width:112px;height:112px}.winner-avatar>span{font-size:54px}.winner-photo-actions{gap:8px}}
+
+.diagnose{display:block;width:100%;margin-top:10px;padding:10px 12px;text-align:center;background:#fffaed;border:1px solid #c9af76;border-radius:9px;color:#402365;font-size:12px;font-weight:700}.diagnose:hover:enabled{background:#f4e7cb}.diagnostic-result{margin:10px 0 0;line-height:1.6;padding:12px;background:#f7f1ff;border-radius:9px;font-size:12px;color:#402365;overflow-wrap:anywhere}
