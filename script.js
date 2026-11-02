@@ -3223,10 +3223,10 @@ cartonesOcupados = await fetchTodosLosOcupados();
     tr.dataset.origenRegistro = item.origen_registro || 'compra';
     // Índice local para buscar sin descargar nuevos datos ni modificar compras.
     tr.dataset.busquedaNombre = normalizarBusquedaInscripciones(item.nombre);
-    tr.dataset.busquedaCedula = normalizarBusquedaInscripciones(item.cedula);
-    tr.dataset.busquedaTelefono = normalizarBusquedaInscripciones(item.telefono);
+    tr.dataset.busquedaCedula = normalizarBusquedaInscripciones(item.cedula).replace(/\D/g, '');
+    tr.dataset.busquedaTelefono = normalizarBusquedaInscripciones(item.telefono).replace(/\D/g, '');
     tr.dataset.busquedaReferido = normalizarBusquedaInscripciones(item.referido);
-    tr.dataset.busquedaReferencia = normalizarBusquedaInscripciones(item.referencia4dig);
+    tr.dataset.busquedaReferencia = normalizarBusquedaInscripciones(item.referencia4dig).replace(/\D/g, '');
     tr.dataset.busquedaCartones = (Array.isArray(item.cartones) ? item.cartones : []).map(String).join(' ');
     tr.dataset.busquedaPago = normalizarBusquedaInscripciones(
       [item.pago_banco, item.pago_telefono, item.pago_cedula].filter(Boolean).join(' ')
@@ -5430,9 +5430,9 @@ function coincideBusquedaInscripciones(tr, texto, tipo) {
       (campos.busquedaCartones || '').split(/\s+/).some(c => c === numero);
   }
   if (tipo === 'nombre') return coincide('busquedaNombre');
-  if (tipo === 'cedula') return coincide('busquedaCedula');
-  if (tipo === 'telefono') return coincide('busquedaTelefono') || coincide('busquedaPago');
-  if (tipo === 'referencia') return coincide('busquedaReferencia');
+  if (tipo === 'cedula') return (campos.busquedaCedula || '').includes(texto.replace(/\D/g, ''));
+  if (tipo === 'telefono') return (campos.busquedaTelefono || '').includes(texto.replace(/\D/g, '')) || coincide('busquedaPago');
+  if (tipo === 'referencia') return (campos.busquedaReferencia || '').includes(texto.replace(/\D/g, ''));
   return ['busquedaNombre','busquedaCedula','busquedaTelefono','busquedaReferido',
     'busquedaReferencia','busquedaPago'].some(coincide) ||
     (/^\d+$/.test(texto) && (campos.busquedaCartones || '').split(/\s+/).includes(texto));
