@@ -305,7 +305,7 @@
   <!-- Contenedor OTP (inicialmente oculto) -->
   <div id="otp-container" style="display: none; margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f08b8b;">
     <h3>📧 Verificación en 2 Pasos</h3>
-    <p>Se envió un código a: <strong><span id="otp-email-display"></span></strong></p>
+    <p>Se solicitó un código para: <strong><span id="otp-email-display"></span></strong></p>
     
     <div style="margin: 15px 0;">
       <label for="otp-code">Código de 6 dígitos:</label><br>
@@ -321,8 +321,8 @@
       <button onclick="verificarOTP()" class="btn-primary" style="padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
         ✅ Verificar Código
       </button>
-      <button onclick="reenviarOTP()" class="btn-secondary" style="padding: 12px 24px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">
-        🔄 Reenviar código
+      <button id="otp-resend" onclick="reenviarOTP()" class="btn-secondary" style="padding: 12px 24px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">
+        🔄 Solicitar otro código
       </button>
       <button onclick="cancelarOTP()" class="btn-secondary" style="padding: 12px 24px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">
         ↩️ Cancelar
