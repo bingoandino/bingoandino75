@@ -900,6 +900,7 @@ async function crearSesionUnicaOTP(email, deviceId) {
     // Variables globales
     adminSession = { email: result.email, token: result.sessionToken };
     sesionActiva = true;
+    sessionStorage.setItem('admin_vista_panel_v1','panel');
     
     // Limpiar datos temporales
     sessionStorage.removeItem('pending_email');
@@ -917,6 +918,7 @@ async function crearSesionUnicaOTP(email, deviceId) {
       document.getElementById('admin-login').classList.add('oculto');
       document.getElementById('admin-panel').classList.remove('oculto');
       document.getElementById('admin-email-display').textContent = result.email;
+      restaurarTabAdmin();
       
       // Iniciar controles
       iniciarDetectorActividad();
@@ -1392,19 +1394,22 @@ async function verificarSesionInicial() {
         document.getElementById('admin-email-display').textContent = email;
       }
 
-      await cargarPanelAdmin();
-      activarRefrescoAutomaticoAdmin();
-      iniciarDetectorActividad();
-      resetInactivityTimer();
-
-      // Restore only after server verification; preserve public navigation chosen in this tab.
+      // Verificación exitosa: restaurar la vista ANTES de pedir datos.
+      // Una falla de red al cargar inscripciones no debe cerrar una sesión válida.
       if (sessionStorage.getItem('admin_vista_panel_v1') === 'panel') {
         document.querySelectorAll('section').forEach(sec => sec.classList.add('oculto'));
         document.getElementById('admin-panel')?.classList.remove('oculto');
         document.getElementById('modal-terminos')?.classList.add('oculto');
-        sessionStorage.setItem('admin_vista_panel_v1','panel');
         restaurarTabAdmin();
       }
+      iniciarDetectorActividad();
+      resetInactivityTimer();
+      try {
+        await cargarPanelAdmin();
+      } catch (errorDatos) {
+        console.warn('No se pudieron cargar los datos del admin; sesión conservada:', errorDatos);
+      }
+      activarRefrescoAutomaticoAdmin();
       return;
 
     } else {
