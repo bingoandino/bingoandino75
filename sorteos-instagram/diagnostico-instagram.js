@@ -44,6 +44,11 @@
     });
     load.insertAdjacentElement('afterend',status);
     load.insertAdjacentElement('afterend',button);
+    const link=document.createElement('a');
+    link.className='reconnect-ig-link';
+    link.textContent='Reconectar Instagram de forma segura';
+    link.href='./conectar-instagram.html';
+    button.insertAdjacentElement('afterend',link);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addControl,{once:true});
   else addControl();
