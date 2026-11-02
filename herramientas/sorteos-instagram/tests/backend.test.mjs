@@ -14,3 +14,46 @@ test('carga agrupada conserva todas las páginas y reduce verificaciones repetid
 test('cliente anterior sigue recibiendo una sola página',async()=>{const g=commentGraph(12),f=await fixture(g.fetcher),token=await operator(f);const d=await(await f.post({op:'instagram',action:'comments',media:'12345'},token)).json();assert.equal(d.items.length,1);assert.equal(d.next,'1');assert.equal(d.pages,1);});
 test('carga agrupada rechaza ciclos y errores sin habilitar resultados parciales',async()=>{for(const options of [{repeat:true},{failAt:2}]){const g=commentGraph(12,options),f=await fixture(g.fetcher),token=await operator(f);const r=await f.post({op:'instagram',action:'comments',media:'12345',batch:true},token);assert.equal(r.status,502);assert.equal((await r.json()).items,undefined);}});
 test('agrupar páginas mantiene autenticación y propiedad de la publicación',async()=>{const g=commentGraph(12,{otherOwner:true}),f=await fixture(g.fetcher);assert.equal((await f.post({op:'instagram',action:'comments',media:'12345',batch:true})).status,401);const token=await operator(f);assert.equal((await f.post({op:'instagram',action:'comments',media:'12345',batch:true},token)).status,403);assert.equal(g.calls.length,1);});
+
+
+test('Instagram sin username intenta from y normaliza autores verificados',async()=>{
+ const requested=[];
+ const fetcher=async(url)=>{
+  requested.push(url.searchParams.get('fields'));
+  if(!url.pathname.endsWith('/comments'))return Response.json({id:'12345',username:'bingoandino75'});
+  if(url.searchParams.get('fields')?.includes(',from,'))return Response.json({data:[{id:'111',text:'Hola',from:{username:'participante_real'},hidden:false}]});
+  return Response.json({data:[{id:'111',text:'Hola',hidden:false}]});
+ };
+ const f=await fixture(fetcher),token=await operator(f);
+ const res=await f.post({op:'instagram',action:'comments',media:'12345',batch:true},token);
+ assert.equal(res.status,200);
+ const data=await res.json();
+ assert.equal(data.items.length,1);
+ assert.equal(data.items[0].username,'participante_real');
+ assert.equal(requested.filter(x=>x?.includes(',from,')).length,1);
+});
+test('Instagram sin usuario y from rechazado nunca permite sorteo parcial',async()=>{
+ const fetcher=async(url)=>{
+  if(!url.pathname.endsWith('/comments'))return Response.json({id:'12345',username:'bingoandino75'});
+  if(url.searchParams.get('fields')?.includes(',from,'))return Response.json({error:{code:200}},{status:403});
+  return Response.json({data:[{id:'111',text:'Prueba sin autor'}]});
+ };
+ const f=await fixture(fetcher),token=await operator(f);
+ const res=await f.post({op:'instagram',action:'comments',media:'12345',batch:true},token);
+ assert.equal(res.status,422);
+ const data=await res.json();
+ assert.match(data.error,/no devolvió el nombre de sus autores/);
+ assert.equal(data.items,undefined);
+});
+test('fallo de rate limit al consultar from se muestra y no se oculta',async()=>{
+ const fetcher=async(url)=>{
+  if(!url.pathname.endsWith('/comments'))return Response.json({id:'12345',username:'bingoandino75'});
+  if(url.searchParams.get('fields')?.includes(',from,'))return Response.json({error:{code:4}},{status:429});
+  return Response.json({data:[{id:'111',text:'Prueba'}]});
+ };
+ const f=await fixture(fetcher),token=await operator(f);
+ const res=await f.post({op:'instagram',action:'comments',media:'12345',batch:true},token);
+ assert.equal(res.status,502);
+ const data=await res.json();
+ assert.match(data.error,/limitó temporalmente/);
+});
