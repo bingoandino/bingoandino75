@@ -11,4 +11,13 @@ async function rpc(action:string,payload:unknown={}){
 }
 async function authUser(token:string){const r=await fetch(base+'/auth/v1/user',{headers:{apikey:publicKey,Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});return r.ok?await r.json():null;}
 async function sendOtp(email:string){const r=await fetch(base+'/auth/v1/otp',{method:'POST',headers:{apikey:publicKey,'Content-Type':'application/json'},body:JSON.stringify({email,create_user:false}),signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('OTP unavailable');}
-Deno.serve(createHandler({rpc,authUser,sendOtp}));
+async function rotateInstagramToken(token:string){
+ const headers:Record<string,string>={'Content-Type':'application/json',apikey:serverKey};
+ if(serverKey.startsWith('eyJ'))headers.Authorization='Bearer '+serverKey;
+ const r=await fetch(base+'/rest/v1/rpc/instagram_sorteos_rotate_instagram_token',{
+  method:'POST',headers,body:JSON.stringify({new_token:token}),signal:AbortSignal.timeout(15000)
+ });
+ if(!r.ok)throw Error('No se pudo guardar la conexión.');
+ return await r.json();
+}
+Deno.serve(createHandler({rpc,authUser,sendOtp,rotateInstagramToken}));
