@@ -41,3 +41,36 @@
   body:has(#admin-panel:not(.oculto)) #asistente-andino-widget { display: none !important; }
 }
 @media (min-width: 901px) { #admin-panel .admin-tabla-ayuda { display: none; } }
+
+/* Buscador de inscripciones: visible encima de la tabla incluso en teléfono. */
+#admin-panel .buscar-inscripciones-admin {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 9px;
+  padding: 13px; margin: 10px 0 4px; border-radius: 14px;
+  background: #fff8e9; border: 1px solid #bd965f; color: #381b49;
+}
+#admin-panel .buscar-inscripciones-admin label { font-weight: 700; margin: 0; }
+#admin-panel .buscar-inscripciones-admin select,
+#admin-panel .buscar-inscripciones-admin input {
+  min-height: 43px; border: 1px solid #a98bba; border-radius: 9px;
+  background: #fff; color: #351044; padding: 9px 11px; font-size: 15px;
+  box-sizing: border-box; margin: 0; max-width: 100%;
+}
+#admin-panel .buscar-inscripciones-admin input { flex: 1 1 230px; min-width: 160px; }
+#admin-panel .buscar-inscripciones-admin button {
+  min-height: 43px; padding: 9px 14px; margin: 0;
+  border-radius: 10px; width: auto; font-size: 14px;
+}
+#admin-panel .buscar-inscripciones-admin #admin-buscar-boton {
+  background: #421758; color: #fff8e9; border: 1px solid #bd965f;
+}
+#admin-panel .buscar-inscripciones-admin #admin-limpiar-busqueda {
+  background: #fffdf9; color: #351044; border: 1px solid #9a7baf;
+}
+#admin-panel .admin-buscar-resultado { font-size: 13px; color: #482457; margin: 5px 2px 12px; }
+@media (max-width: 600px) {
+  #admin-panel .buscar-inscripciones-admin { gap: 7px; padding: 10px; }
+  #admin-panel .buscar-inscripciones-admin label { flex: 0 0 100%; }
+  #admin-panel .buscar-inscripciones-admin select { flex: 1 1 105px; min-width: 0; }
+  #admin-panel .buscar-inscripciones-admin input { flex: 1 1 100%; }
+  #admin-panel .buscar-inscripciones-admin button { flex: 1 1 120px; }
+}

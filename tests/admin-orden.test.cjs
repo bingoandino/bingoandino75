@@ -9,7 +9,7 @@ function setup(){
  w.eval(source.slice(source.indexOf('async function cargarPanelAdmin()'),source.indexOf("document.getElementById('btn-recargar-panel')")));
  w.eval(source.slice(source.indexOf('function ordenarPendientesArriba()'),source.indexOf('async function aprobarInscripcion(')));
  w.eval(source.slice(source.indexOf('function ordenarInscripcionesPorNombre()'),source.indexOf('function buildWhatsAppLink(')));
- w.eval(source.match(/^function coincideOrigenInscripcion.*$/m)[0]);
+ w.eval(source.slice(source.indexOf('// La búsqueda filtra únicamente inscripciones'),source.indexOf('// Keep the administrator')));
  return {w,set:v=>data=v,defer:()=>new Promise(done=>{pending=new Promise(resolve=>done(()=>{pending=null;resolve({data,error:null})}));})};
 }
 const names=w=>Array.from(w.document.querySelectorAll('tbody tr'),r=>r.cells[0].childNodes[0].textContent.trim());
