@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Reconectar Instagram · Bingo Andino 75</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://dbkixcpwirjwjvjintkr.supabase.co; img-src 'self'; base-uri 'none'; form-action 'none'">
+<link rel="stylesheet" href="./conectar-instagram.css">
+</head><body>
+<main class="panel">
+<header><div class="eyebrow">BINGO ANDINO 75 · ADMINISTRACIÓN</div><h1>Reconectar Instagram</h1><p>Reparar el acceso a los comentarios del sorteo sin modificar los cartones, compras ni pagos.</p></header>
+<section class="step" id="login">
+<h2>1. Verificar administrador</h2>
+<p>Enviaremos un código de seguridad al correo del administrador del bingo.</p>
+<button id="send" type="button">Enviar código al correo</button>
+<div id="verify-wrap" hidden><label for="otp">Código recibido</label><input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Código de verificación"><button id="verify" type="button">Verificar código</button></div>
+</section>
+<section class="step" id="connect" hidden>
+<h2>2. Autorizar @bingoandino75</h2>
+<p>Obtén un token de acceso de Instagram en tu aplicación de Meta, con los permisos <code>instagram_business_basic</code> y <code>instagram_business_manage_comments</code>.</p>
+<p><a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer">Abrir Meta for Developers</a></p>
+<p class="warning">Copia el token directamente aquí, nunca por WhatsApp ni por este chat. Solo se guardará si Meta confirma que permite leer los comentarios reales.</p>
+<label for="ig-token">Token nuevo de Instagram</label>
+<input id="ig-token" type="password" autocomplete="off" spellcheck="false" placeholder="Pega aquí el token generado en Meta">
+<button id="save" type="button">Probar y guardar conexión</button>
+</section>
+<p id="status" role="status" aria-live="polite"></p>
+<footer><a href="./">Volver al sorteo</a><span>Acceso protegido · BingoAndino75</span></footer>
+</main>
+<script type="module" src="./conectar-instagram.js"></script>
+</body></html>
