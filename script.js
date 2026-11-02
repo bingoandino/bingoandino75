@@ -354,6 +354,7 @@ function clearAdminSession() {
   // Limpiar sessionStorage (lo que TÚ usas)
   sessionStorage.removeItem('admin_session_token');
   sessionStorage.removeItem('admin_vista_panel_v1');
+  sessionStorage.removeItem('admin_tab_activa_v1');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('session_expires');
   sessionStorage.removeItem('device_id');
@@ -824,6 +825,7 @@ localStorage.removeItem('session_expires');
     // Variables globales
     adminSession = { email: result.email, token: result.sessionToken };
     sesionActiva = true;
+    sessionStorage.setItem('admin_vista_panel_v1','panel');
     
     // Limpiar datos temporales
     sessionStorage.removeItem('pending_email');
@@ -840,6 +842,7 @@ localStorage.removeItem('session_expires');
       document.getElementById('admin-login').classList.add('oculto');
       document.getElementById('admin-panel').classList.remove('oculto');
       document.getElementById('admin-email-display').textContent = result.email;
+      restaurarTabAdmin();
       
       // Iniciar controles
       iniciarDetectorActividad();
@@ -1163,6 +1166,11 @@ async function mostrarPanelAdminSeguro(sessionToken) {
   // Mostrar panel admin
   const panel = document.getElementById('admin-panel');
   panel.classList.remove('oculto');
+  // UI preference only; backend verification is still mandatory on every refresh.
+  if (sessionStorage.getItem('admin_session_token')) {
+    sessionStorage.setItem('admin_vista_panel_v1','panel');
+  }
+  restaurarTabAdmin();
 
   // Insertar info de sesión
   const sessionInfo = document.createElement('div');
@@ -1390,12 +1398,12 @@ async function verificarSesionInicial() {
       resetInactivityTimer();
 
       // Restore only after server verification; preserve public navigation chosen in this tab.
-      if (sessionStorage.getItem('admin_vista_panel_v1') !== 'publica' &&
-          !document.querySelector('section:not(.oculto):not(#bienvenida):not(#admin-panel)')) {
+      if (sessionStorage.getItem('admin_vista_panel_v1') === 'panel') {
         document.querySelectorAll('section').forEach(sec => sec.classList.add('oculto'));
         document.getElementById('admin-panel')?.classList.remove('oculto');
         document.getElementById('modal-terminos')?.classList.add('oculto');
         sessionStorage.setItem('admin_vista_panel_v1','panel');
+        restaurarTabAdmin();
       }
       return;
 
@@ -5328,21 +5336,26 @@ async function copiarListaAprobados() {
     alert('✅ Lista copiada');
   }
 }
-// ─── NAEGACIÓN POR PESTAÑAS DEL ADMIN ───
+// ─── NAVEGACIÓN POR PESTAÑAS DEL ADMIN ───
+// La pestaña es solo una preferencia de esta sesión; nunca concede acceso.
 function cambiarTab(tabId) {
-  // Ocultar todos los contenidos
-  document.querySelectorAll('.tab-content').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  
-  // Desactivar todos los botones
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  
-  // Activar el seccionado
-  document.getElementById(tabId).classList.add('active');
-  event.target.classList.add('active');
+  const panel = document.getElementById('admin-panel');
+  const destino = document.getElementById(tabId);
+  if (!panel || !destino || !panel.contains(destino) ||
+      !destino.classList.contains('tab-content')) return;
+
+  panel.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  panel.querySelectorAll('.admin-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+  destino.classList.add('active');
+  const boton = Array.from(panel.querySelectorAll('.admin-tabs .tab-btn'))
+    .find(btn => btn.getAttribute('onclick') === "cambiarTab('" + tabId + "')");
+  if (boton) boton.classList.add('active');
+  if (sesionActiva && !panel.classList.contains('oculto'))
+    sessionStorage.setItem('admin_tab_activa_v1',tabId);
+}
+function restaurarTabAdmin() {
+  const tabId = sessionStorage.getItem('admin_tab_activa_v1');
+  if (tabId) cambiarTab(tabId);
 }
 
 // ================== EXPORTAR FUNCIONES ====================
