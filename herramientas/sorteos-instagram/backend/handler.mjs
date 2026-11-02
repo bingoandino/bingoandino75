@@ -2,7 +2,7 @@ import {createInstagram,page,InstagramError} from './instagram.mjs';
 import {verifyPassword,validPassword,passwordHash,randomToken,digest,rateKey} from './access-core.mjs';
 const OWNER_EMAIL='bingoandino75@gmail.com';
 const ORIGINS=new Set(['https://bingoandino75.com','https://www.bingoandino75.com','https://bingoandino.github.io']);
-export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=ORIGINS}){
+export function createHandler({rpc,authUser,sendOtp,rotateInstagramToken=async()=>{throw Error('Not configured')},fetcher=fetch,allowOrigins=ORIGINS}){
  return async function handler(request){
   const origin=request.headers.get('origin');const cors=origin&&allowOrigins.has(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{};
   const reply=(body,status=200,extra={})=>Response.json(body,{status,headers:{...cors,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}});
@@ -38,6 +38,25 @@ export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=O
    }
    const owner=await admin();
    if(op==='session')return reply({authorized:owner||await session(),owner});
+   if(op==='instagram_connect'){
+    if(!owner)return reply({error:'Solo el administrador verificado por correo puede reconectar Instagram.'},403);
+    if(!await limited('instagram-connect:'))return reply({error:'Demasiados intentos. Vuelve a intentarlo en 15 minutos.'},429);
+    const fresh=b.instagram_token;
+    if(typeof fresh!=='string'||fresh.length<50||fresh.length>4096||/\s/.test(fresh))return reply({error:'El token de Instagram es inválido. No se modificó la conexión anterior.'},400);
+    try {
+     const freshGraph=createInstagram(fresh,fetcher);
+     const me=await freshGraph('me',{fields:'id,username'});
+     if(!/^[0-9]{5,30}$/.test(String(me.id||''))||String(me.username||'').toLowerCase()!=='bingoandino75')
+      return reply({error:'El token no corresponde a @bingoandino75. No se guardó.'},400);
+     const publications=page(await freshGraph(me.id+'/media',{fields:'id,permalink,comments_count',limit:1}));
+     if(!publications.items.length)return reply({error:'Se verificó el perfil, pero Meta no permitió comprobar publicaciones. No se guardó.'},400);
+     page(await freshGraph(publications.items[0].id+'/comments',{fields:'id,text,username,timestamp,hidden',limit:1}));
+     await rotateInstagramToken(fresh);
+     return reply({ok:true,message:'¡Instagram conectado! Se verificaron el perfil, las publicaciones y los comentarios de @bingoandino75.'});
+    }catch(err){
+     return reply({error:(err instanceof InstagramError?err.message:'No se pudo guardar la conexión. La autorización anterior se mantiene.')},502);
+    }
+   }
    if(op==='password'){
     if(!owner)return reply({error:'Solo el administrador puede cambiar la contraseña.'},403);
     if(!validPassword(b.password))return reply({error:'La contraseña debe tener entre 8 y 200 caracteres.'},400);
@@ -80,10 +99,28 @@ export function createHandler({rpc,authUser,sendOtp,fetcher=fetch,allowOrigins=O
     if(String(media.username).toLowerCase()!=='bingoandino75')return reply({error:'Solo se admiten publicaciones de @bingoandino75.'},403);
     // Older clients still receive one page; new clients group up to five pages per request.
     const maxPages=b.batch===true?5:1,started=Date.now(),seen=new Set(after?[after]:[]);
-    let cursor=after,items=[],pages=0;
+    let cursor=after,items=[],pages=0,withFrom=false;
+    const hasAuthor=(comment)=>typeof (comment.username||comment.from?.username)==='string'&&String(comment.username||comment.from?.username).trim().length>0;
     do{
-     const current=page(await graph(b.media+'/comments',{fields:'id,text,username,timestamp,hidden',limit:100,after:cursor}));
-     items.push(...current.items);pages++;
+     let current=page(await graph(b.media+'/comments',{fields:withFrom?'id,text,username,from,timestamp,hidden':'id,text,username,timestamp,hidden',limit:100,after:cursor}));
+     if(current.items.some(comment=>!hasAuthor(comment))){
+      // Algunos accesos de Instagram omiten "username" aunque entreguen id y texto.
+      // Solo intentamos "from" como alternativa; no inventamos autores ni alteramos oportunidades.
+      if(!withFrom){
+       try{
+        const alternative=page(await graph(b.media+'/comments',{fields:'id,text,username,from,timestamp,hidden',limit:100,after:cursor}));
+        current=alternative;withFrom=true;
+       }catch(err){
+        if(!(err instanceof InstagramError))throw err;
+       }
+      }
+      const missing=current.items.filter(comment=>!hasAuthor(comment)).length;
+      if(missing){
+       console.warn('instagram-sorteos: comentarios sin autor',JSON.stringify({total:current.items.length,missing}));
+       throw new InstagramError('Instagram entregó comentarios, pero no devolvió el nombre de sus autores ('+missing+' de '+current.items.length+' en esta página). No se puede elegir un ganador justo. Revisa los permisos de lectura de autores en Meta o usa la conexión con Facebook. No se guardaron participantes parciales.',422);
+      }
+     }
+     items.push(...current.items.map(comment=>comment.username?comment:{...comment,username:comment.from?.username}));pages++;
      if(current.next&&seen.has(current.next))throw new InstagramError('Instagram repitió una página. Vuelve a cargar.',502);
      if(current.next)seen.add(current.next);cursor=current.next;
     }while(cursor&&pages<maxPages&&Date.now()-started<8000);
