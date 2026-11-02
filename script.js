@@ -3221,8 +3221,16 @@ cartonesOcupados = await fetchTodosLosOcupados();
     const tr = document.createElement('tr');
     tr.dataset.estadoActual = item.estado || 'pendiente';
     tr.dataset.origenRegistro = item.origen_registro || 'compra';
-    const filtroOrigen = document.getElementById('filtroOrigenSlot')?.value || 'todos';
-    tr.hidden = !coincideOrigenInscripcion(filtroOrigen,tr.dataset.origenRegistro);
+    // Índice local para buscar sin descargar nuevos datos ni modificar compras.
+    tr.dataset.busquedaNombre = normalizarBusquedaInscripciones(item.nombre);
+    tr.dataset.busquedaCedula = normalizarBusquedaInscripciones(item.cedula);
+    tr.dataset.busquedaTelefono = normalizarBusquedaInscripciones(item.telefono);
+    tr.dataset.busquedaReferido = normalizarBusquedaInscripciones(item.referido);
+    tr.dataset.busquedaReferencia = normalizarBusquedaInscripciones(item.referencia4dig);
+    tr.dataset.busquedaCartones = (Array.isArray(item.cartones) ? item.cartones : []).map(String).join(' ');
+    tr.dataset.busquedaPago = normalizarBusquedaInscripciones(
+      [item.pago_banco, item.pago_telefono, item.pago_cedula].filter(Boolean).join(' ')
+    );
     tr.innerHTML = `
       <td>${escaparHTML(item.nombre)}${item.origen_registro==='premio_dinamica'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio de dinámica</small>':item.origen_registro==='premio_slot'?'<br><small style="color:#8b640e;font-weight:bold">🎁 Premio del slot</small>':item.origen_registro==='bot'?'<br><small style="color:#64277f;font-weight:bold">🤖 Compra del bot</small>':item.origen_registro==='soporte'?'<br><small style="color:#64277f;font-weight:bold">🧑‍💻 Compra de soporte</small>':''}</td>
       <td>
@@ -3322,6 +3330,7 @@ btnRechazar.onclick = () => procesarEstadoUnaVez(
   });
 
   aplicarOrdenInscripciones();
+  aplicarFiltrosInscripcionesAdmin();
   document.getElementById('contador-clientes').textContent = data.length;
   document.getElementById('contadorCartones').innerText = 
     `Cartones disponibles: ${totalCartones - cartonesOcupados.length} de ${totalCartones}`;
@@ -5404,8 +5413,65 @@ console.log('✅ Sistema de sesión única configurado correctamente');
 
 
 
-function filtrarOrigenInscripciones(){const origen=document.getElementById('filtroOrigenSlot')?.value||'todos';document.querySelectorAll('#tabla-comprobantes tbody tr').forEach(tr=>{tr.hidden=!coincideOrigenInscripcion(origen,tr.dataset.origenRegistro);});}
-
+// La búsqueda filtra únicamente inscripciones ya cargadas en el administrador.
+let busquedaInscripcionesTextoActivo = '';
+let busquedaInscripcionesTipoActivo = 'todos';
+function normalizarBusquedaInscripciones(valor) {
+  return String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function coincideBusquedaInscripciones(tr, texto, tipo) {
+  if (!texto) return true;
+  const campos = tr.dataset || {};
+  const coincide = campo => (campos[campo] || '').includes(texto);
+  if (tipo === 'carton') {
+    const numero = texto.replace(/\s+/g, '');
+    return /^\d+$/.test(numero) &&
+      (campos.busquedaCartones || '').split(/\s+/).some(c => c === numero);
+  }
+  if (tipo === 'nombre') return coincide('busquedaNombre');
+  if (tipo === 'cedula') return coincide('busquedaCedula');
+  if (tipo === 'telefono') return coincide('busquedaTelefono') || coincide('busquedaPago');
+  if (tipo === 'referencia') return coincide('busquedaReferencia');
+  return ['busquedaNombre','busquedaCedula','busquedaTelefono','busquedaReferido',
+    'busquedaReferencia','busquedaPago'].some(coincide) ||
+    (/^\d+$/.test(texto) && (campos.busquedaCartones || '').split(/\s+/).includes(texto));
+}
+function aplicarFiltrosInscripcionesAdmin() {
+  const filas = document.querySelectorAll('#tabla-comprobantes tbody tr');
+  const origen = document.getElementById('filtroOrigenSlot')?.value || 'todos';
+  let visibles = 0;
+  filas.forEach(tr => {
+    const mostrar = coincideOrigenInscripcion(origen, tr.dataset.origenRegistro) &&
+      coincideBusquedaInscripciones(tr, busquedaInscripcionesTextoActivo, busquedaInscripcionesTipoActivo);
+    tr.hidden = !mostrar;
+    if (mostrar) visibles++;
+  });
+  const resultado = document.getElementById('admin-buscar-resultado');
+  if (resultado) {
+    resultado.textContent = busquedaInscripcionesTextoActivo
+      ? (visibles ? visibles + ' compra(s) encontrada(s) entre los registros cargados.'
+                  : 'No se encontraron coincidencias en los registros cargados.')
+      : (origen === 'todos' ? '' : visibles + ' registro(s) de este tipo.');
+  }
+}
+function buscarInscripcionesAdmin() {
+  const campo = document.getElementById('admin-buscar-texto');
+  const selector = document.getElementById('admin-buscar-tipo');
+  busquedaInscripcionesTextoActivo = normalizarBusquedaInscripciones(campo?.value);
+  busquedaInscripcionesTipoActivo = selector?.value || 'todos';
+  aplicarFiltrosInscripcionesAdmin();
+}
+function limpiarBusquedaInscripcionesAdmin() {
+  const campo = document.getElementById('admin-buscar-texto');
+  const selector = document.getElementById('admin-buscar-tipo');
+  if (campo) campo.value = '';
+  if (selector) selector.value = 'todos';
+  busquedaInscripcionesTextoActivo = '';
+  busquedaInscripcionesTipoActivo = 'todos';
+  aplicarFiltrosInscripcionesAdmin();
+}
+function filtrarOrigenInscripciones() { aplicarFiltrosInscripcionesAdmin(); }
 
 function coincideOrigenInscripcion(filtro,origen){return filtro==='todos'||(filtro==='compra'?(origen==='compra'||origen==='bot'||origen==='soporte'):filtro===origen);}
 
