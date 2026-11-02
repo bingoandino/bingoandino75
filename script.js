@@ -1891,11 +1891,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Mantener la pantalla de carga hasta confirmar si debe volver al administrador.
   // Así no se muestra Inicio por un instante al refrescar una sesión válida.
   const overlayInicio = document.getElementById('overlay-carga');
+  const restaurarPanel = !!sessionStorage.getItem('admin_session_token') &&
+    sessionStorage.getItem('admin_vista_panel_v1') !== 'publica';
   try {
     document.getElementById('modal-terminos').classList.remove('oculto');
     await obtenerTotalCartones();
     await cargarLinkWhatsapp();
     await cargarVersionCartones();
+    // Los visitantes conservan la rapidez de carga habitual.
+    // Solo se protege visualmente el regreso a un administrador abierto.
+    if (!restaurarPanel && overlayInicio) overlayInicio.style.display = 'none';
 
     await Promise.all([
     cargarDatosClienteLocal(),
