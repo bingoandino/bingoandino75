@@ -31,7 +31,8 @@ async function day(db,index,{withoutMary=false,missingWinner=false}={}){
  [base+4,'Pedro','444444',400+index,'aprobado',890,'compra'],
  [base+5,'Ganador','555555',500+index,'aprobado',890,'compra'],
  [base+6,'Premio slot','666666',600+index,'aprobado',0,'premio_slot'],
- [base+7,'Pendiente','777777',700+index,'pendiente',890,'compra']
+ [base+7,'Pendiente','777777',700+index,'pendiente',890,'compra'],
+ [base+8,'Zoe','888888',800+index,'aprobado',890,'compra']
  ].filter(x=>!(withoutMary&&x[2]==='333333')&&!(index===0&&x[2]==='444444'));
  for(const x of people){
   await db.query('insert into public.inscripciones(id,nombre,cedula,cartones,estado,monto_bs,origen_registro) values($1,$2,$3,ARRAY[$4]::bigint[],$5,$6,$7)',x);
@@ -52,8 +53,8 @@ test('Fidelidad: solo compras aprobadas y pagadas; excluye rondas y consolación
   assert.equal(r.ready,true);
   // Ana compró seis días sin premios; Luis ganó una ronda, María ganó consolación,
   // Pedro faltó lunes, y los premios gratuitos no cuentan como compra.
-  assert.equal(r.cantidad,1);
-  assert.equal(r.participants.length,1);
+  assert.equal(r.cantidad,2);
+  assert.equal(r.participants.length,2);
   assert.equal(r.participants[0].name,'Ana');
   assert.equal(r.participants[0].ticket,105);
   const before=r.participants;
@@ -90,5 +91,20 @@ test('Fidelidad: sin permisos públicos, no acepta sorteo fuera del sábado actu
   const perms=(await db.query("select has_function_privilege('anon','public.fidelidad_estado(date)','EXECUTE') a,has_function_privilege('authenticated','public.fidelidad_girar(date,uuid,text)','EXECUTE') b")).rows[0];
   assert.equal(perms.a,false);assert.equal(perms.b,false);
   await assert.rejects(()=>db.query('select public.fidelidad_girar($1::date,$2::uuid,$3::text)',[iso(5),id(1),'Premio Fidelidad']));
+ }finally{await db.close();}
+});
+
+test('Fidelidad: dos giros distintos dan dos personas distintas, un reintento no duplica y no hay tercer ganador',async()=>{
+ const db=await setup();
+ try{
+  for(let i=0;i<6;i++)await day(db,i);
+  const query='select fidelidad.girar_en_fecha($1::date,$2::uuid,$3::text,$4::date) r';
+  const first=(await db.query(query,[iso(5),id(1),'Premio de prueba',iso(5)])).rows[0].r;
+  const repeat=(await db.query(query,[iso(5),id(1),'No debe reemplazar premio',iso(5)])).rows[0].r;
+  assert.deepEqual(repeat,first,'Un reintento nunca gira de nuevo ni cambia el premio');
+  const second=(await db.query(query,[iso(5),id(2),'Premio de prueba',iso(5)])).rows[0].r;
+  assert.notEqual(second.ticket,first.ticket,'No se repite persona premiada');
+  await assert.rejects(()=>db.query(query,[iso(5),id(3),'Premio de prueba',iso(5)]));
+  assert.equal((await db.query('select count(*)::int n from fidelidad.giros')).rows[0].n,2);
  }finally{await db.close();}
 });
