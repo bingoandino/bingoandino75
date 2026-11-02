@@ -1,4 +1,4 @@
-import {fidelidadApi,hasSession} from './auth.js?v=1.0.19';
+import {fidelidadApi,hasSession} from './auth.js?v=1.0.20-fidelidad';
 import {spinCylinder} from './spin-cylinder.js?v=1.0.19';
 import {celebrate} from './confetti.js?v=1.0.19';
 
@@ -119,9 +119,9 @@ async function girar(){
   const state=await fidelidadApi('estado',{sabado:fecha});
   if(state.ready){participants=state.participants||participants;winners=state.winners||winners;}
  }catch(e){
+  if(ticketWinner&&!winners.some(w=>w.drawId===ticketWinner.drawId))winners.push(ticketWinner);
   status('⚠️ '+e.message+' Si el servidor pudo guardar el giro, al reintentar se recuperará el mismo ganador.');
   // No borramos el identificador pendiente: el reintento es idempotente.
-  await verificar();
  }finally{
   render();setBusy(false);
  }
