@@ -3140,6 +3140,20 @@ cartonesOcupados = await fetchTodosLosOcupados();
     return alert('Error cargando inscripciones');
   }
 
+  // Avisos del bot: tabla privada, accesible solo para el administrador autenticado.
+  // Un fallo leyendo avisos NO interrumpe las compras ni los controles existentes.
+  const revisionesBot = new Map();
+  try {
+    const { data: avisos, error: errorAvisos } = await supabase
+      .from('bingo_revision_bot')
+      .select('inscripcion_id,codigo,motivo,revisado_at')
+      .limit(1000);
+    if (errorAvisos) throw errorAvisos;
+    (avisos || []).forEach(a => revisionesBot.set(String(a.inscripcion_id), a));
+  } catch (e) {
+    console.warn('No fue posible consultar las alertas privadas del verificador', e);
+  }
+
   const tbody = document.querySelector('#tabla-comprobantes tbody');
   tbody.innerHTML = '';
 
@@ -3212,6 +3226,37 @@ btnRechazar.onclick = () => procesarEstadoUnaVez(
     btnEditRef.onclick = () => editarReferencia(tr.querySelector('.celda-ref'));
     
   
+
+    // Mostrar el motivo sin cambiar el estado ni habilitar aprobaciones automáticas.
+    const revision = item.estado === 'pendiente' ? revisionesBot.get(String(item.id)) : null;
+    if (revision && item.origen_registro !== 'premio_slot' && item.origen_registro !== 'premio_dinamica') {
+      const nombres = {
+        REFERENCIA_UTILIZADA: 'Referencia usada',
+        REFERENCIA_USADA: 'Referencia usada',
+        FUERA_36_HORAS: 'Fuera de 36 horas',
+        HORA_NO_COMPROBABLE: 'Hora no comprobable',
+        MONTO_DISTINTO: 'Monto distinto',
+        VARIAS_COINCIDENCIAS: 'Varios pagos coincidentes',
+        NO_ENCONTRADA: 'Pago no localizado',
+        REFERENCIA_INVALIDA: 'Referencia inválida',
+        DATOS_INCOMPLETOS: 'Datos incompletos',
+        CARTON_DUPLICADO: 'Cartón duplicado',
+        CAMBIO_DE_ESTADO: 'Cambio de estado',
+        ERROR_AL_APROBAR: 'Error de verificación'
+      };
+      const detalle = document.createElement('details');
+      detalle.className = 'bot-revision';
+      detalle.style.cssText = 'margin-top:6px;padding:5px 7px;border:1px solid #b08b45;border-radius:7px;background:#fff8e9;color:#57336e;font-size:12px;max-width:230px;';
+      const resumen = document.createElement('summary');
+      resumen.style.cssText = 'font-weight:700;cursor:pointer;line-height:1.35;';
+      resumen.textContent = '⚠️ ' + (nombres[revision.codigo] || 'Revisión pendiente');
+      const descripcion = document.createElement('div');
+      descripcion.style.cssText = 'margin-top:5px;line-height:1.4;overflow-wrap:anywhere;';
+      const cuando = revision.revisado_at ? new Date(revision.revisado_at).toLocaleString('es-VE') : '';
+      descripcion.textContent = revision.motivo + (cuando ? ' · Revisado: ' + cuando : '');
+      detalle.append(resumen, descripcion);
+      tr.lastElementChild.appendChild(detalle);
+    }
 
     tbody.appendChild(tr);
   });
