@@ -24,7 +24,7 @@ $('export').onclick=()=>{const a=document.createElement('a'),url=URL.createObjec
 $('generate').onclick=async()=>{if(busy)return;busy=true;$('generate').disabled=true;$('generate').textContent='✦ Creando tu dinámica…';try{const token=await accessToken();const d=await api({action:'generate',type,theme:$('theme').value,difficulty:$('difficulty').value,previous:history.slice(0,30).map(x=>x.message.slice(0,300))},token);setDraft(d.question,d.answer,d.explanation,'Creada con IA');save('Generada');toast('Lista. Revisa la respuesta antes de compartir.')}catch(e){if(e.status===401){$('login').showModal();$('access').textContent='Acceso a la IA';}toast(e.name==='TimeoutError'?'La IA tardó demasiado. Inténtalo de nuevo.':e.message)}finally{busy=false;$('generate').disabled=false;$('generate').textContent='✦ Generar con IA'}};
 
 async function refreshStatus(){try{const d=await api({action:'status'});$('aiStatus').textContent=d.ready?'Gemini disponible · acceso de administrador':'IA pendiente de configuración';$('connection').hidden=d.ready;if(!d.ready)$('connection').textContent='La IA necesita configuración en el servidor. Los ejemplos y la edición manual están disponibles.';}catch{$('aiStatus').textContent='No se pudo comprobar la conexión.'}}
-$('access').onclick=()=>{$('logout').hidden=!auth;$('login').showModal()};$('closeLogin').onclick=()=>$('login').close();$('logout').onclick=()=>{auth=null;sessionStorage.removeItem('ba75-dinamicas-auth');$('access').textContent='Acceso a la IA';$('login').close();panel=null;$('winnerList').replaceChildren();$('dailySummary').disabled=true;$('weeklySummary').disabled=true;$('stockStatus').textContent='Ingresa para consultar el sorteo.';toast('Acceso a IA cerrado en esta app.')};let codeSent=false;
+$('access').onclick=()=>{$('logout').hidden=!auth;$('login').showModal()};$('closeLogin').onclick=()=>$('login').close();$('logout').onclick=()=>{auth=null;sessionStorage.removeItem('ba75-dinamicas-auth');$('access').textContent='Acceso a la IA';$('login').close();panel=null;showWon=false;$('winnerList').replaceChildren();$('dailySummary').disabled=true;$('weeklySummary').disabled=true;$('verifyPrizes').disabled=true;$('stockStatus').textContent='Ingresa para consultar el sorteo.';toast('Acceso a IA cerrado en esta app.')};let codeSent=false;
 $('loginForm').onsubmit=async e=>{e.preventDefault();const btn=$('loginSubmit');btn.disabled=true;$('loginError').textContent='';try{if(!codeSent){await authRequest('otp',{email:$('email').value.trim().toLowerCase(),create_user:false});codeSent=true;$('email').readOnly=true;$('codeFields').hidden=false;$('code').required=true;btn.textContent='Verificar código';$('loginError').textContent='Revisa tu correo e ingresa el código recibido.';$('code').focus();}else{const d=await authRequest('verify',{email:$('email').value.trim().toLowerCase(),token:$('code').value.trim(),type:'email'});if(d.user?.id!=='5121c2ba-c8f1-40f8-8b3e-130a75f60ac5')throw Error('Acceso exclusivo del administrador de Bingo Andino 75.');await api({action:'check'},d.access_token);rememberAuth(d);$('code').value='';$('login').close();$('access').textContent='IA · acceso activo';toast('Acceso confirmado. Ya puedes generar dinámicas.');if(!$('winners').hidden)loadPanel();}}catch(e){$('loginError').textContent=e.message}finally{btn.disabled=false}};
 refreshStatus();example();renderHistory();if(auth)$('access').textContent='IA · acceso activo';
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
@@ -38,16 +38,54 @@ $('copyAnnouncement').onclick=()=>copyText($('announcementText').value,'announce
 let installPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('install').textContent='Instalar app'});window.addEventListener('appinstalled',()=>{$('install').hidden=true;installPrompt=null;toast('App instalada.')});
 if(window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone)$('install').hidden=true;
 $('install').onclick=async()=>{if(installPrompt){await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null}else $('installDialog').showModal()};$('closeInstall').onclick=()=>$('installDialog').close();
-let panel=null,panelFresh=false,viewToday=false,pending=null,awarding=false;
+let panel=null,panelFresh=false,viewToday=false,pending=null,awarding=false,showWon=false;
 const winnerFields=['winnerName','winnerCedula','winnerPhone','winnerBank'];
 try{const stored=JSON.parse(sessionStorage.getItem('ba75-dinamicas-pending')||'null');if(stored?.requestId&&stored.recipient&&stored.anchor){pending=stored;winnerFields.forEach((id,i)=>$(id).value=stored.recipient[['name','cedula','phone','bank'][i]]||'')}}catch{}
 function needLogin(e){if(e.status===401){$('logout').hidden=!auth;$('login').showModal()}return e.message||'No se pudo completar la operación.'}
 function lockRecipient(locked){winnerFields.forEach(id=>$(id).disabled=locked)}
 if(pending){lockRecipient(true);$('reviewAward').textContent='Reintentar entrega pendiente';$('awardError').textContent='Hay una entrega sin confirmar. Consulta el resultado antes de crear otra.'}
 function weekDate(value){return new Date(value+'T12:00:00-04:00').toLocaleDateString('es-VE',{day:'numeric',month:'long',timeZone:'America/Caracas'})}
-async function loadPanel(){panelFresh=false;$('dailySummary').disabled=true;$('weeklySummary').disabled=true;$('refreshWinners').disabled=true;$('winnersError').hidden=true;try{const token=await accessToken();const data=await api({action:'dashboard'},token);if(!Array.isArray(data.winners)||!data.today||!data.anchor)throw Error('No se pudo leer el historial.');panel=data;panelFresh=true;$('stockStatus').textContent=data.salesOpen?data.available+' cartones disponibles de '+data.total+' · Ventas abiertas':'Ventas cerradas · abre el sorteo para entregar cartones.';$('weekLabel').textContent='Del '+weekDate(data.weekStart)+' al '+weekDate(data.weekEnd)+' · Hora de Venezuela';renderWinners();$('dailySummary').disabled=!data.winners.some(w=>w.dia===data.today);$('weeklySummary').disabled=!data.winners.length;return data}catch(e){$('winnersError').textContent=needLogin(e)+' Los datos anteriores, si aparecen, no están actualizados.';$('winnersError').hidden=false;return null}finally{$('refreshWinners').disabled=false}}
-function renderWinners(){const list=$('winnerList');list.replaceChildren();$('todayFilter').classList.toggle('selected-filter',viewToday);$('weekFilter').classList.toggle('selected-filter',!viewToday);if(!panel)return;const items=panel.winners.filter(w=>!viewToday||w.dia===panel.today);if(!items.length){const p=document.createElement('p');p.className='empty';p.textContent=viewToday?'Todavía no hay ganadores registrados hoy.':'Todavía no hay ganadores registrados esta semana.';list.append(p);return}for(const w of items){const row=document.createElement('article');row.className='history-item';const info=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('p'),badge=document.createElement('span');name.textContent=w.nombre;meta.className='winner-meta';meta.textContent=weekDate(w.dia)+' · Cédula terminada en '+w.cedula.slice(-4);badge.className='carton-pill';badge.textContent='Cartón '+w.carton;info.append(name,meta);row.append(info,badge);list.append(row)}}
+async function loadPanel(){panelFresh=false;$('dailySummary').disabled=true;$('weeklySummary').disabled=true;$('verifyPrizes').disabled=true;$('refreshWinners').disabled=true;$('winnersError').hidden=true;try{const token=await accessToken();const data=await api({action:'dashboard'},token);if(!Array.isArray(data.winners)||!data.today||!data.anchor)throw Error('No se pudo leer el historial.');panel=data;panelFresh=true;$('stockStatus').textContent=data.salesOpen?data.available+' cartones disponibles de '+data.total+' · Ventas abiertas':'Ventas cerradas · abre el sorteo para entregar cartones.';$('weekLabel').textContent='Del '+weekDate(data.weekStart)+' al '+weekDate(data.weekEnd)+' · Hora de Venezuela';renderWinners();$('dailySummary').disabled=!data.winners.some(w=>w.dia===data.today);$('weeklySummary').disabled=!data.winners.length;$('verifyPrizes').disabled=!data.winners.length;return data}catch(e){$('winnersError').textContent=needLogin(e)+' Los datos anteriores, si aparecen, no están actualizados.';$('winnersError').hidden=false;return null}finally{$('refreshWinners').disabled=false}}
+function renderWinners(){
+ const list=$('winnerList');list.replaceChildren();
+ $('todayFilter').classList.toggle('selected-filter',viewToday);
+ $('weekFilter').classList.toggle('selected-filter',!viewToday);
+ if(!panel)return;
+ const items=panel.winners.filter(w=>!viewToday||w.dia===panel.today);
+ if(!items.length){
+  const p=document.createElement('p');p.className='empty';
+  p.textContent=viewToday?'Todavía no hay ganadores registrados hoy.':'Todavía no hay ganadores registrados esta semana.';
+  list.append(p);return;
+ }
+ for(const w of items){
+  const row=document.createElement('article');row.className='history-item';
+  const info=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('p');
+  const badges=document.createElement('div');badges.className='winner-badges';
+  const badge=document.createElement('span');
+  name.textContent=w.nombre;meta.className='winner-meta';
+  meta.textContent=weekDate(w.dia)+' · Cédula terminada en '+w.cedula.slice(-4);
+  badge.className='carton-pill';badge.textContent='Cartón '+w.carton;
+  info.append(name,meta);badges.append(badge);
+  const centimos=Number(w.premio_centimos);
+  if(showWon&&Number.isSafeInteger(centimos)&&centimos>0){
+   const premio=document.createElement('span');premio.className='prize-won';
+   premio.textContent='🏆 Ganó '+new Intl.NumberFormat('es-VE',{
+    minimumFractionDigits:0,maximumFractionDigits:2
+   }).format(centimos/100)+' Bs';
+   badges.append(premio);
+  }
+  row.append(info,badges);list.append(row);
+ }
+}
 $('winnersTab').onclick=()=>{$('creator').hidden=true;$('history').hidden=true;$('winners').hidden=false;['createTab','historyTab'].forEach(id=>$(id).classList.remove('active'));$('winnersTab').classList.add('active');loadPanel()};$('refreshWinners').onclick=loadPanel;$('todayFilter').onclick=()=>{viewToday=true;renderWinners()};$('weekFilter').onclick=()=>{viewToday=false;renderWinners()};
+$('verifyPrizes').onclick=async()=>{
+ const data=await loadPanel();
+ if(!data)return;
+ showWon=true;
+ renderWinners();
+ $('verifyPrizes').textContent='↻ Actualizar premios ganados';
+};
+
 function publicDailySummary(data){const items=data.winners.filter(w=>w.dia===data.today).slice().reverse();if(!items.length)return '';return '🎉 *GANADORES DE LAS DINÁMICAS*\n*Bingo Andino 75 · '+weekDate(data.today)+'*\n\n'+items.map((w,i)=>(i+1)+'. '+w.nombre+' — Cartón *'+w.carton+'* 🎁').join('\n')+'\n\n💜 ¡Felicidades! Cada ganador recibió *1 cartón gratis*.\n📌 Recuerda: solo puedes ganar una vez por semana.'}
 function publicWeeklySummary(data){
  const start=String(data?.weekStart||''),end=String(data?.weekEnd||'');
