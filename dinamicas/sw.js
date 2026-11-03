@@ -1,5 +1,5 @@
-const CACHE='andino-dinamicas-v3-resumen-semanal';
-const SHELL=['./','./app.js?v=20261103-resumen-semanal-1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='andino-dinamicas-v4-verificar-premios';
+const SHELL=['./','./app.js?v=20261103-verificar-premios-1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(names=>Promise.all(names.filter(n=>n.startsWith('andino-dinamicas-')&&n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin||!url.pathname.startsWith('/dinamicas/'))return;const cacheable=event.request.mode==='navigate'||['/dinamicas/app.js','/dinamicas/manifest.webmanifest','/dinamicas/icon-192.png','/dinamicas/icon-512.png'].includes(url.pathname);if(!cacheable)return;event.respondWith(fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE).then(c=>c.put(event.request,copy)))}return response}).catch(async()=>{const cache=await caches.open(CACHE);return await cache.match(event.request)||(event.request.mode==='navigate'?await cache.match('./'):null)||Response.error()}));});
