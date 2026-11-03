@@ -46,6 +46,45 @@ function lockRecipient(locked){winnerFields.forEach(id=>$(id).disabled=locked)}
 if(pending){lockRecipient(true);$('reviewAward').textContent='Reintentar entrega pendiente';$('awardError').textContent='Hay una entrega sin confirmar. Consulta el resultado antes de crear otra.'}
 function weekDate(value){return new Date(value+'T12:00:00-04:00').toLocaleDateString('es-VE',{day:'numeric',month:'long',timeZone:'America/Caracas'})}
 async function loadPanel(){panelFresh=false;$('dailySummary').disabled=true;$('weeklySummary').disabled=true;$('verifyPrizes').disabled=true;$('refreshWinners').disabled=true;$('winnersError').hidden=true;try{const token=await accessToken();const data=await api({action:'dashboard'},token);if(!Array.isArray(data.winners)||!data.today||!data.anchor)throw Error('No se pudo leer el historial.');panel=data;panelFresh=true;$('stockStatus').textContent=data.salesOpen?data.available+' cartones disponibles de '+data.total+' · Ventas abiertas':'Ventas cerradas · abre el sorteo para entregar cartones.';$('weekLabel').textContent='Del '+weekDate(data.weekStart)+' al '+weekDate(data.weekEnd)+' · Hora de Venezuela';renderWinners();$('dailySummary').disabled=!data.winners.some(w=>w.dia===data.today);$('weeklySummary').disabled=!data.winners.length;$('verifyPrizes').disabled=!data.winners.length;return data}catch(e){$('winnersError').textContent=needLogin(e)+' Los datos anteriores, si aparecen, no están actualizados.';$('winnersError').hidden=false;return null}finally{$('refreshWinners').disabled=false}}
+// El historial de resultados publicados separa premios de rondas,
+ // cartón lleno final, consolación y pozo. No mostrar avisos para montos nulos.
+function premiosDelCarton(ganador){
+ const detalles=Array.isArray(ganador?.premios_detalle)?ganador.premios_detalle:[];
+ const premios=[];
+ for(const item of detalles){
+  const centimos=Number(item?.premio_centimos);
+  if(!Number.isSafeInteger(centimos)||centimos<=0)continue;
+  const tipo=String(item?.tipo||'');
+  const orden=Number(item?.orden);
+  let descripcion,emoji;
+  if(tipo==='ronda'){
+   if(!Number.isInteger(orden)||orden<1||orden>6)continue;
+   descripcion='Ganó en la ronda '+orden;emoji='🏆';
+  }else if(tipo==='final'){
+   descripcion='Ganó el cartón lleno final'+(Number.isInteger(orden)&&orden>0?' (ronda '+orden+')':'');emoji='🏆';
+  }else if(tipo==='consolacion'){
+   descripcion='Ganó en consolación';emoji='🎁';
+  }else if(tipo==='pozo'){
+   descripcion='Ganó el pozo acumulado';emoji='💰';
+  }else if(tipo==='aproximacion'){
+   descripcion='Ganó aproximación';emoji='🎯';
+  }else continue;
+  premios.push({descripcion,emoji,centimos});
+ }
+ // Compatibilidad temporal con el total anterior si todavía no llega el detalle.
+ if(!detalles.length){
+  const centimos=Number(ganador?.premio_centimos);
+  if(Number.isSafeInteger(centimos)&&centimos>0)premios.push({
+   descripcion:'Ganó',emoji:'🏆',centimos
+  });
+ }
+ return premios;
+}
+function montoPremioBs(centimos){
+ return new Intl.NumberFormat('es-VE',{
+  minimumFractionDigits:0,maximumFractionDigits:2
+ }).format(centimos/100)+' Bs';
+}
 function renderWinners(){
  const list=$('winnerList');list.replaceChildren();
  $('todayFilter').classList.toggle('selected-filter',viewToday);
@@ -66,13 +105,12 @@ function renderWinners(){
   meta.textContent=weekDate(w.dia)+' · Cédula terminada en '+w.cedula.slice(-4);
   badge.className='carton-pill';badge.textContent='Cartón '+w.carton;
   info.append(name,meta);badges.append(badge);
-  const centimos=Number(w.premio_centimos);
-  if(showWon&&Number.isSafeInteger(centimos)&&centimos>0){
-   const premio=document.createElement('span');premio.className='prize-won';
-   premio.textContent='🏆 Ganó '+new Intl.NumberFormat('es-VE',{
-    minimumFractionDigits:0,maximumFractionDigits:2
-   }).format(centimos/100)+' Bs';
-   badges.append(premio);
+  if(showWon){
+   for(const p of premiosDelCarton(w)){
+    const premio=document.createElement('span');premio.className='prize-won';
+    premio.textContent=p.emoji+' '+p.descripcion+' · '+montoPremioBs(p.centimos);
+    badges.append(premio);
+   }
   }
   row.append(info,badges);list.append(row);
  }
