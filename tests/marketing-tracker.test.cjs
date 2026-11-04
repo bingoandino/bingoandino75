@@ -67,3 +67,13 @@ test('envío de métricas no comparte el referrer completo de la página',()=>{
  assert.match(code,/referrerPolicy:\s*["']no-referrer["']/);
  dom.window.close();
 });
+
+
+test('una recarga de la misma pestaña no solicita otra visita exitosa',async()=>{
+ const {dom,calls}=boot('https://bingoandino75.com/?utm_source=instagram');
+ assert.equal(calls.length,1);
+ await new Promise(resolve=>setTimeout(resolve,0));
+ dom.window.eval(code);
+ assert.equal(calls.length,1);
+ dom.window.close();
+});
