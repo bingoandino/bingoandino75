@@ -50,3 +50,20 @@ test('UTM malicioso no se guarda como campaña',()=>{
  assert.equal(calls[0].data.campania,null);
  dom.window.close();
 });
+
+test('captura desactivada en la página publicada hasta habilitación explícita',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+ assert.match(html,/window\.__ANDY_ANALYTICS_DISABLED__\s*=\s*true/);
+ const {dom,calls}=boot('https://bingoandino75.com/',undefined,w=>{
+  w.__ANDY_ANALYTICS_DISABLED__=true;
+ });
+ assert.equal(calls.length,0);
+ dom.window.close();
+});
+test('envío de métricas no comparte el referrer completo de la página',()=>{
+ const {dom,calls}=boot('https://bingoandino75.com/?utm_source=instagram');
+ assert.equal(calls.length,1);
+ // La opción de privacidad se verifica en el código del fetch real.
+ assert.match(code,/referrerPolicy:\s*["']no-referrer["']/);
+ dom.window.close();
+});
