@@ -48,3 +48,16 @@
 
 ## Estado
 Solo preparación de código en rama aislada. No se ha aplicado SQL, desplegado funciones ni publicado el contador. El panel no mostrará métricas reales hasta un despliegue autorizado y verificado.
+
+## Requisitos de seguridad añadidos (04/11/2026)
+- El archivo index.html inicializa window.__ANDY_ANALYTICS_DISABLED__ = true. Por defecto no se generan solicitudes de medición, incluso si se fusiona el PR accidentalmente.
+- Para activar cuando esté autorizado y probado, se requiere habilitar explícitamente esa bandera en la web.
+- La Edge Function marketing-visit también permanece apagada hasta definir MARKETING_TRACKING_ENABLED=true.
+- Además requiere un servicio Redis REST que acepte EVAL, con MARKETING_REDIS_REST_URL y MARKETING_REDIS_REST_TOKEN guardados como secretos de Edge (nunca en JavaScript público). Sin credenciales, responde con límite/fallo cerrado y no escribe a Supabase.
+- Redis establece dos cuotas globales transaccionales: 80 eventos por minuto y 8000 por día (UTC), con expiración automática. Estas cifras son límites de protección inicial, no objetivos de tráfico ni datos de clientes.
+- En caso de caída de Redis, la captura se desactiva temporalmente; el bingo y el proceso de compra siguen operando.
+- Costos y continuidad de Redis deben evaluarse antes de contratarlo. No se ha creado ninguna cuenta externa ni configurado un plan de pago.
+- No se recopilan IP ni huellas de navegación para la cuota; son contadores globales que también frenan ataques desde direcciones distribuidas. Un abuso puede provocar infracontar visitas legítimas una vez agotado el cupo; no es una solución completa contra todas las formas de abuso.
+- El navegador utiliza referrerPolicy no-referrer en el envío, evitando el referer completo.
+- Tests negativos adicionales: origen no autorizado, payload excesivo, datos inválidos, admin no autorizado o expirado, cuota agotada, Redis caído, duplicados.
+- Después de desplegar infraestructura y límites, iniciar con un piloto de bajo tráfico y validar las métricas antes de habilitar la bandera en producción.
