@@ -69,6 +69,7 @@
         mode: "cors",
         keepalive: true,
         credentials: "omit",
+        referrerPolicy: "no-referrer",
         headers: { "Content-Type": "application/json" },
         body: payload,
       })).catch(function () { /* Métricas opcionales; no interrumpir compra. */ });
