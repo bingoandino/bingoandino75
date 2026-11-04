@@ -12,20 +12,46 @@
     errorBox.hidden = false;
     container.hidden = true;
   }
-  const sessionToken = sessionStorage.getItem("admin_session_token");
-  const deviceId = sessionStorage.getItem("device_id") || localStorage.getItem("admin_device_id");
+  let sessionToken, deviceId;
+  try {
+    sessionToken = sessionStorage.getItem("admin_session_token");
+    deviceId = sessionStorage.getItem("device_id") || localStorage.getItem("admin_device_id");
+  } catch (_) {
+    fail("Este navegador impide acceder a la sesión del administrador. Abre ANDY desde Chrome después de iniciar sesión.");
+    return;
+  }
   if (!sessionToken || !deviceId) {
     fail("Inicia sesión como administrador en la página principal y abre ANDY desde esa misma pestaña. No se ha perdido ningún borrador.");
     return;
   }
+  async function loadSdk() {
+    if (typeof window.supabase?.createClient === "function") return window.supabase;
+    return await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      script.async = true;
+      let settled = false;
+      const done = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (error) reject(error);
+        else if (typeof window.supabase?.createClient === "function") resolve(window.supabase);
+        else reject(new Error("El servicio de autenticación no está disponible."));
+      };
+      const timer = setTimeout(() => done(new Error("No se pudo cargar la autenticación. Intenta más tarde.")), 6000);
+      script.onload = () => done();
+      script.onerror = () => done(new Error("No se pudo cargar la autenticación. Comprueba tu conexión."));
+      document.head.appendChild(script);
+    });
+  }
   try {
-    if (typeof window.supabase?.createClient !== "function")
-      throw new Error("No se pudo conectar con el servicio de autenticación.");
+    const sdk = await loadSdk();
     // Public anon key (same public key used on the website). Never place service_role here.
     const endpoint = "https://dbkixcpwirjwjvjintkr.supabase.co";
     const anon = document.querySelector('meta[name="andy-public-anon-key"]')?.content;
     if (!anon) throw new Error("Falta la configuración pública de acceso.");
-    const client = window.supabase.createClient(endpoint, anon);
+    const client = sdk.createClient(endpoint, anon);
     const auth = await Promise.race([
       client.auth.getSession(),
       new Promise((_,reject) => setTimeout(() => reject(new Error("La comprobación tardó demasiado.")), 7000))
