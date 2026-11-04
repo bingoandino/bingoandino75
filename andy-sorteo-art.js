@@ -131,16 +131,16 @@
     ctx.restore();
   }
   function brand(ctx,story,saturday){
-    const y=story?132:87;
+    const y=story?92:73;
     text(ctx,'B I N G O',64,y,story?49:41,P.gold,900,'left',440);
-    goldText(ctx,'ANDINO',55,y+(story?131:114),story?150:129,story?615:572,'left');
-    goldText(ctx,'75',story?638:585,y+(story?133:117),story?155:137,196,'left');
-    if(!saturday || story)text(ctx,'T U   M E J O R   J U G A D A',63,y+(story?177:157),story?27:25,P.ivory,850,'left',645);
+    goldText(ctx,'ANDINO',55,y+(story?147:127),story?150:129,story?615:572,'left');
+    goldText(ctx,'75',story?638:585,y+(story?149:129),story?155:137,196,'left');
+    if(!saturday || story)text(ctx,'T U   M E J O R   J U G A D A',63,y+(story?210:181),story?27:25,P.ivory,850,'left',645);
     if(saturday){
       if(story){
-        pathRect(ctx,66,y+196,380,47,15,'#752052','#f4c361',2);
-        text(ctx,'★  SÁBADO ESPECIAL  ★',256,y+230,26,'#ffe5a1',900,'center',355);
-      }else text(ctx,'★  SÁBADO ESPECIAL  ★',63,y+157,28,P.gold,900,'left',400);
+        pathRect(ctx,66,y+228,380,47,15,'#752052','#f4c361',2);
+        text(ctx,'★  SÁBADO ESPECIAL  ★',256,y+262,26,'#ffe5a1',900,'center',355);
+      }else text(ctx,'★  SÁBADO ESPECIAL  ★',63,y+181,28,P.gold,900,'left',400);
     }
   }
   function finalPanel(ctx,x,y,w,h,final,rounds,story){
@@ -152,10 +152,192 @@
     shine.addColorStop(0,'rgba(249,197,95,.2)');shine.addColorStop(1,'rgba(249,197,95,0)');
     ctx.fillStyle=shine;ctx.fillRect(x+18,y+17,w-36,h-34);
     // Crown is decorative but the amount is the hero.
-    crown(ctx,x+w*.5,y+(story?90:61),story?1.2:.78);
-    text(ctx,'LLENO FINAL',x+w*.5,y+(story?174:121),story?70:49,P.ivory,950,'center',w-85);
-    text(ctx,'RONDA '+rounds,x+w*.5,y+(story?224:155),story?35:26,P.muted,850,'center',w-100);
-    goldText(ctx,'$'+nf.format(final),x+w*.5,y+(story?458:268),story?315:186,w-76,'center');
+    crown(ctx,x+w*.145,y+(story?116:65),story?1.12:.74);
+    text(ctx,'LLENO FINAL',x+w*.5,y+(story?111:56),story?66:47,P.ivory,950,'center',w-85);
+    text(ctx,'RONDA '+rounds,x+w*.5,y+(story?157:89),story?31:25,P.muted,850,'center',w-100);
+    goldText(ctx,'
+    text(ctx,'USD · ¡EL GRAN PREMIO!',x+w*.5,y+h-(story?24:13),story?29:21,P.ivory,900,'center',w-70);
+    sparkle(ctx,x+w*.08,y+h*.48,15,.85);sparkle(ctx,x+w*.91,y+h*.32,12,.9);
+  }
+  function statBox(ctx,x,y,w,h,label,value,story,opt={}){
+    ctx.save();ctx.shadowColor='#17041d88';ctx.shadowBlur=15;ctx.shadowOffsetY=7;
+    pathRect(ctx,x,y,w,h,20,P.ivory,'#d8a454',4);ctx.restore();
+    ctx.save();ctx.beginPath();ctx.roundRect(x+6,y+6,w-12,h-12,16);ctx.clip();
+    ctx.fillStyle=gradient(ctx,x,y,w,h,[[0,'#fffdf6'],[1,'#f4debc']]);ctx.fillRect(x+6,y+6,w-12,h-12);
+    ctx.restore();
+    text(ctx,label,x+23,y+(story?60:30),story?37:25,P.purple,950,'left',w-46);
+    text(ctx,value,x+24,y+(story?181:(opt.note?96:113)),story?106:(opt.note?61:72),opt.accent||P.purple,950,'left',w-43);
+    if(opt.note)text(ctx,opt.note,x+25,y+h-(story?25:9),story?25:15,P.plum,800,'left',w-49);
+  }
+  function dateInfo(ctx,x,y,w,h,d,story){
+    pathRect(ctx,x,y,w,h,20,P.ivory,'#dbac5a',3);
+    const dt=new Date(d.date+'T12:00:00Z');
+    const dw=new Intl.DateTimeFormat('es-VE',{weekday:'long',timeZone:'UTC'}).format(dt).toUpperCase();
+    const when=new Intl.DateTimeFormat('es-VE',{day:'2-digit',month:'long',timeZone:'UTC'}).format(dt).toUpperCase();
+    const left=x+23,center=x+w*.53;
+    text(ctx,dw+' '+when,left,y+(story?57:37),story?40:29,P.purple,950,'left',w*.51);
+    text(ctx,'EN VIVO  '+d.hour+'  ·  YOUTUBE',left,y+(story?117:76),story?36:26,P.plum,900,'left',w*.55);
+    ctx.strokeStyle='#d6ae6b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(center,y+15);ctx.lineTo(center,y+h-15);ctx.stroke();
+    text(ctx,nf.format(d.tickets)+' CARTONES',x+w-22,y+(story?56:38),story?39:31,P.purple,950,'right',w*.44);
+    text(ctx,nf.format(d.priceBs)+' Bs / CARTÓN',x+w-22,y+(story?116:76),story?36:28,P.plum,950,'right',w*.44);
+  }
+  function prizeBox(ctx,x,y,w,h,label,value,story){
+    pathRect(ctx,x,y,w,h,19,P.ivory,'#dfb25f',3);
+    const bar=gradient(ctx,x,y,w,46,[[0,'#3f0b53'],[.56,'#742568'],[1,'#360a50']]);
+    pathRect(ctx,x+6,y+6,w-12,story?63:42,13,bar,null);
+    text(ctx,label,x+w/2,y+(story?51:37),story?30:23,P.ivory,900,'center',w-20);
+    text(ctx,'
+    text(ctx,'USD C/U',x+w/2,y+h-(story?27:8),story?26:18,P.plum,800,'center',w-30);
+  }
+  function footer(ctx,story,balls){
+    const y=story?1790:1009;
+    pathRect(ctx,38,y,1004,story?112:55,15,'#2b073e','#c79744',2);
+    text(ctx,'BOMBO REAL   ✦   PAGOS AL INSTANTE   ✦   CON 1 CARTÓN JUEGAS TODAS LAS RONDAS',
+      540,y+(story?42:23),story?27:19,P.ivory,820,'center',975);
+    text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS   ·   BINGOANDINO75.COM',
+      540,y+(story?88:44),story?30:22,P.gold,900,'center',950);
+  }
+  function poster(ctx,format,d){
+    const story=format==='story',w=1080,h=story?1920:1080,saturday=d.saturday===true;
+    if(!ctx||!Number.isFinite(d.final)||!Number.isFinite(d.total)||!Number.isFinite(d.pot))throw Error('Datos del cartel inválidos');
+    background(ctx,w,h,saturday);
+    brand(ctx,story,saturday);
+    drum(ctx,story?850:863,story?164:123,story?128:92);
+    if(story){
+      finalPanel(ctx,37,406,1006,509,d.final,d.rounds,true);
+      statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DEL SORTEO'});
+      statBox(ctx,545,946,497,234,'POZO ACUMULADO','$'+nf.format(d.pot),true,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,1212,1004,147,d,true);
+      const y=1384,hb=375,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,true);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,(d.rounds===6?'3 LLENOS':'4 LLENOS'),d.group1,true);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,true);
+    }else{
+      finalPanel(ctx,36,270,1008,295,d.final,d.rounds,false);
+      statBox(ctx,38,583,489,131,'TOTAL A REPARTIR','$'+nf.format(d.total),false);
+      statBox(ctx,545,583,497,131,'POZO ACUMULADO','$'+nf.format(d.pot),false,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,732,1004,100,d,false);
+      const y=848,hb=150,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,false);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,d.rounds===6?'3 LLENOS':'4 LLENOS',d.group1,false);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,false);
+    }
+    footer(ctx,story,d.balls);
+  }
+  return Object.freeze({poster});
+});
++nf.format(final),x+w*.5,y+(story?425:254),story?258:157,w-76,'center');
+    text(ctx,'USD · ¡EL GRAN PREMIO!',x+w*.5,y+h-(story?52:24),story?37:25,P.ivory,900,'center',w-70);
+    sparkle(ctx,x+w*.08,y+h*.48,15,.85);sparkle(ctx,x+w*.91,y+h*.32,12,.9);
+  }
+  function statBox(ctx,x,y,w,h,label,value,story,opt={}){
+    ctx.save();ctx.shadowColor='#17041d88';ctx.shadowBlur=15;ctx.shadowOffsetY=7;
+    pathRect(ctx,x,y,w,h,20,P.ivory,'#d8a454',4);ctx.restore();
+    ctx.save();ctx.beginPath();ctx.roundRect(x+6,y+6,w-12,h-12,16);ctx.clip();
+    ctx.fillStyle=gradient(ctx,x,y,w,h,[[0,'#fffdf6'],[1,'#f4debc']]);ctx.fillRect(x+6,y+6,w-12,h-12);
+    ctx.restore();
+    text(ctx,label,x+23,y+(story?60:34),story?38:28,P.purple,950,'left',w-46);
+    text(ctx,value,x+24,y+(story?181:112),story?126:95,opt.accent||P.purple,950,'left',w-43);
+    if(opt.note)text(ctx,opt.note,x+25,y+h-(story?25:11),story?25:19,P.plum,800,'left',w-49);
+  }
+  function dateInfo(ctx,x,y,w,h,d,story){
+    pathRect(ctx,x,y,w,h,20,P.ivory,'#dbac5a',3);
+    const dt=new Date(d.date+'T12:00:00Z');
+    const dw=new Intl.DateTimeFormat('es-VE',{weekday:'long',timeZone:'UTC'}).format(dt).toUpperCase();
+    const when=new Intl.DateTimeFormat('es-VE',{day:'2-digit',month:'long',timeZone:'UTC'}).format(dt).toUpperCase();
+    const left=x+23,center=x+w*.53;
+    text(ctx,dw+' '+when,left,y+(story?57:37),story?40:29,P.purple,950,'left',w*.51);
+    text(ctx,'EN VIVO  '+d.hour+'  ·  YOUTUBE',left,y+(story?117:76),story?36:26,P.plum,900,'left',w*.55);
+    ctx.strokeStyle='#d6ae6b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(center,y+15);ctx.lineTo(center,y+h-15);ctx.stroke();
+    text(ctx,nf.format(d.tickets)+' CARTONES',x+w-22,y+(story?56:38),story?39:31,P.purple,950,'right',w*.44);
+    text(ctx,nf.format(d.priceBs)+' Bs / CARTÓN',x+w-22,y+(story?116:76),story?36:28,P.plum,950,'right',w*.44);
+  }
+  function prizeBox(ctx,x,y,w,h,label,value,story){
+    pathRect(ctx,x,y,w,h,19,P.ivory,'#dfb25f',3);
+    const bar=gradient(ctx,x,y,w,46,[[0,'#3f0b53'],[.56,'#742568'],[1,'#360a50']]);
+    pathRect(ctx,x+6,y+6,w-12,story?63:42,13,bar,null);
+    text(ctx,label,x+w/2,y+(story?51:37),story?30:23,P.ivory,900,'center',w-20);
+    text(ctx,'$'+nf.format(value),x+w/2,y+(story?193:110),story?123:80,P.purple,950,'center',w-30);
+    text(ctx,'USD C/U',x+w/2,y+h-(story?27:13),story?26:19,P.plum,800,'center',w-30);
+  }
+  function footer(ctx,story,balls){
+    const y=story?1790:1009;
+    pathRect(ctx,38,y,1004,story?112:55,15,'#2b073e','#c79744',2);
+    text(ctx,'BOMBO REAL   ✦   PAGOS AL INSTANTE   ✦   CON 1 CARTÓN JUEGAS TODAS LAS RONDAS',
+      540,y+(story?42:23),story?27:19,P.ivory,820,'center',975);
+    text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS   ·   BINGOANDINO75.COM',
+      540,y+(story?88:44),story?30:22,P.gold,900,'center',950);
+  }
+  function poster(ctx,format,d){
+    const story=format==='story',w=1080,h=story?1920:1080,saturday=d.saturday===true;
+    if(!ctx||!Number.isFinite(d.final)||!Number.isFinite(d.total)||!Number.isFinite(d.pot))throw Error('Datos del cartel inválidos');
+    background(ctx,w,h,saturday);
+    brand(ctx,story,saturday);
+    drum(ctx,story?850:863,story?164:123,story?128:92);
+    if(story){
+      finalPanel(ctx,37,406,1006,509,d.final,d.rounds,true);
+      statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DEL SORTEO'});
+      statBox(ctx,545,946,497,234,'POZO ACUMULADO','$'+nf.format(d.pot),true,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,1212,1004,147,d,true);
+      const y=1384,hb=375,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,true);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,(d.rounds===6?'3 LLENOS':'4 LLENOS'),d.group1,true);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,true);
+    }else{
+      finalPanel(ctx,36,270,1008,295,d.final,d.rounds,false);
+      statBox(ctx,38,583,489,131,'TOTAL A REPARTIR','$'+nf.format(d.total),false);
+      statBox(ctx,545,583,497,131,'POZO ACUMULADO','$'+nf.format(d.pot),false,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,732,1004,100,d,false);
+      const y=848,hb=150,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,false);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,d.rounds===6?'3 LLENOS':'4 LLENOS',d.group1,false);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,false);
+    }
+    footer(ctx,story,d.balls);
+  }
+  return Object.freeze({poster});
+});
++nf.format(value),x+w/2,y+(story?265:119),story?145:64,P.purple,950,'center',w-30);
+    text(ctx,'USD C/U',x+w/2,y+h-(story?27:13),story?26:19,P.plum,800,'center',w-30);
+  }
+  function footer(ctx,story,balls){
+    const y=story?1790:1009;
+    pathRect(ctx,38,y,1004,story?112:55,15,'#2b073e','#c79744',2);
+    text(ctx,'BOMBO REAL   ✦   PAGOS AL INSTANTE   ✦   CON 1 CARTÓN JUEGAS TODAS LAS RONDAS',
+      540,y+(story?42:23),story?27:19,P.ivory,820,'center',975);
+    text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS   ·   BINGOANDINO75.COM',
+      540,y+(story?88:44),story?30:22,P.gold,900,'center',950);
+  }
+  function poster(ctx,format,d){
+    const story=format==='story',w=1080,h=story?1920:1080,saturday=d.saturday===true;
+    if(!ctx||!Number.isFinite(d.final)||!Number.isFinite(d.total)||!Number.isFinite(d.pot))throw Error('Datos del cartel inválidos');
+    background(ctx,w,h,saturday);
+    brand(ctx,story,saturday);
+    drum(ctx,story?850:863,story?164:123,story?128:92);
+    if(story){
+      finalPanel(ctx,37,406,1006,509,d.final,d.rounds,true);
+      statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DEL SORTEO'});
+      statBox(ctx,545,946,497,234,'POZO ACUMULADO','$'+nf.format(d.pot),true,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,1212,1004,147,d,true);
+      const y=1384,hb=375,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,true);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,(d.rounds===6?'3 LLENOS':'4 LLENOS'),d.group1,true);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,true);
+    }else{
+      finalPanel(ctx,36,270,1008,295,d.final,d.rounds,false);
+      statBox(ctx,38,583,489,131,'TOTAL A REPARTIR','$'+nf.format(d.total),false);
+      statBox(ctx,545,583,497,131,'POZO ACUMULADO','$'+nf.format(d.pot),false,{note:'HASTA '+d.balls+' BOLITAS'});
+      dateInfo(ctx,38,732,1004,100,d,false);
+      const y=848,hb=150,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
+      prizeBox(ctx,38,y,cw,hb,d.rounds===6?'4 CONSOLACIONES':'3 CONSOLACIONES',10,false);
+      prizeBox(ctx,38+cw+gap,y,cw,hb,d.rounds===6?'3 LLENOS':'4 LLENOS',d.group1,false);
+      if(count===3)prizeBox(ctx,38+(cw+gap)*2,y,cw,hb,'2 LLENOS',d.group2,false);
+    }
+    footer(ctx,story,d.balls);
+  }
+  return Object.freeze({poster});
+});
++nf.format(final),x+w*.5,y+(story?425:254),story?258:157,w-76,'center');
     text(ctx,'USD · ¡EL GRAN PREMIO!',x+w*.5,y+h-(story?52:24),story?37:25,P.ivory,900,'center',w-70);
     sparkle(ctx,x+w*.08,y+h*.48,15,.85);sparkle(ctx,x+w*.91,y+h*.32,12,.9);
   }
