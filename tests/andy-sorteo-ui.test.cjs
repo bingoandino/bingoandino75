@@ -16,9 +16,8 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   const sandbox={window:{AndySorteoRules:R,AndySorteoArt:require(path.join(base,'andy-sorteo-art.js'))},document:{getElementById:id=>id==='andy-sorteo-diario'?root:null},
     localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>{stored[k]=v;}},console};
   vm.runInNewContext(fs.readFileSync(path.join(base,'andy-sorteo.js'),'utf8'),sandbox);
-  assert.equal(elements['ia-post'].disabled,true,'IA no genera sin conexión');
-  assert.equal(elements['ia-story'].disabled,true,'IA no genera sin conexión');
-  assert.equal(elements['ia-both'].disabled,true,'IA no genera sin conexión');
+  assert.ok(!ids.includes('ia-post')&&!ids.includes('ia-story')&&!ids.includes('ia-both'),
+    'La conexión con IA de pago ya no existe en el formulario');
   assert.equal(elements.panel.hidden,true,'El menú empieza oculto');
   elements.abrir._events.click();
   assert.equal(elements.panel.hidden,false,'El primer toque abre el menú');
