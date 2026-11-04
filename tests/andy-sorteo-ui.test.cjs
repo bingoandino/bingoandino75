@@ -28,4 +28,14 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   assert.ok(writes>25);
   elements['vista-formato'].value='story';elements['vista-formato']._events.input();
   assert.equal(elements.canvas.height,1920);
+  elements.fecha.value='2026-11-07';elements.fecha._events.input();
+  for (const [id,v] of Object.entries({tasa:'890',precio:'890',pozo:'120','pozo-resultado':'no'})){
+    elements[id].value=v;elements[id]._events.input();
+  }
+  elements.sugerir._events.click();
+  assert.equal(elements.presupuesto.textContent,'$620');
+  assert.equal(elements['premio-final'].value,270);
+  assert.equal(elements['descargar-cuadrado'].disabled,false);
+  elements['vista-formato'].value='story';elements['vista-formato']._events.input();
+  assert.equal(elements.canvas.height,1920);
 });
