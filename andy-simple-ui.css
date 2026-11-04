@@ -1,0 +1,76 @@
+/* ANDY simplificado: una tarea por pantalla, compatible con los datos existentes. */
+#tab-andy-estudio [data-andy-view][hidden],
+#tab-andy-estudio #andy-marketing-pro[hidden],
+#tab-andy-estudio .andy-secondary-disclosure[hidden] {display:none!important}
+#tab-andy-estudio .andy-hero{padding:21px 22px 19px!important;margin:0 0 12px!important;border-radius:17px!important;min-height:0!important}
+#tab-andy-estudio .andy-hero h3{font-size:clamp(23px,3.8vw,32px)!important;margin:4px 0 7px!important;line-height:1.1!important}
+#tab-andy-estudio .andy-hero p{font-size:13px!important;line-height:1.5!important;max-width:700px}
+#tab-andy-estudio .andy-pills{display:none!important}
+#tab-andy-estudio .andy-simple-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:920px;margin:0 auto 17px;padding:6px;border-radius:17px;background:#fff9ec;border:1px solid #dbc496;scroll-margin-top:10px}
+#tab-andy-estudio .andy-simple-nav .andy-nav-tab{display:inline-flex;justify-content:center;align-items:center;gap:7px;width:100%;min-width:0;min-height:46px;font:850 14px/1.3 system-ui,sans-serif;color:#5a365d;background:transparent;border:1px solid transparent;border-radius:11px;cursor:pointer;padding:7px 9px;box-shadow:none}
+#tab-andy-estudio .andy-simple-nav .andy-nav-tab[aria-current=page]{background:#451a59;color:#fff6dc;border-color:#c7a260;box-shadow:0 5px 14px #3514442c}
+#tab-andy-estudio .andy-simple-nav .andy-nav-tab:focus-visible{outline:3px solid #caa557;outline-offset:2px}
+#tab-andy-estudio .andy-simple-home{max-width:960px;margin:0 auto}
+#tab-andy-estudio .andy-home-intro{padding:9px 5px 15px}
+#tab-andy-estudio .andy-home-intro h3{font:900 clamp(25px,4vw,34px)/1.2 system-ui,sans-serif;color:#351541;margin:5px 0 9px}
+#tab-andy-estudio .andy-home-intro p{font:500 14px/1.55 system-ui,sans-serif;color:#69516d;margin:0;max-width:610px}
+#tab-andy-estudio .andy-today-card{border-radius:20px;border:1px solid #d2a964;background:linear-gradient(140deg,#441353,#6a226d 55%,#320d47);padding:28px 29px;box-shadow:0 13px 27px #2d104431;color:#fff5dc}
+#tab-andy-estudio .andy-today-kicker{font:900 11px/1.4 system-ui,sans-serif!important;letter-spacing:.1em;color:#f3d38e!important;margin:0 0 14px!important}
+#tab-andy-estudio .andy-today-card h4{font:900 clamp(23px,3.3vw,34px)/1.2 system-ui,sans-serif;margin:0 0 10px;color:#fff8e9}
+#tab-andy-estudio .andy-today-card>p:not(.andy-today-kicker){font:500 15px/1.6 system-ui,sans-serif;color:#f5dfef;max-width:670px;margin:0}
+#tab-andy-estudio .andy-today-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:23px}
+#tab-andy-estudio .andy-home-primary,#tab-andy-estudio .andy-home-secondary{font:850 13px/1.3 system-ui,sans-serif;min-height:47px;padding:11px 17px;border-radius:11px;cursor:pointer}
+#tab-andy-estudio .andy-home-primary{background:#efc675;color:#351541;border:1px solid #fff1c0}
+#tab-andy-estudio .andy-home-secondary{background:#ffffff15;color:#fff7e5;border:1px solid #dfb96a}
+#tab-andy-estudio .andy-home-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:15px 0}
+#tab-andy-estudio .andy-home-shortcut{display:flex;align-items:center;gap:12px;text-align:left;width:100%;padding:19px;border-radius:15px;border:1px solid #d7bf91;background:#fffaf0;color:#432252;cursor:pointer;font:850 14px/1.4 system-ui,sans-serif}
+#tab-andy-estudio .andy-home-shortcut>span:first-child{font-size:23px}
+#tab-andy-estudio .andy-home-shortcut>span:nth-child(2){flex:1}
+#tab-andy-estudio .andy-home-shortcut>span:last-child{font-size:22px;color:#aa8849}
+#tab-andy-estudio .andy-home-shortcut small{display:block;font:500 12px/1.4 system-ui,sans-serif;color:#765e78;margin-top:3px}
+#tab-andy-estudio .andy-home-shortcut:focus-visible,#tab-andy-estudio .andy-home-primary:focus-visible,#tab-andy-estudio .andy-home-secondary:focus-visible{outline:3px solid #c79d48;outline-offset:3px}
+/* La sección de marketing comparte marco, pero muestra solo la pestaña actual. */
+#tab-andy-estudio #andy-marketing-pro.andy-mp{max-width:1100px;margin:0 auto 15px;padding:0 6px 7px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-columns{display:contents!important}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-panel{margin:11px 0 16px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-topbar{margin:6px 0 16px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-heading{padding:8px 3px 12px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-heading h3{margin:0 0 5px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-status{margin-top:9px;padding:8px 11px;font-size:12px;border-left-width:3px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-summary-header{margin-top:12px}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-plan{grid-template-columns:repeat(2,minmax(0,1fr))}
+#tab-andy-estudio #andy-marketing-pro .andy-mp-day-card{gap:9px}
+/* Redacción de texto: no mostrar una imagen básica gigante por defecto. */
+#tab-andy-estudio .andy-layout[data-andy-view=contenido]{grid-template-columns:minmax(0,1fr)!important;max-width:1000px;margin:10px auto 16px;gap:12px}
+#tab-andy-estudio .andy-layout[data-andy-view=contenido]>.andy-panel{padding:21px 22px}
+#tab-andy-estudio .andy-layout .andy-preview-disclosure{margin:0}
+#tab-andy-estudio .andy-preview-disclosure>summary,#tab-andy-estudio .andy-secondary-disclosure>summary,#tab-andy-estudio .andy-editor-extras>summary{list-style:none;cursor:pointer;padding:14px 17px;border:1px solid #ddcba9;border-radius:11px;background:#fff9ee;color:#4c2b57;font:800 13px/1.5 system-ui,sans-serif}
+#tab-andy-estudio .andy-preview-disclosure>summary::-webkit-details-marker,#tab-andy-estudio .andy-secondary-disclosure>summary::-webkit-details-marker,#tab-andy-estudio .andy-editor-extras>summary::-webkit-details-marker{display:none}
+#tab-andy-estudio .andy-preview-disclosure>summary::after,#tab-andy-estudio .andy-secondary-disclosure>summary::after,#tab-andy-estudio .andy-editor-extras>summary::after{content:"⌄";float:right;font-size:19px;line-height:1.1}
+#tab-andy-estudio .andy-preview-disclosure[open]>summary::after,#tab-andy-estudio .andy-secondary-disclosure[open]>summary::after,#tab-andy-estudio .andy-editor-extras[open]>summary::after{transform:rotate(180deg)}
+#tab-andy-estudio .andy-preview-disclosure>summary:focus-visible,#tab-andy-estudio .andy-secondary-disclosure>summary:focus-visible,#tab-andy-estudio .andy-editor-extras>summary:focus-visible{outline:3px solid #c29b5a}
+#tab-andy-estudio .andy-preview-disclosure>.andy-panel{margin:10px 0 0}
+#tab-andy-estudio .andy-editor-extras{margin:14px 0}
+#tab-andy-estudio .andy-editor-extras[open]{padding-bottom:5px}
+#tab-andy-estudio .andy-editor-extras .andy-label{margin-top:13px}
+#tab-andy-estudio .andy-editor-extras .andy-two{margin-top:12px}
+#tab-andy-estudio .andy-secondary-disclosure{max-width:1000px;margin:8px auto 16px}
+#tab-andy-estudio .andy-secondary-disclosure .andy-stats,#tab-andy-estudio .andy-secondary-disclosure .andy-footer-grid{margin-top:12px}
+#tab-andy-estudio .andy-secondary-disclosure .andy-footer-grid{grid-template-columns:minmax(0,1fr)}
+#tab-andy-estudio #andy-sorteo-diario[data-andy-view=contenido]{max-width:1000px;margin:10px auto 20px;background:#fffaf1!important;padding:11px!important}
+#tab-andy-estudio #andy-sorteo-diario .andy-sd-opener{min-height:48px;font-size:15px}
+@media (max-width:700px){
+ #tab-andy-estudio .andy-simple-nav{gap:4px;padding:4px;margin-bottom:11px}
+ #tab-andy-estudio .andy-simple-nav .andy-nav-tab{font-size:11px;gap:4px;min-height:47px;padding:6px 3px;flex-direction:column;line-height:1.1}
+ #tab-andy-estudio .andy-simple-nav .andy-nav-tab span{font-size:18px}
+ #tab-andy-estudio .andy-today-card{padding:21px 17px}
+ #tab-andy-estudio .andy-today-actions{display:grid;grid-template-columns:1fr}
+ #tab-andy-estudio .andy-home-shortcuts{grid-template-columns:1fr;gap:9px}
+ #tab-andy-estudio .andy-home-shortcut{padding:13px 15px}
+ #tab-andy-estudio #andy-marketing-pro .andy-mp-topbar{grid-template-columns:1fr}
+ #tab-andy-estudio #andy-marketing-pro .andy-mp-focus{grid-column:auto}
+ #tab-andy-estudio #andy-marketing-pro .andy-mp-plan{grid-template-columns:1fr}
+ #tab-andy-estudio .andy-layout[data-andy-view=contenido]>.andy-panel{padding:14px 12px}
+ #tab-andy-estudio .andy-hero{padding:15px!important}
+ #tab-andy-estudio .andy-hero h3{font-size:24px!important}
+}
