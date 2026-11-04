@@ -28,7 +28,7 @@ begin
  if auth.role() is distinct from 'service_role' then raise exception 'No autorizado' using errcode='42501';end if;
  inicio:=date_trunc('week',hoy::timestamp)::date;
  total:=public.fn_total_cartones_actual();
- select coalesce(valor,false) into abierto from public.configuracion where clave='ventas_abiertas';
+ select coalesce(valor,false) into abierto from public.configuracion where clave='ventas_abierta';
  select coalesce(min(id)::text,'vacio') into anchor from public.inscripciones;
  select count(*)::int into disponibles from generate_series(1,greatest(0,least(total,10000))) x(n)
  where not exists(select 1 from public.cartones c where c.numero=x.n)
@@ -56,7 +56,7 @@ begin
  end if;
  inicio:=date_trunc('week',hoy::timestamp)::date;
  if exists(select 1 from public.dinamicas_ganadores where semana=inicio and cedula=_cedula) then raise exception 'Esta cédula ya ganó esta semana. Solo puede ganar una vez por semana';end if;
- select coalesce(valor,false) into abierto from public.configuracion where clave='ventas_abiertas' for share;
+ select coalesce(valor,false) into abierto from public.configuracion where clave='ventas_abierta' for share;
  if abierto is distinct from true then raise exception 'Abre las ventas del sorteo actual antes de entregar cartones';end if;
  select coalesce(min(id)::text,'vacio') into actual from public.inscripciones;
  if _anchor is distinct from actual then raise exception 'El sorteo cambió. Actualiza el panel y revisa la entrega nuevamente';end if;
