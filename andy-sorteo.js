@@ -9,6 +9,9 @@
   let lastValidDate = ''; 
   const locale = new Intl.NumberFormat('es-VE',{maximumFractionDigits:2});
   let generated = false;
+  let aiReady=false, aiChecking=false, aiBusy=false;
+  const aiImages={post:null,story:null};
+  let aiClient=null;
   function todayVE() {
     const p = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Caracas',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
     const m = Object.fromEntries(p.map(x=>[x.type,x.value]));
@@ -36,6 +39,7 @@
     $('pozo-manual').value='';
     $('premio-a').value=''; $('premio-b').value=''; $('premio-final').value='';
     generated=false;
+    aiImages.post=null;aiImages.story=null;
     calc();
   }
   function read() {
@@ -72,6 +76,7 @@
     $('descargar-historia').disabled=!good;
     $('copiar-redes').disabled=!good;
     $('copiar-whatsapp').disabled=!good;
+    updateAiButtons(good);
     return {data,b,p,pot,good,error,totalPrize};
   }
   function projectPot() {
@@ -239,7 +244,14 @@
     const ctx=c.getContext('2d');
     if(!ctx)return;
     ctx.clearRect(0,0,c.width,c.height);
-    if(x.good)poster(ctx,format,x);
+    if(x.good && window.AndySorteoArt?.poster) {
+      window.AndySorteoArt.poster(ctx,format,{
+        date:x.data.date,rounds:x.data.rounds,tickets:x.data.tickets,priceBs:x.data.priceBs,
+        hour:$('hora').value,balls:number('max-bolas'),final:number('premio-final'),
+        group1:number('premio-a'),group2:x.data.rounds===6?number('premio-b'):0,
+        total:x.b.rounded,pot:x.pot,saturday:R.programForDate(x.data.date).special
+      },aiImages[format]);
+    } else if(x.good)poster(ctx,format,x);
     else {
       const g=ctx.createLinearGradient(0,0,1080,c.height);g.addColorStop(0,C.purple);g.addColorStop(1,C.deep);
       ctx.fillStyle=g;ctx.fillRect(0,0,1080,c.height);
@@ -288,6 +300,90 @@
       generated=true;mark('PNG descargado. ANDY no ha publicado nada en la página ni en redes sociales.');
     },'image/png');
   }
+  function updateAiButtons(good) {
+    const permitted=Boolean(good)&&aiReady&&!aiBusy;
+    for(const id of ['ia-post','ia-story','ia-both'])$(id).disabled=!permitted;
+    $('ia-comprobar').disabled=aiChecking||aiBusy;
+  }
+  function aiMark(message,bad=false) {
+    const target=$('ia-estado');
+    target.textContent=message;
+    target.dataset.error=bad?'true':'false';
+  }
+  function aiCredentials(){
+    const anon=document.querySelector('meta[name="andy-public-anon-key"]')?.content||'';
+    if(!anon||typeof window.supabase?.createClient!=='function')throw Error('Inicia sesión en ANDY para activar la IA.');
+    if(!aiClient)aiClient=window.supabase.createClient('https://dbkixcpwirjwjvjintkr.supabase.co',anon);
+    const token=sessionStorage.getItem('admin_session_token');
+    const device=sessionStorage.getItem('device_id')||localStorage.getItem('admin_device_id');
+    if(!token||!device)throw Error('Tu sesión de ANDY venció. Ingresa nuevamente.');
+    return {anon,token,device};
+  }
+  async function aiRequest(action,format,style) {
+    const {anon,token,device}=aiCredentials();
+    const result=await aiClient.auth.getSession();
+    const jwt=result?.data?.session?.access_token;
+    if(!jwt)throw Error('Tu sesión de correo debe estar activa para generar imágenes.');
+    const response=await fetch('https://dbkixcpwirjwjvjintkr.supabase.co/functions/v1/andy-imagen-ia',{
+      method:'POST',headers:{'Content-Type':'application/json',apikey:anon,Authorization:'Bearer '+jwt},
+      body:JSON.stringify({action,sessionToken:token,deviceId:device,...(action==='generate'?{format,style}:{})}),
+      signal:AbortSignal.timeout(action==='generate'?130000:15000),
+      referrerPolicy:'no-referrer'
+    });
+    const payload=await response.json().catch(()=>null);
+    if(!response.ok)throw Error(typeof payload?.error==='string'?payload.error:'No fue posible conectar con el generador de IA.');
+    return payload;
+  }
+  async function checkAiConnection(force=false) {
+    if(aiChecking||aiBusy||(!force&&aiReady))return;
+    aiChecking=true;updateAiButtons(calc().good);
+    aiMark('Comprobando la conexión de IA…');
+    try{
+      const result=await aiRequest('status');
+      aiReady=result?.ready===true;
+      aiMark(aiReady?'IA lista. Genera solo cuando quieras; cada imagen tiene un cargo independiente.':
+        'Para activar la IA falta configurar OPENAI_API_KEY en Supabase > Edge Functions > Secrets.',!aiReady);
+    }catch(e){
+      aiReady=false;
+      aiMark(e instanceof Error?e.message:'No se pudo comprobar la conexión.',true);
+    }finally{aiChecking=false;updateAiButtons(calc().good);}
+  }
+  function aiStyle(){
+    const x=read();
+    return R.programForDate(x.date).special?'saturday':x.rounds===6?'six':'five';
+  }
+  async function decodeAiImage(encoded,mime){
+    if(typeof encoded!=='string'||encoded.length>9000000||encoded.length<3000||mime!=='image/webp')throw Error('El servidor no entregó una imagen válida.');
+    const img=new Image();
+    img.src='data:image/webp;base64,'+encoded;
+    await img.decode();
+    if(img.width<512||img.height<512)throw Error('La imagen generada es demasiado pequeña.');
+    return img;
+  }
+  async function generateAi(format){
+    if(aiBusy||!aiReady)return;
+    const check=calc();
+    if(!check.good){aiMark(check.error||'Revisa las cifras antes de generar.',true);return;}
+    const formats=format==='both'?['post','story']:[format];
+    if(formats.some(f=>f!=='post'&&f!=='story'))return;
+    const style=aiStyle();
+    aiBusy=true;updateAiButtons(true);
+    let completed=0;
+    try{
+      for(const f of formats){
+        aiMark('Generando arte premium '+(f==='post'?'cuadrado':'vertical')+'… ANDY mantendrá exactos los premios.');
+        const output=await aiRequest('generate',f,style);
+        const image=await decodeAiImage(output?.imageBase64,output?.mime);
+        // Una fecha nueva podría cambiar el estilo mientras la IA trabajaba.
+        if(aiStyle()!==style)throw Error('Cambió el tipo de sorteo. Genera de nuevo para mantener el estilo correcto.');
+        aiImages[f]=image;completed++;
+        $('vista-formato').value=f;draw();
+      }
+      aiMark('Imagen'+(completed===2?'es':'')+' de IA creada'+(completed===2?'s':'')+'. Comprueba los datos y usa los botones de descarga. Para otra versión, vuelve a generar.');
+    }catch(e) {
+      aiMark((completed?'Se conservó la imagen que sí terminó. ':'')+(e instanceof Error?e.message:'La IA no pudo completar la imagen.'),true);
+    }finally{aiBusy=false;updateAiButtons(calc().good);}
+  }
   function init() {
     // Único botón visible al inicio. El menú se abre solo por decisión del usuario.
     const opener=$('abrir'), menu=$('panel');
@@ -297,7 +393,7 @@
       const open=menu.hidden;
       menu.hidden=!open;
       opener.setAttribute('aria-expanded',String(open));
-      if(open) draw();
+      if(open) {draw();if(typeof fetch==='function')void checkAiConnection();}
     });
     const d=next(todayVE());
     if(!restore())defaults(d);
@@ -307,6 +403,7 @@
         try {R.programForDate(input.value);}catch {input.value=lastValidDate;mark('No se programan sorteos los domingos o con fecha inválida.',true);return;}
         defaults(input.value);
       } else if(input.id==='andy-sd-rondas') {
+        aiImages.post=null;aiImages.story=null;
         const gifts=R.defaultGifts(number('rondas'));
         $('video').value=gifts.video;
         $('precio').value=number('rondas')===5?'400':'';
@@ -316,6 +413,10 @@
       if(input.id!=='andy-sd-vista-formato')generated=false;
       calc();draw();save();
     }));
+    $('ia-comprobar').addEventListener('click',()=>{if(typeof fetch==='function')void checkAiConnection(true);});
+    $('ia-post').addEventListener('click',()=>{void generateAi('post');});
+    $('ia-story').addEventListener('click',()=>{void generateAi('story');});
+    $('ia-both').addEventListener('click',()=>{void generateAi('both');});
     $('precio-bcv').addEventListener('click',()=>{
       const p=R.bcvCeiling(number('tasa'));
       if(p===null){mark('Escribe primero la tasa BCV correspondiente al próximo sorteo.',true);return;}

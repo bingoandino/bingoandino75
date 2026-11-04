@@ -85,6 +85,53 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     expect(overflow).toBeLessThanOrEqual(4);
   });
 }
+test('ANDY prepara arte con IA solo tras el clic, preservando los premios exactos',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await authenticated(page);
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const calls=[];
+  const art=await (async()=>{
+    await page.goto(url,{waitUntil:'domcontentloaded'});
+    return page.evaluate(()=>{
+      const c=document.createElement('canvas');c.width=1024;c.height=1024;
+      const g=c.getContext('2d');
+      g.fillStyle='#440a59';g.fillRect(0,0,1024,1024);
+      for(let i=0;i<900;i++){g.fillStyle=i%3?'#e7c76d':'#7d3677';g.fillRect((i*157)%1024,(i*293)%1024,14,13);}
+      return c.toDataURL('image/webp',.88).split(',')[1];
+    });
+  })();
+  await page.route('**/functions/v1/andy-imagen-ia',async route=>{
+    const body=route.request().postDataJSON();calls.push(body);
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body.action==='status'?
+      {ready:true,provider:'OpenAI'}:
+      {format:body.format,style:body.style,mime:'image/webp',imageBase64:art})});
+  });
+  await page.locator('#andy-sd-abrir').click();
+  await expect(page.locator('#andy-sd-ia-estado')).toContainText('IA lista');
+  expect(calls.length).toBe(1);
+  expect(calls[0].action).toBe('status');
+  const btn=page.locator('#andy-sd-ia-post');
+  await expect(btn).toBeDisabled();
+  await page.locator('#andy-sd-fecha').fill('2026-11-02');
+  await page.locator('#andy-sd-precio').fill('895');
+  await page.locator('#andy-sd-pozo-manual').fill('100');
+  await page.locator('#andy-sd-sugerir').click();
+  await expect(page.locator('#andy-sd-presupuesto')).toHaveText('$540');
+  await expect(page.locator('#andy-sd-premio-final')).toHaveValue('210');
+  await expect(btn).toBeEnabled();
+  const before=await page.locator('#andy-sd-canvas').evaluate(c=>c.toDataURL('image/png'));
+  expect(calls.length).toBe(1);
+  await btn.click();
+  await expect(page.locator('#andy-sd-ia-estado')).toContainText('creada');
+  expect(calls.length).toBe(2);
+  expect(calls[1]).toEqual(expect.objectContaining({action:'generate',format:'post',style:'six'}));
+  expect(calls[1]).not.toHaveProperty('priceBs');
+  expect(calls[1]).not.toHaveProperty('final');
+  const after=await page.locator('#andy-sd-canvas').evaluate(c=>c.toDataURL('image/png'));
+  expect(after).not.toBe(before);
+  await expect(page.locator('#andy-sd-premio-final')).toHaveValue('210');
+  expect(errors).toEqual([]);
+});
 test('enlace directo presenta su propio login incluso sin sesión anterior',async({page})=>{
   await page.route(cdn,route=>route.abort());
   await page.goto(url,{waitUntil:'domcontentloaded'});
