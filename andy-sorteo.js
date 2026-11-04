@@ -154,6 +154,15 @@
     ctx.restore();
   }
   function poster(ctx,orientation,x) {
+    if (window.AndySorteoArt?.poster) {
+      return window.AndySorteoArt.poster(ctx,orientation,{
+        date:x.data.date,rounds:x.data.rounds,tickets:x.data.tickets,priceBs:x.data.priceBs,
+        hour:$('hora').value,balls:number('max-bolas'),final:number('premio-final'),
+        group1:number('premio-a'),group2:x.data.rounds===6?number('premio-b'):0,
+        total:x.b.rounded,pot:x.pot,
+        saturday:R.programForDate(x.data.date).special
+      });
+    }
     const story=orientation==='story',w=1080,h=story?1920:1080;
     const g=ctx.createLinearGradient(0,0,w,h);
     g.addColorStop(0,story?'#21052f':'#3d104d');g.addColorStop(.56,'#4b1760');g.addColorStop(1,'#1a0727');
