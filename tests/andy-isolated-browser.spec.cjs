@@ -117,7 +117,7 @@ for (const vp of [{width:1365,height:900,label:"desktop"},{width:390,height:844,
   await expect(page.locator("#andy-guardar")).toBeVisible();
   await page.locator(".andy-mp-day-card").first().getByRole("button",{name:"Preparar texto"}).click();
   await expect(page.locator("#andy-titulo")).not.toHaveValue("");
-  await expect(page.locator("#andy-pie")).toContainText("bingoandino75.com");
+  await expect(page.locator("#andy-pie")).toHaveValue(/bingoandino75.com/);
   expect(obsoleteCalls).toBe(0);
   await page.reload({waitUntil:"domcontentloaded"});
   await expect(page.locator("#andy-marketing-pro")).toBeVisible();
