@@ -1,3 +1,4 @@
+begin;
 -- ANDY Marketing: telemetría mínima, separada de compras y pagos.
 -- Esta migración se revisa antes de aplicarse a producción.
 create table if not exists public.marketing_visitas (
@@ -34,3 +35,5 @@ as $$
 $$;
 revoke all on function public.marketing_resumen(integer) from public, anon, authenticated;
 grant execute on function public.marketing_resumen(integer) to service_role;
+
+commit;
