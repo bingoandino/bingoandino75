@@ -205,7 +205,7 @@
     drum(ctx,story?850:863,story?164:123,story?128:92);
     if(story){
       finalPanel(ctx,37,406,1006,509,d.final,d.rounds,true);
-      statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DE HOY'});
+      statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DEL SORTEO'});
       statBox(ctx,545,946,497,234,'POZO ACUMULADO','$'+nf.format(d.pot),true,{note:'HASTA '+d.balls+' BOLITAS'});
       dateInfo(ctx,38,1212,1004,147,d,true);
       const y=1384,hb=375,gap=15,count=d.rounds===6?3:2,cw=(1004-gap*(count-1))/count;
