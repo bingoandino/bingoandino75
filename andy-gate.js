@@ -23,6 +23,10 @@
   const anon = document.querySelector('meta[name="andy-public-anon-key"]')?.content || "";
   const CHALLENGE_TTL = 9 * 60 * 1000;
   const RESEND_COOLDOWN = 60 * 1000;
+  const ANDY_SESSION_KEY = "bingo_andy_sesion_24h_v1";
+  const REMEMBER_FOR_MS = 24 * 60 * 60 * 1000; // Tope local: el servidor puede vencer antes.
+  const KEEPALIVE_MS = 15 * 60 * 1000; // Solo mientras ANDY permanezca abierto y visible.
+  let keepAliveTimer = null, checkingSession = false;
   let sdkPromise = null, client = null, pending = null, busy = false, otpLastSent = 0;
   let activeSession = null;
   let loginBooted = false;
@@ -63,6 +67,72 @@
   }
   function removeStorage(key) {
     try { sessionStorage.removeItem(key); } catch (_) {}
+  }
+  // La sesión ANDY es específica de este dispositivo; jamás se almacenan contraseña ni OTP.
+  // Toda recuperación pasa nuevamente por verify-session en el servidor.
+  function readRememberedSession() {
+    try {
+      const stored = localStorage.getItem(ANDY_SESSION_KEY);
+      if (!stored) return null;
+      const session = JSON.parse(stored);
+      if (!session || typeof session.token !== "string" ||
+          !/^sess_[a-f0-9-]{20,90}$/i.test(session.token) ||
+          typeof session.deviceId !== "string" || session.deviceId.length > 200 ||
+          !Number.isFinite(session.startedAt) || session.startedAt > Date.now() + 60000 ||
+          Date.now() - session.startedAt >= REMEMBER_FOR_MS) {
+        localStorage.removeItem(ANDY_SESSION_KEY);
+        return {expired:true, token:session?.token || ""};
+      }
+      return session;
+    } catch (_) { return null; }
+  }
+  function rememberSession(token, deviceId, startedAt = Date.now()) {
+    if (typeof token !== "string" || !token.startsWith("sess_") ||
+        typeof deviceId !== "string" || !deviceId ||
+        !Number.isFinite(startedAt) || Date.now() - startedAt >= REMEMBER_FOR_MS) return false;
+    try {
+      localStorage.setItem(ANDY_SESSION_KEY, JSON.stringify({token,deviceId,startedAt}));
+      return true;
+    } catch (_) { return false; }
+  }
+  function forgetRememberedSession(token) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(ANDY_SESSION_KEY) || "null");
+      if (!token || stored?.token === token) localStorage.removeItem(ANDY_SESSION_KEY);
+    } catch (_) {
+      try { localStorage.removeItem(ANDY_SESSION_KEY); } catch (_) {}
+    }
+  }
+  async function validateVisibleSession() {
+    if (checkingSession || editor.hidden || !activeSession) return;
+    const stored = readRememberedSession();
+    if (stored?.expired) {
+      activeSession = null;
+      showLogin("Han pasado 24 horas desde el inicio del acceso a ANDY. Introduce de nuevo tu contraseña y código.");
+      return;
+    }
+    checkingSession = true;
+    const current = activeSession;
+    try {
+      const allowed = await checkActive(current.sessionToken,current.deviceId);
+      if (!allowed) {
+        forgetRememberedSession(current.sessionToken);
+        activeSession = null;
+        showLogin("La sesión del servidor venció o fue revocada. Inicia sesión nuevamente.");
+      }
+    } catch (_) {
+      activeSession = null;
+      showLogin("No se pudo comprobar el acceso por conexión. Recarga ANDY cuando tengas internet.");
+    } finally { checkingSession = false; }
+  }
+  function beginKeepAlive() {
+    if (keepAliveTimer) return;
+    keepAliveTimer = setInterval(() => {
+      if (document.visibilityState === "visible") void validateVisibleSession();
+    },KEEPALIVE_MS);
+    document.addEventListener("visibilitychange",() => {
+      if (document.visibilityState === "visible") void validateVisibleSession();
+    });
   }
   function getDeviceId() {
     let id = getStorage("device_id") || getStorage("admin_device_id", true);
@@ -153,6 +223,7 @@
     editor.hidden = false;
     errorBox.hidden = true;
     status.textContent = "Administrador verificado · ANDY Studio";
+    beginKeepAlive();
     if (window.__andyStudioLoaded) return;
     const script = document.createElement("script");
     script.src = "/andy-studio.js?v=20261104-directo-1";
@@ -291,6 +362,7 @@
       setStorage("admin_email",pending.email);
       if (verified.data.expiresAt) setStorage("session_expires",verified.data.expiresAt);
       setStorage("admin_device_id",verified.data.deviceId,true);
+      rememberSession(verified.data.sessionToken, verified.data.deviceId);
       pending = null;
       openStudio();
     } catch (_) {
@@ -302,18 +374,30 @@
   }
   showLogin("Accede directamente a ANDY con los datos del administrador.");
   // Si ya existe sesión autorizada en esta misma pestaña, evitar pedir OTP de nuevo.
-  const token = getStorage("admin_session_token");
-  const device = getStorage("device_id") || getStorage("admin_device_id",true);
+  const remembered = readRememberedSession();
+  const tabToken = getStorage("admin_session_token");
+  const newerAdminSession = tabToken && tabToken !== remembered?.token;
+  const token = newerAdminSession ? tabToken :
+    remembered?.expired ? "" : (tabToken || remembered?.token || "");
+  const device = newerAdminSession ? (getStorage("device_id") || getStorage("admin_device_id",true)) :
+    (remembered?.deviceId || getStorage("device_id") || getStorage("admin_device_id",true));
   if (token && device) {
-    message("Comprobando sesión activa…");
+    message("Recuperando sesión segura de ANDY…");
     try {
       if (await checkActive(token,device)) {
+        setStorage("admin_session_token",token);
+        setStorage("device_id",device);
+        rememberSession(token,device,
+          remembered?.token === token && !remembered.expired ? remembered.startedAt : Date.now());
         openStudio();
       } else {
-        showLogin("La sesión anterior no está activa. Entra con contraseña y código del correo.");
+        forgetRememberedSession(token);
+        showLogin("La sesión anterior ya no está activa. Entra con contraseña y código del correo.");
       }
     } catch (_) {
-      showLogin("No se pudo recuperar la sesión. Puedes entrar con contraseña y código.");
+      showLogin("No se pudo comprobar la sesión por conexión. Recarga cuando tengas internet o inicia sesión.");
     }
+  } else if (remembered?.expired) {
+    showLogin("La sesión recordada de ANDY alcanzó las 24 horas. Introduce de nuevo contraseña y código.");
   }
 })();
