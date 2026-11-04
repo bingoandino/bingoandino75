@@ -1,0 +1,34 @@
+/* Módulo totalmente acotado a ANDY: no toca la página principal. */
+#andy-sorteo-diario {margin:20px 0 28px;border:1px solid #c8a165;border-radius:20px;background:linear-gradient(145deg,#fffaf0,#f8ecf8);padding:20px;color:#361847;box-shadow:0 8px 30px #2c0f4315;}
+#andy-sorteo-diario *,#andy-sorteo-diario *::before,#andy-sorteo-diario *::after {box-sizing:border-box;}
+#andy-sorteo-diario .andy-sd-heading {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px;}
+#andy-sorteo-diario h3 {font-size:clamp(21px,3vw,30px);line-height:1.2;color:#371044;margin:5px 0 8px;}
+#andy-sorteo-diario .andy-sd-heading p {margin:0;max-width:650px;font-size:14px;line-height:1.5;}
+#andy-sorteo-diario .andy-sd-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.88fr);gap:18px;align-items:start;}
+#andy-sorteo-diario .andy-sd-form {min-width:0;display:grid;gap:13px;}
+#andy-sorteo-diario fieldset {border:1px solid #e2c9a0;border-radius:13px;padding:13px;min-width:0;background:#fffaf4;}
+#andy-sorteo-diario legend {padding:0 8px;color:#4a1858;font-size:15px;font-weight:850;}
+#andy-sorteo-diario label {display:block;min-width:0;color:#452454;font-size:12px;font-weight:800;line-height:1.45;}
+#andy-sorteo-diario label .andy-field {display:block;margin-top:6px;width:100%;min-width:0;border:1px solid #c5aecc;min-height:45px;color:#32163c;background:#fff;font-size:16px;border-radius:9px;padding:10px 11px;}
+#andy-sorteo-diario .andy-sd-two,#andy-sorteo-diario .andy-sd-three {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:9px 0;}
+#andy-sorteo-diario .andy-sd-three {grid-template-columns:repeat(3,minmax(0,1fr));}
+#andy-sorteo-diario .andy-sd-help {margin:8px 0 0;color:#705b72;font-size:12px;line-height:1.55;}
+#andy-sorteo-diario .andy-sd-budget {padding:12px 14px;border:1px solid #d1a86d;border-radius:11px;background:#f2e4c5;}
+#andy-sorteo-diario .andy-sd-budget small {display:block;font-size:12px;color:#492855;font-weight:700;}
+#andy-sorteo-diario .andy-sd-budget strong {display:block;font-size:clamp(28px,4vw,42px);color:#371245;line-height:1.25;}
+#andy-sorteo-diario .andy-sd-toolbar {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+#andy-sorteo-diario .andy-sd-toolbar .andy-btn {flex:1 1 150px;}
+#andy-sorteo-diario .andy-sd-check {display:grid;gap:8px;padding:12px 0;font-size:14px;}
+#andy-sorteo-diario #andy-sd-validacion[data-valid="true"] {color:#1c6849;font-weight:700;}
+#andy-sorteo-diario #andy-sd-validacion[data-valid="false"] {color:#9c3a3a;font-weight:700;}
+#andy-sorteo-diario .andy-sd-preview {position:sticky;top:10px;border:1px solid #dfc296;background:#fff8e9;border-radius:15px;padding:14px;min-width:0;}
+#andy-sorteo-diario .andy-sd-preview h4 {margin:0 0 6px;color:#371245;font-size:18px;}
+#andy-sorteo-diario #andy-sd-canvas {display:block;margin:13px auto;max-width:100%;height:auto;width:100%;border-radius:10px;background:#341245;box-shadow:0 6px 18px #25072f33;}
+#andy-sorteo-diario .andy-btn:disabled {opacity:.5;cursor:not-allowed;}
+#andy-sorteo-diario #andy-sd-estado[data-error="true"] {color:#a3403b;}
+#andy-sorteo-diario [hidden] {display:none!important;}
+@media(max-width:850px){#andy-sorteo-diario .andy-sd-layout {grid-template-columns:1fr;}#andy-sorteo-diario .andy-sd-preview {position:static;} }
+@media(max-width:500px){#andy-sorteo-diario {padding:12px;margin:12px 0;}#andy-sorteo-diario fieldset{padding:9px;}#andy-sorteo-diario .andy-sd-three{gap:5px;}#andy-sorteo-diario .andy-sd-two{gap:7px;}#andy-sorteo-diario label .andy-field{padding:8px;font-size:15px;} }
+
+#andy-sorteo-diario #andy-sd-preview {scroll-margin-top:12px;}
+#andy-sorteo-diario .andy-sd-jump {display:inline-flex;align-items:center;justify-content:center;min-height:43px;text-align:center;text-decoration:none;}
