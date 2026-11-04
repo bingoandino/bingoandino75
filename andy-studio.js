@@ -215,7 +215,41 @@
     el("andy-aprobados").textContent = String(drafts.filter((d)=>d.state === "aprobado").length);
     el("andy-agendados").textContent = String(drafts.filter((d)=>!!d.date).length);
   }
+  function renderCalendar() {
+    const target = el("andy-agenda");
+    if (!target) return;
+    target.replaceChildren();
+    const start = new Date(todayVE() + "T12:00:00Z");
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start.getTime() + i * 86400000);
+      const key = date.toISOString().slice(0,10);
+      const scheduled = drafts.filter((d) => d.date === key).sort((a,b) => (a.time||"").localeCompare(b.time||""));
+      const day = document.createElement("div");
+      day.className = "andy-day";
+      const label = document.createElement("strong");
+      label.textContent = new Intl.DateTimeFormat("es-VE",{timeZone:"UTC",weekday:"short",day:"numeric"}).format(date);
+      const count = document.createElement("small");
+      count.textContent = scheduled.length ? scheduled.length + (scheduled.length===1?" propuesta":" propuestas") : "Sin propuestas";
+      day.append(label,count);
+      scheduled.slice(0,4).forEach((draft) => {
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "andy-day-item";
+        link.title = "Editar: " + draft.title;
+        link.textContent = (draft.time ? draft.time + " · " : "") + draft.title;
+        link.addEventListener("click", () => edit(draft.id));
+        day.append(link);
+      });
+      if (scheduled.length > 4) {
+        const more = document.createElement("small");
+        more.textContent = "y " + (scheduled.length-4) + " más";
+        day.append(more);
+      }
+      target.append(day);
+    }
+  }
   function renderList() {
+    renderCalendar();
     const container = el("andy-lista");
     container.replaceChildren();
     const filter = el("andy-filtro").value;
