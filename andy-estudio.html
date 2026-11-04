@@ -207,104 +207,6 @@
         <p class="andy-mp-footnote" data-andy-view="resultados">Los números se introducen y guardan en este navegador. No hay sincronización con Instagram, el administrador, los pagos ni publicación automática. No se solicitan códigos ni datos personales de clientes.</p>
       </section>
 
-      <section class="andy-sd" id="andy-sorteo-diario" data-andy-view="contenido" aria-label="Preparar imagen de sorteo">
-        <button type="button" class="andy-sd-opener" id="andy-sd-abrir" aria-expanded="false" aria-controls="andy-sd-panel">
-          <span class="andy-sd-opener-icon" aria-hidden="true">🎱</span>
-          <span class="andy-sd-opener-label">Preparar imagen de sorteo</span>
-          <span class="andy-sd-opener-chevron" aria-hidden="true">⌄</span>
-        </button>
-        <div id="andy-sd-panel" hidden>
-          <div class="andy-sd-heading">
-          <div><span class="andy-eyebrow">🎱 NUEVO · SORTEO DIARIO</span>
-            <h3 id="andy-sd-title">Anuncios y premios del próximo sorteo</h3>
-            <p>Revisa premios, cartones y pozo; genera tus anuncios en formato cuadrado e historia. El lleno final siempre es el protagonista.</p>
-            <p class="andy-sd-help">Esta herramienta sirve para calcular premios y obtener una plantilla rápida. Para imágenes premium de los sorteos, seguimos trabajando aquí en ChatGPT sin API de pago.</p>
-          </div>
-          <button type="button" class="andy-btn muted" id="andy-sd-siguiente">↪ Preparar día siguiente</button>
-        </div>
-        <div class="andy-sd-layout">
-          <div class="andy-sd-form">
-            <fieldset><legend>1 · Programación</legend>
-              <div class="andy-sd-two">
-                <label>Fecha del sorteo<input id="andy-sd-fecha" type="date" class="andy-field" required></label>
-                <label>Rondas<select id="andy-sd-rondas" class="andy-field"><option value="5">5 rondas</option><option value="6">6 rondas</option></select></label>
-              </div>
-              <p class="andy-sd-help" id="andy-sd-rondas-info"></p>
-              <div class="andy-sd-two">
-                <label>Cartones anunciados<input id="andy-sd-cartones" type="number" min="1" max="20000" step="1" class="andy-field" required></label>
-                <label>Hora en vivo<input id="andy-sd-hora" type="time" class="andy-field" value="20:00"></label>
-              </div>
-            </fieldset>
-            <fieldset><legend>2 · Cartones gratuitos para el cálculo</legend>
-              <div class="andy-sd-three">
-                <label>Ruleta<input id="andy-sd-ruleta" type="number" min="0" max="2000" step="1" class="andy-field" value="7"></label>
-                <label>Dinámicas<input id="andy-sd-dinamicas" type="number" min="0" max="2000" step="1" class="andy-field" value="3"></label>
-                <label>Video<input id="andy-sd-video" type="number" min="0" max="2000" step="1" class="andy-field" value="2"></label>
-              </div>
-              <p class="andy-sd-help" id="andy-sd-base"></p>
-              <p class="andy-sd-help">Estos son los regalos base. Los cartones adicionales que regales los asumes tú y no reducen el premio anunciado.</p>
-            </fieldset>
-            <fieldset><legend>3 · Precio y presupuesto</legend>
-              <label>Precio del cartón (Bs)<input id="andy-sd-precio" type="number" min="1" max="100000" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 895"></label>
-              <p class="andy-sd-help">El anuncio muestra únicamente el precio en bolívares. No es obligatorio escribir la tasa BCV.</p>
-              <div id="andy-sd-total-manual-wrap">
-                <label>Total a repartir (USD) · si son 5 rondas<input id="andy-sd-total-manual" type="number" min="5" step="5" inputmode="numeric" class="andy-field" placeholder="Ej.: 340"></label>
-                <p class="andy-sd-help">Sin tasa BCV, indica tú el total de premios en dólares. ANDY verificará que la suma de los premios coincida, pero no podrá comprobar el margen del 20%.</p>
-              </div>
-              <details class="andy-sd-bcv-extra">
-                <summary>Opcional · calcular con la tasa BCV</summary>
-                <label>Tasa del BCV (Bs por USD)<input id="andy-sd-tasa" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="Solo si quieres usarla" class="andy-field"></label>
-                <button class="andy-btn muted" id="andy-sd-precio-bcv" type="button">Calcular precio a $1 con la tasa BCV</button>
-                <p class="andy-sd-help">En sorteos de 5 rondas, la tasa permite calcular el presupuesto en dólares y comprobar el 20%.</p>
-              </details>
-            </fieldset>
-            <fieldset><legend>4 · Pozo acumulado</legend>
-              <label>Pozo acumulado a anunciar (USD)<input id="andy-sd-pozo-manual" type="number" min="1" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 120"></label>
-              <input id="andy-sd-max-bolas" type="hidden" value="52">
-              <p class="andy-sd-help">Escribe únicamente el monto del pozo para este sorteo. ANDY mostrará ese mismo valor, sin sumarle ni descontarle nada. Límite habitual: 52 bolitas.</p>
-            </fieldset>
-            <fieldset><legend>5 · Distribución tradicional</legend>
-              <div class="andy-sd-budget">
-                <div><small>Disponible para premios (redondeado hacia abajo)</small><strong id="andy-sd-presupuesto">Pendiente</strong></div>
-                <p id="andy-sd-presupuesto-sub" class="andy-sd-help"></p>
-              </div>
-              <p class="andy-sd-help" id="andy-sd-reparto-info"></p>
-              <div class="andy-sd-two">
-                <label><span id="andy-sd-cantidad-a">3 llenos de</span> (USD c/u)<input id="andy-sd-premio-a" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Ej.: 50"></label>
-                <label id="andy-sd-bloque-b">2 llenos de (USD c/u)<input id="andy-sd-premio-b" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Ej.: 70"></label>
-              </div>
-              <label>Lleno final (USD)<input id="andy-sd-premio-final" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Premio protagonista"></label>
-              <div class="andy-sd-toolbar">
-                <button type="button" class="andy-btn gold" id="andy-sd-sugerir">✨ Sugerir premios tradicionales</button>
-                <button type="button" class="andy-btn muted" id="andy-sd-cuadrar">Cuadrar con el lleno final</button>
-                <a class="andy-btn muted andy-sd-jump" href="#andy-sd-preview">👁️ Ver imagen y descargar</a>
-              </div>
-              <p class="andy-sd-help">Consolaciones fijas: $10 cada una. Las sugerencias son editables: confirma tú la distribución antes de usarla.</p>
-              <div class="andy-sd-check"><span>Premios sumados: <strong id="andy-sd-suma">$0</strong></span><span id="andy-sd-validacion" data-valid="false">Completa los datos</span></div>
-            </fieldset>
-          </div>
-          <aside class="andy-sd-preview" id="andy-sd-preview">
-            <h4>👁️ Vista previa del anuncio</h4>
-
-            <p class="andy-sd-help">Plantilla rápida opcional. Los diseños premium no se generan aquí; los hacemos en ChatGPT.</p>
-            <label>Formato de vista previa<select id="andy-sd-vista-formato" class="andy-field"><option value="post">Cuadrada · Instagram/Facebook</option><option value="story">Historia · 9:16</option></select></label>
-            <canvas id="andy-sd-canvas" width="1080" height="1080" role="img" aria-label="Vista previa pendiente de datos"></canvas>
-            <div class="andy-sd-toolbar">
-              <button class="andy-btn gold" type="button" id="andy-sd-descargar-cuadrado" disabled>⬇ Cuadrada PNG</button>
-              <button class="andy-btn gold" type="button" id="andy-sd-descargar-historia" disabled>⬇ Historia PNG</button>
-            </div>
-            <div class="andy-sd-toolbar">
-              <button class="andy-btn muted" type="button" id="andy-sd-copiar-redes" disabled>Copiar Instagram / Facebook</button>
-              <button class="andy-btn muted" type="button" id="andy-sd-copiar-whatsapp" disabled>Copiar WhatsApp</button>
-            </div>
-            <textarea id="andy-sd-texto-copia" class="andy-field" rows="6" hidden readonly></textarea>
-            <p id="andy-sd-estado" class="andy-status" role="status" aria-live="polite">Preparando borrador…</p>
-            <p class="andy-sd-help">🔒 Solo se guarda en este navegador. No está conectado a «Publicar pagos» y no modifica compras ni ganadores. La generación del anuncio es completamente manual, sin integración con la app de pagos.</p>
-          </aside>
-        </div>
-        </div>
-      </section>
-
       <details class="andy-secondary-disclosure" data-andy-view="contenido"><summary>Estado de mis borradores</summary><div class="andy-stats" aria-label="Resumen de contenido ANDY">
         <div class="andy-stat"><strong id="andy-cantidad">0</strong><span>Borradores guardados</span></div>
         <div class="andy-stat"><strong id="andy-pendientes">0</strong><span>En revisión</span></div>
@@ -454,6 +356,104 @@
           </div>
         </section>
       </div></details>
+
+      <section class="andy-sd" id="andy-sorteo-diario" data-andy-view="contenido" aria-label="Preparar imagen de sorteo">
+        <button type="button" class="andy-sd-opener" id="andy-sd-abrir" aria-expanded="false" aria-controls="andy-sd-panel">
+          <span class="andy-sd-opener-icon" aria-hidden="true">🎱</span>
+          <span class="andy-sd-opener-label">Preparar imagen de sorteo</span>
+          <span class="andy-sd-opener-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div id="andy-sd-panel" hidden>
+          <div class="andy-sd-heading">
+          <div><span class="andy-eyebrow">🎱 NUEVO · SORTEO DIARIO</span>
+            <h3 id="andy-sd-title">Anuncios y premios del próximo sorteo</h3>
+            <p>Revisa premios, cartones y pozo; genera tus anuncios en formato cuadrado e historia. El lleno final siempre es el protagonista.</p>
+            <p class="andy-sd-help">Esta herramienta sirve para calcular premios y obtener una plantilla rápida. Para imágenes premium de los sorteos, seguimos trabajando aquí en ChatGPT sin API de pago.</p>
+          </div>
+          <button type="button" class="andy-btn muted" id="andy-sd-siguiente">↪ Preparar día siguiente</button>
+        </div>
+        <div class="andy-sd-layout">
+          <div class="andy-sd-form">
+            <fieldset><legend>1 · Programación</legend>
+              <div class="andy-sd-two">
+                <label>Fecha del sorteo<input id="andy-sd-fecha" type="date" class="andy-field" required></label>
+                <label>Rondas<select id="andy-sd-rondas" class="andy-field"><option value="5">5 rondas</option><option value="6">6 rondas</option></select></label>
+              </div>
+              <p class="andy-sd-help" id="andy-sd-rondas-info"></p>
+              <div class="andy-sd-two">
+                <label>Cartones anunciados<input id="andy-sd-cartones" type="number" min="1" max="20000" step="1" class="andy-field" required></label>
+                <label>Hora en vivo<input id="andy-sd-hora" type="time" class="andy-field" value="20:00"></label>
+              </div>
+            </fieldset>
+            <fieldset><legend>2 · Cartones gratuitos para el cálculo</legend>
+              <div class="andy-sd-three">
+                <label>Ruleta<input id="andy-sd-ruleta" type="number" min="0" max="2000" step="1" class="andy-field" value="7"></label>
+                <label>Dinámicas<input id="andy-sd-dinamicas" type="number" min="0" max="2000" step="1" class="andy-field" value="3"></label>
+                <label>Video<input id="andy-sd-video" type="number" min="0" max="2000" step="1" class="andy-field" value="2"></label>
+              </div>
+              <p class="andy-sd-help" id="andy-sd-base"></p>
+              <p class="andy-sd-help">Estos son los regalos base. Los cartones adicionales que regales los asumes tú y no reducen el premio anunciado.</p>
+            </fieldset>
+            <fieldset><legend>3 · Precio y presupuesto</legend>
+              <label>Precio del cartón (Bs)<input id="andy-sd-precio" type="number" min="1" max="100000" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 895"></label>
+              <p class="andy-sd-help">El anuncio muestra únicamente el precio en bolívares. No es obligatorio escribir la tasa BCV.</p>
+              <div id="andy-sd-total-manual-wrap">
+                <label>Total a repartir (USD) · si son 5 rondas<input id="andy-sd-total-manual" type="number" min="5" step="5" inputmode="numeric" class="andy-field" placeholder="Ej.: 340"></label>
+                <p class="andy-sd-help">Sin tasa BCV, indica tú el total de premios en dólares. ANDY verificará que la suma de los premios coincida, pero no podrá comprobar el margen del 20%.</p>
+              </div>
+              <details class="andy-sd-bcv-extra">
+                <summary>Opcional · calcular con la tasa BCV</summary>
+                <label>Tasa del BCV (Bs por USD)<input id="andy-sd-tasa" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="Solo si quieres usarla" class="andy-field"></label>
+                <button class="andy-btn muted" id="andy-sd-precio-bcv" type="button">Calcular precio a $1 con la tasa BCV</button>
+                <p class="andy-sd-help">En sorteos de 5 rondas, la tasa permite calcular el presupuesto en dólares y comprobar el 20%.</p>
+              </details>
+            </fieldset>
+            <fieldset><legend>4 · Pozo acumulado</legend>
+              <label>Pozo acumulado a anunciar (USD)<input id="andy-sd-pozo-manual" type="number" min="1" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 120"></label>
+              <input id="andy-sd-max-bolas" type="hidden" value="52">
+              <p class="andy-sd-help">Escribe únicamente el monto del pozo para este sorteo. ANDY mostrará ese mismo valor, sin sumarle ni descontarle nada. Límite habitual: 52 bolitas.</p>
+            </fieldset>
+            <fieldset><legend>5 · Distribución tradicional</legend>
+              <div class="andy-sd-budget">
+                <div><small>Disponible para premios (redondeado hacia abajo)</small><strong id="andy-sd-presupuesto">Pendiente</strong></div>
+                <p id="andy-sd-presupuesto-sub" class="andy-sd-help"></p>
+              </div>
+              <p class="andy-sd-help" id="andy-sd-reparto-info"></p>
+              <div class="andy-sd-two">
+                <label><span id="andy-sd-cantidad-a">3 llenos de</span> (USD c/u)<input id="andy-sd-premio-a" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Ej.: 50"></label>
+                <label id="andy-sd-bloque-b">2 llenos de (USD c/u)<input id="andy-sd-premio-b" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Ej.: 70"></label>
+              </div>
+              <label>Lleno final (USD)<input id="andy-sd-premio-final" class="andy-field" type="number" min="0" step="5" inputmode="numeric" placeholder="Premio protagonista"></label>
+              <div class="andy-sd-toolbar">
+                <button type="button" class="andy-btn gold" id="andy-sd-sugerir">✨ Sugerir premios tradicionales</button>
+                <button type="button" class="andy-btn muted" id="andy-sd-cuadrar">Cuadrar con el lleno final</button>
+                <a class="andy-btn muted andy-sd-jump" href="#andy-sd-preview">👁️ Ver imagen y descargar</a>
+              </div>
+              <p class="andy-sd-help">Consolaciones fijas: $10 cada una. Las sugerencias son editables: confirma tú la distribución antes de usarla.</p>
+              <div class="andy-sd-check"><span>Premios sumados: <strong id="andy-sd-suma">$0</strong></span><span id="andy-sd-validacion" data-valid="false">Completa los datos</span></div>
+            </fieldset>
+          </div>
+          <aside class="andy-sd-preview" id="andy-sd-preview">
+            <h4>👁️ Vista previa del anuncio</h4>
+
+            <p class="andy-sd-help">Plantilla rápida opcional. Los diseños premium no se generan aquí; los hacemos en ChatGPT.</p>
+            <label>Formato de vista previa<select id="andy-sd-vista-formato" class="andy-field"><option value="post">Cuadrada · Instagram/Facebook</option><option value="story">Historia · 9:16</option></select></label>
+            <canvas id="andy-sd-canvas" width="1080" height="1080" role="img" aria-label="Vista previa pendiente de datos"></canvas>
+            <div class="andy-sd-toolbar">
+              <button class="andy-btn gold" type="button" id="andy-sd-descargar-cuadrado" disabled>⬇ Cuadrada PNG</button>
+              <button class="andy-btn gold" type="button" id="andy-sd-descargar-historia" disabled>⬇ Historia PNG</button>
+            </div>
+            <div class="andy-sd-toolbar">
+              <button class="andy-btn muted" type="button" id="andy-sd-copiar-redes" disabled>Copiar Instagram / Facebook</button>
+              <button class="andy-btn muted" type="button" id="andy-sd-copiar-whatsapp" disabled>Copiar WhatsApp</button>
+            </div>
+            <textarea id="andy-sd-texto-copia" class="andy-field" rows="6" hidden readonly></textarea>
+            <p id="andy-sd-estado" class="andy-status" role="status" aria-live="polite">Preparando borrador…</p>
+            <p class="andy-sd-help">🔒 Solo se guarda en este navegador. No está conectado a «Publicar pagos» y no modifica compras ni ganadores. La generación del anuncio es completamente manual, sin integración con la app de pagos.</p>
+          </aside>
+        </div>
+        </div>
+      </section>
     </div>
   </div>
 
