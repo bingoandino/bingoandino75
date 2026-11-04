@@ -9,11 +9,11 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   const root={querySelector:s=>elements[s.slice(9)],querySelectorAll:()=>Object.values(elements)};
   elements['hora'].value='20:00';elements['max-bolas'].value='52';elements['vista-formato'].value='post';
   const no=()=>{}, gradient={addColorStop:no};let writes=0;
-  const ctx={beginPath:no,clearRect:no,roundRect:no,fill:no,stroke:no,fillRect:no,strokeRect:no,arc:no,ellipse:no,moveTo:no,lineTo:no,closePath:no,save:no,restore:no,
+  const ctx={beginPath:no,clearRect:no,roundRect:no,fill:no,stroke:no,fillRect:no,strokeRect:no,strokeText:no,arc:no,ellipse:no,moveTo:no,lineTo:no,closePath:no,save:no,restore:no,
     createLinearGradient:()=>gradient,createRadialGradient:()=>gradient,fillText(s,x,y,max){if(arguments.length===4&&!Number.isFinite(max))throw Error('Non-finite Canvas width');writes++;}};
   elements.canvas.getContext=()=>ctx;
   const stored={};
-  const sandbox={window:{AndySorteoRules:R},document:{getElementById:id=>id==='andy-sorteo-diario'?root:null},
+  const sandbox={window:{AndySorteoRules:R,AndySorteoArt:require(path.join(base,'andy-sorteo-art.js'))},document:{getElementById:id=>id==='andy-sorteo-diario'?root:null},
     localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>{stored[k]=v;}},console};
   vm.runInNewContext(fs.readFileSync(path.join(base,'andy-sorteo.js'),'utf8'),sandbox);
   assert.match(elements.validacion.textContent,/datos|Premio|Completa|cifra|premios|falta|Confirma|Revisa|⚠️/i);
