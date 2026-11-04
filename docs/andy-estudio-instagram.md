@@ -1,7 +1,7 @@
 # ANDY Studio — Oficina creativa de Instagram (v1)
 
 ## Qué se puede usar al desplegar esta versión
-Desde el administrador de bingoandino75.com aparece la pestaña **🤖 ANDY Estudio** con:
+En esta versión la oficina se abre en una página **separada** (`/andy-estudio.html`), sin añadir scripts ni pestañas a la portada del bingo. Desde Chrome, inicia sesión en el administrador en la página principal y, en **esa misma pestaña**, navega a la dirección independiente. El estudio incluye:
 - Brief libre: convierte palabras clave en un borrador basado en plantillas locales, sin llamar a IA externa.
 - Seis temas: bienvenida, bombo real, tutorial de verificación, seguridad, agradecimiento, canal en vivo.
 - Tres formatos: publicación 1:1, historia 9:16 y reel (portada PNG 9:16 y guion de tomas).
@@ -21,11 +21,11 @@ Desde el administrador de bingoandino75.com aparece la pestaña **🤖 ANDY Estu
 - Las fechas son sugeridas. Las promociones y publicidad relacionadas con juego deben someterse a revisión de requisitos y autorizaciones Meta/locales antes de difundirse.
 
 ## Aislamiento y seguridad
-- Cambios limitados a index.html (nueva pestaña + dos archivos estáticos), andy-studio.js y andy-studio.css.
+- La versión anterior se revirtió después de la pantalla en blanco. Esta versión **no modifica index.html**. Añade `andy-estudio.html` y `andy-gate.js`, y reutiliza los archivos estáticos `andy-studio.js` y `andy-studio.css`.
 - Estilos acotados bajo #tab-andy-estudio: no cambian los demás paneles.
 - El editor no utiliza Supabase, no conoce service_role, no realiza llamadas a red y no modifica compras, sesiones admin, cartones ni pagos.
 - Utiliza asignación segura de textContent y createElement para los títulos del usuario, evitando inyección de HTML.
-- Se carga como pestaña del administrador existente. Los archivos estáticos son públicamente accesibles pero el panel se muestra solo dentro de sesión admin; no se almacenan secretos ni datos sensibles.
+- La oficina se carga solamente tras verificar JWT con Supabase Auth y la sesión del dispositivo por la Edge Function `verify-session`. Si no hay autorización o CDN/red, muestra un aviso y mantiene el editor cerrado. Los archivos estáticos son públicos, pero la interfaz editorial y los borradores personales permanecen inaccesibles sin autenticación desde la navegación normal; no guardar secretos ni datos bancarios.
 - Por ahora no hay servidor sincronizado que pudiera exigir nuevas políticas RLS o permisos.
 
 ## Pruebas y publicación
@@ -41,4 +41,4 @@ Desde el administrador de bingoandino75.com aparece la pestaña **🤖 ANDY Estu
 - Generación/edición de video real y assets multimedia, respetando derechos y autorizaciones.
 
 ## Estado
-PR de GitHub en borrador. Nada está fusionado con main ni publicado en bingoandino75.com.
+Revisión de aislamiento en PR #40; la portada de bingoandino75.com permanece intacta. La entrada independiente se validó con Chromium para viewport móvil y escritorio, además de las pruebas existentes de la página.
