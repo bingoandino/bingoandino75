@@ -28,7 +28,7 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(url,{waitUntil:'domcontentloaded'});
-    await expect(page.locator('#andy-gate-status')).toHaveText('Administrador verificado');
+    await expect(page.locator('#andy-gate-status')).toContainText(/Administrador verificado|ANDY listo/);
     await expect(page.locator('#tab-andy-estudio')).toBeVisible();
     await expect(page.locator('#andy-guardar')).toBeVisible();
     await page.locator('#andy-ideas').click();
@@ -56,18 +56,20 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     await testInfo.attach('andy-'+vp.label,{path:'test-results/andy-'+vp.label+'.png',contentType:'image/png'});
   });
 }
-test('sin sesión la página muestra acceso restringido, no una pantalla en blanco',async({page})=>{
+test('enlace directo presenta su propio login incluso sin sesión anterior',async({page})=>{
   await page.route(cdn,route=>route.abort());
   await page.goto(url,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#andy-gate-error')).toBeVisible();
+  await expect(page.locator('#andy-login-form')).toBeVisible();
+  await expect(page.locator('#andy-login-email')).toBeVisible();
+  await expect(page.locator('#andy-login-password')).toBeVisible();
   await expect(page.locator('#tab-andy-estudio')).toBeHidden();
   await expect(page.getByRole('link',{name:/Volver al Bingo/i})).toBeVisible();
-  await expect(page.locator('body')).toContainText('Inicia sesión');
+  await expect(page.locator('body')).toContainText('Acceso a ANDY Studio');
 });
-test('si el servidor rechaza la sesión el editor permanece cerrado',async({page})=>{
+test('si el servidor rechaza la sesión anterior ofrece login sin mostrar editor',async({page})=>{
   await authenticated(page,false);
   await page.goto(url,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#andy-gate-error')).toBeVisible();
+  await expect(page.locator('#andy-login-form')).toBeVisible();
   await expect(page.locator('#tab-andy-estudio')).toBeHidden();
 });
 test('el archivo de inicio del bingo no carga ANDY ni contiene el editor',async({page})=>{
@@ -79,4 +81,103 @@ test('el archivo de inicio del bingo no carga ANDY ni contiene el editor',async(
   expect(html).not.toContain('tab-andy-estudio');
   expect(html).toContain('id="bienvenida"');
   expect(html).toContain('id="inscripcion"');
+});
+
+
+async function directMock(page,{passwordValid=true,otpValid=true,sessionValid=true}={}) {
+  await page.addInitScript(()=>{
+    window.__andyMockCalls=[];
+    window.__andyMockSession=null;
+  });
+  await page.route(cdn,route=>route.fulfill({
+    status:200,contentType:'text/javascript',
+    body: 'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:window.__andyMockSession},error:null}),signInWithOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-send",email:v.email,shouldCreateUser:v.options.shouldCreateUser});return {error:null};},verifyOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-verify",email:v.email,token:v.token,type:v.type});if(v.token==="000000")return {error:{message:"invalid",status:400}};window.__andyMockSession={access_token:"jwt-approved"};return {data:{session:window.__andyMockSession},error:null};}}})};'
+  }));
+  await page.route('**/functions/v1/admin-auth',async route=>{
+    const payload=route.request().postDataJSON();
+    if(payload.action==='verify_credentials'){
+      if(!passwordValid) {
+        await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:'Credenciales incorrectas'})});return;
+      }
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({valid:true,email:payload.email,loginProof:'test-signed-proof'})});return;
+    }
+    if(payload.action==='create_session_otp'){
+      if(route.request().headers()['authorization']!=='Bearer jwt-approved'||payload.loginProof!=='test-signed-proof')
+        throw new Error('Intento de crear sesión sin OTP válido');
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,sessionToken:'direct-admin-session',expiresAt:'2099-01-01T00:00:00Z',deviceId:payload.deviceId})});return;
+    }
+    throw new Error('Acción no permitida');
+  });
+  await page.route(verify,route=>route.fulfill({
+    status:sessionValid?200:401,contentType:'application/json',
+    body:JSON.stringify({valid:sessionValid,sameDevice:sessionValid,expiresAt:'2099-01-01T00:00:00Z'})
+  }));
+}
+test('contraseña y OTP permiten entrar directamente, sin visitar el administrador del bingo',async({page})=>{
+  await directMock(page);
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#andy-login-form')).toBeVisible();
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-code-form')).toBeVisible();
+  await expect(page.locator('#andy-otp-email')).toHaveText('admin@example.test');
+  await expect(page.locator('#andy-login-password')).toHaveValue('');
+  await page.locator('#andy-otp-code').fill('123456');
+  await page.locator('#andy-otp-submit').click();
+  await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+  await expect(page.locator('#andy-guardar')).toBeVisible();
+  await expect(page.locator('#andy-login-box')).toBeHidden();
+  const result=await page.evaluate(()=>({
+    token:sessionStorage.getItem('admin_session_token'),
+    device:sessionStorage.getItem('device_id'),
+    passwordStorage:sessionStorage.getItem('andy-login-password')||localStorage.getItem('andy-login-password'),
+    proof:sessionStorage.getItem('pending_admin_login_proof')||localStorage.getItem('pending_admin_login_proof'),
+    authCalls:window.__andyMockCalls
+  }));
+  expect(result.token).toBe('direct-admin-session');
+  expect(result.device).toMatch(/^device_/);
+  expect(result.passwordStorage).toBeNull();
+  expect(result.proof).toBeNull();
+  expect(result.authCalls.map(x=>x.action)).toEqual(['otp-send','otp-verify']);
+});
+test('contraseña incorrecta no solicita OTP ni abre ANDY',async({page})=>{
+  await directMock(page,{passwordValid:false});
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('incorrecta');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-gate-error')).toBeVisible();
+  await expect(page.locator('#andy-code-form')).toBeHidden();
+  await expect(page.locator('#tab-andy-estudio')).toBeHidden();
+  const calls=await page.evaluate(()=>window.__andyMockCalls);
+  expect(calls).toEqual([]);
+});
+test('OTP incorrecto no crea sesión de administrador',async({page})=>{
+  await directMock(page);
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-code-form')).toBeVisible();
+  await page.locator('#andy-otp-code').fill('000000');
+  await page.locator('#andy-otp-submit').click();
+  await expect(page.locator('#andy-gate-error')).toBeVisible();
+  await expect(page.locator('#tab-andy-estudio')).toBeHidden();
+  const token=await page.evaluate(()=>sessionStorage.getItem('admin_session_token'));
+  expect(token).toBeNull();
+});
+test('el fallo del servicio de autenticación muestra error pero no pantalla en blanco',async({page})=>{
+  await page.route(cdn,route=>route.abort());
+  await page.route('**/functions/v1/admin-auth',route=>route.fulfill({
+    status:200,contentType:'application/json',
+    body:JSON.stringify({valid:true,loginProof:'test-proof'})
+  }));
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-gate-error')).toBeVisible();
+  await expect(page.locator('#tab-andy-estudio')).toBeHidden();
+  await expect(page.locator('#andy-login-form')).toBeVisible();
 });
