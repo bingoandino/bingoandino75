@@ -6,6 +6,7 @@
   if (!R || !root) return;
   const $ = (s) => root.querySelector('#andy-sd-' + s);
   const STORAGE = 'bingo_andy_sorteo_diario_borrador_v1';
+  let lastValidDate = ''; 
   const locale = new Intl.NumberFormat('es-VE',{maximumFractionDigits:2});
   let generated = false;
   function todayVE() {
@@ -21,7 +22,7 @@
   function defaults(date) {
     let p;
     try {p=R.programForDate(date);} catch {return;}
-    $('fecha').value=date;
+    $('fecha').value=date;lastValidDate=date;
     $('rondas').value=p.rounds;
     $('cartones').value=p.tickets;
     const gifts=R.defaultGifts(p.rounds);
@@ -62,6 +63,8 @@
     const pot=projectPot();
     if (pot===null) error = error || 'Confirma el pozo del siguiente sorteo.';
     if (!data.date || !data.tickets || !data.priceBs) error=error||'Completa los datos del sorteo.';
+    if (!Number.isInteger(number('max-bolas')) || number('max-bolas')<1 || number('max-bolas')>75) error=error||'El máximo de bolitas debe estar entre 1 y 75.';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test($('hora').value)) error=error||'Indica una hora válida.';
     $('validacion').textContent=error?'⚠️ '+error:'✅ Cifras verificadas. El anuncio está listo para revisar y descargar.';
     $('validacion').dataset.valid=error?'false':'true';
     const good=!error;
@@ -78,7 +81,7 @@
       return Number.isFinite(n)&&n>0?n:null;
     }
     const current=Number($('pozo').value);
-    return R.nextPot(current,$('pozo-resultado').value,10);
+    return R.nextPot(current,$('pozo-resultado').value,null);
   }
   function suggestion() {
     const x=calc();
@@ -112,6 +115,7 @@
       fields.forEach(k=>{if(Object.hasOwn(d,k))$(k).value=d[k];});
       const p=R.programForDate($('fecha').value);
       $('rondas-info').textContent=p.special?'✨ Sábado especial · morado y dorado con mayor brillo':'💜 Estilo tradicional · morado, marfil y dorado';
+      lastValidDate=$('fecha').value;
       return true;
     } catch {return false;}
   }
@@ -282,7 +286,7 @@
     else {calc();mark('Borrador restaurado desde este dispositivo.');}
     root.querySelectorAll('input,select').forEach(input=>input.addEventListener('input',()=>{
       if(input.id==='andy-sd-fecha'){
-        try {R.programForDate(input.value);}catch {mark('No se programan sorteos los domingos o con fecha inválida.',true);return;}
+        try {R.programForDate(input.value);}catch {input.value=lastValidDate;mark('No se programan sorteos los domingos o con fecha inválida.',true);return;}
         defaults(input.value);
       } else if(input.id==='andy-sd-rondas') {
         const gifts=R.defaultGifts(number('rondas'));
