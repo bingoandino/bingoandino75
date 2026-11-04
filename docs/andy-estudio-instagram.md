@@ -1,7 +1,7 @@
 # ANDY Studio — Oficina creativa de Instagram (v1)
 
 ## Qué se puede usar al desplegar esta versión
-En esta versión la oficina se abre en una página **separada** (`/andy-estudio.html`), sin añadir scripts ni pestañas a la portada del bingo. Desde Chrome, inicia sesión en el administrador en la página principal y, en **esa misma pestaña**, navega a la dirección independiente. El estudio incluye:
+En esta versión la oficina se abre **directamente** desde `https://bingoandino75.com/andy-estudio.html`, sin añadir scripts ni pestañas a la portada del bingo. Si no tienes sesión, ANDY muestra su propio formulario: correo y contraseña de administrador, seguidos por el código de seis dígitos enviado al correo. Si la sesión del dispositivo sigue válida, la recupera automáticamente. El estudio incluye:
 - Brief libre: convierte palabras clave en un borrador basado en plantillas locales, sin llamar a IA externa.
 - Seis temas: bienvenida, bombo real, tutorial de verificación, seguridad, agradecimiento, canal en vivo.
 - Tres formatos: publicación 1:1, historia 9:16 y reel (portada PNG 9:16 y guion de tomas).
@@ -25,7 +25,7 @@ En esta versión la oficina se abre en una página **separada** (`/andy-estudio.
 - Estilos acotados bajo #tab-andy-estudio: no cambian los demás paneles.
 - El editor no utiliza Supabase, no conoce service_role, no realiza llamadas a red y no modifica compras, sesiones admin, cartones ni pagos.
 - Utiliza asignación segura de textContent y createElement para los títulos del usuario, evitando inyección de HTML.
-- La oficina se carga solamente tras verificar JWT con Supabase Auth y la sesión del dispositivo por la Edge Function `verify-session`. Si no hay autorización o CDN/red, muestra un aviso y mantiene el editor cerrado. Los archivos estáticos son públicos, pero la interfaz editorial y los borradores personales permanecen inaccesibles sin autenticación desde la navegación normal; no guardar secretos ni datos bancarios.
+- La oficina se carga únicamente después de validar el JWT de Supabase Auth y la sesión del dispositivo mediante `verify-session`. El acceso inicial reutiliza `admin-auth` (`verify_credentials` y `create_session_otp`) y `signInWithOtp`/`verifyOtp`: el backend exige contraseña, prueba firmada y código reciente del correo. Contraseña, código y prueba firmada se mantienen en memoria durante la solicitud, no en localStorage ni sessionStorage. Si la sesión no existe, ANDY muestra su propio formulario; ante fallas de autorización o de CDN/red, muestra un aviso y mantiene el editor cerrado. Los archivos estáticos son públicos, pero la interfaz editorial y los borradores personales permanecen inaccesibles sin autenticación desde la navegación normal; no guardar secretos ni datos bancarios.
 - Por ahora no hay servidor sincronizado que pudiera exigir nuevas políticas RLS o permisos.
 
 ## Pruebas y publicación
@@ -41,4 +41,4 @@ En esta versión la oficina se abre en una página **separada** (`/andy-estudio.
 - Generación/edición de video real y assets multimedia, respetando derechos y autorizaciones.
 
 ## Estado
-Revisión de aislamiento en PR #40; la portada de bingoandino75.com permanece intacta. La entrada independiente se validó con Chromium para viewport móvil y escritorio, además de las pruebas existentes de la página.
+Rama de acceso directo para ANDY Studio. El PR #40 estableció el aislamiento; esta mejora añade entrada independiente con contraseña + OTP sin cambios en `index.html`, base de datos, bot, compras ni sorteos. Pruebas de navegador con credenciales ficticias (no se envían correos reales): contraseña correcta/incorrecta, OTP correcto/incorrecto, sesión existente, errores de red, móvil y escritorio. La comprobación real con correo autorizado debe hacerse después del despliegue.
