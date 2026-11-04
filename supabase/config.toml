@@ -1,0 +1,5 @@
+[functions.marketing-visit]
+verify_jwt = false
+
+[functions.marketing-report]
+verify_jwt = false

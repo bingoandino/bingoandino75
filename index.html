@@ -358,6 +358,7 @@
     <button class="tab-btn" onclick="cambiarTab('tab-ventas')">💰 Ventas</button>
     <button class="tab-btn" onclick="cambiarTab('tab-cartones')">🎱 Cartones</button>
     <button class="tab-btn" onclick="cambiarTab('tab-promociones')">🎯 Promociones</button>
+    <button class="tab-btn" onclick="cambiarTab('tab-marketing')">📈 ANDY Marketing</button>
     <button class="tab-btn" onclick="cambiarTab('tab-config')">⚙️ Configuración</button>
     <button class="tab-btn" onclick="cambiarTab('tab-ganadores')">🏆 Ganadores</button>
   </nav>
@@ -624,6 +625,30 @@
     </div>
   </div>
 
+  <!-- ANDY MARKETING: panel privado y agregado -->
+  <div id="tab-marketing" class="tab-content">
+    <div class="panel-section">
+      <div class="section-header">
+        <h3>🤖 ANDY · Estadísticas de visitas</h3>
+        <p class="section-desc">Cifras de navegación; no incluye datos personales ni confirma compras.</p>
+      </div>
+      <button id="andy-refrescar" type="button" class="btn-primary">🔄 Actualizar estadísticas</button>
+      <p id="andy-estado" role="status">Selecciona esta pestaña para consultar las estadísticas.</p>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-info"><span class="stat-number" id="andy-visitas-hoy">—</span><span class="stat-label">Sesiones de hoy</span></div></div>
+        <div class="stat-card"><div class="stat-info"><span class="stat-number" id="andy-visitas-semana">—</span><span class="stat-label">Sesiones · últimos 7 días</span></div></div>
+        <div class="stat-card"><div class="stat-info"><span class="stat-number" id="andy-clics-comprar">—</span><span class="stat-label">Sesiones con clic en Comprar · 7 días</span></div></div>
+        <div class="stat-card"><div class="stat-info"><span class="stat-number" id="andy-clics-whatsapp">—</span><span class="stat-label">Sesiones con clic a WhatsApp · 7 días</span></div></div>
+      </div>
+      <h4>Origen estimado de las sesiones (7 días)</h4>
+      <table style="width:100%;max-width:600px;border-collapse:collapse;text-align:left">
+        <thead><tr><th>Procedencia</th><th>Sesiones</th></tr></thead>
+        <tbody id="andy-canales"><tr><td>Sin datos aún</td><td>—</td></tr></tbody>
+      </table>
+      <p class="section-desc">Una sesión es una pestaña; no representa necesariamente una persona. Las visitas sin referencia se clasifican como «Sin origen identificable». La atribución a campañas y compras verificadas se añadirá en una fase posterior.</p>
+    </div>
+  </div>
+
   <!-- ─── TAB 5: CONFIGURACIÓN ─── -->
   <div id="tab-config" class="tab-content">
     <div class="panel-section">
@@ -751,7 +776,12 @@
 <script src="inicio-flyer.js?v=20261025-compacto-1"></script>
 <script src="verificar-enlace.js?v=20261027-1"></script>
 <script src="asistente-widget.js?v=20261028-17"></script>
-<script src="premios-pagados.js?v=1"></script></body>
+<script src="premios-pagados.js?v=1"></script>
+<!-- ANDY: medición optativa no bloqueante; no modifica flujo de compras -->
+<!-- La captura pública queda APAGADA hasta terminar pruebas y configurar rate-limit. -->
+<script>window.__ANDY_ANALYTICS_DISABLED__ = true;</script>
+<script src="marketing-tracker.js?v=20261104-1" defer></script>
+<script src="marketing-panel.js?v=20261104-1" defer></script></body>
 </html>
 
 
