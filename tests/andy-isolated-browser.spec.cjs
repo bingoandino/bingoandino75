@@ -14,7 +14,7 @@ async function authenticated(page, valid = true) {
   });
   await page.route(cdn, route => route.fulfill({
     status: 200, contentType: 'text/javascript',
-    body: 'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:"mock.jwt"}},error:null})}})};'
+    body: `window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:"mock.jwt"}},error:null})}})};`
   }));
   await page.route(verify, route => route.fulfill({
     status: 200, contentType:'application/json',
