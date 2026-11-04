@@ -5,7 +5,8 @@ const path = require('node:path');
 const { JSDOM } = require('jsdom');
 
 const root = path.join(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'andy-estudio.html'), 'utf8');
+const homepage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const studioJS = fs.readFileSync(path.join(root, 'andy-studio.js'), 'utf8');
 const studioCSS = fs.readFileSync(path.join(root, 'andy-studio.css'), 'utf8');
 function fixture(initial = []) {
@@ -24,13 +25,13 @@ function input(f,id,value){
   f.$(id).value=value;
   f.$(id).dispatchEvent(new f.w.Event('input',{bubbles:true}));
 }
-test('ANDY se añade como pestaña de admin sin modificar compra ni iniciar sesión',()=>{
+test('ANDY se aísla del inicio y conserva intactas compras y administrador',()=>{
   assert.match(html,/id="tab-andy-estudio"/);
-  assert.match(html,/cambiarTab\('tab-andy-estudio'\)/);
-  assert.match(html,/andy-studio.js/);
+  assert.match(html,/andy-gate.js/);
   assert.match(html,/andy-studio.css/);
-  assert.match(html,/onclick="mostrarVentana\('inscripcion'\)"/);
-  assert.match(html,/id="btnEnviarComprobante"/);
+  assert.doesNotMatch(homepage,/andy-studio.js|andy-gate.js|tab-andy-estudio/);
+  assert.match(homepage,/onclick="mostrarVentana\('inscripcion'\)"/);
+  assert.match(homepage,/id="btnEnviarComprobante"/);
   assert.match(studioCSS,/#tab-andy-estudio/);
   assert.doesNotMatch(studioJS,/from\(["']inscripciones["']\)|service_role|SUPABASE_SERVICE_ROLE_KEY/);
 });
