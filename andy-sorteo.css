@@ -59,3 +59,11 @@
   #andy-sorteo-diario .andy-sd-opener {padding:13px 12px;gap:10px;min-height:60px;}
   #andy-sorteo-diario .andy-sd-opener-icon {font-size:22px;}
 }
+
+/* Opt-in premium IA: no se emiten cargos hasta tocar generar. */
+#andy-sorteo-diario .andy-sd-ai {padding:14px;border:1px solid #c99f4e;border-radius:16px;background:linear-gradient(155deg,#fcf3dc,#f5e5fa);margin:6px 0 18px;}
+#andy-sorteo-diario .andy-sd-ai h4 {font-size:19px;color:#3e1452;margin:0 0 8px;}
+#andy-sorteo-diario .andy-sd-ai #andy-sd-ia-estado {padding:10px;border:1px solid #cbb47a;border-radius:10px;background:#fffaf0;color:#492054;font-weight:700;}
+#andy-sorteo-diario .andy-sd-ai #andy-sd-ia-estado[data-error="true"] {background:#fff0e9;border-color:#d7a59a;color:#802e34;}
+#andy-sorteo-diario .andy-sd-ai button[disabled] {opacity:.5;cursor:not-allowed;}
+#andy-sorteo-diario .andy-sd-ai .andy-sd-toolbar {margin:10px 0;}
