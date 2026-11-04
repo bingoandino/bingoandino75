@@ -19,6 +19,24 @@
  .andy-gate{background:#fff7df;border:1px solid #dabd7e;padding:10px 14px;border-radius:12px;margin-bottom:12px;font-size:14px}
  #andy-gate-error{background:#fff0ec;border:1px solid #d8a49d;color:#692932;padding:15px;border-radius:12px;line-height:1.5}
  #tab-andy-estudio[hidden],#andy-gate-error[hidden]{display:none!important}
+ #andy-login-box[hidden],#andy-login-form[hidden],#andy-code-form[hidden]{display:none!important}
+ .andy-access {max-width:525px;margin:28px auto 20px;padding:25px;background:#fffaf0;border:1px solid #c9a05b;border-radius:20px;box-shadow:0 12px 36px #3212411c}
+ .andy-access-heading {display:flex;gap:12px;align-items:start}
+ .andy-access-heading>span{font-size:34px}
+ .andy-access h1{font-size:clamp(21px,4vw,27px);margin:0 0 6px;color:#381746}
+ .andy-access h2{font-size:20px;color:#381746}
+ .andy-access p{font-size:14px;line-height:1.6;color:#654c68;margin:0 0 16px}
+ .andy-access form{display:grid;gap:10px;margin:18px 0}
+ .andy-access label{font-weight:700;font-size:14px;color:#402250;margin-top:8px}
+ .andy-access input {box-sizing:border-box;display:block;width:100%;min-height:48px;padding:12px;border-radius:10px;border:1px solid #bc9bba;font:500 16px system-ui,sans-serif;background:#fff;color:#2d1538}
+ .andy-access input:focus{outline:3px solid #c7a56585;border-color:#9c773a}
+ .andy-access button{min-height:45px;border-radius:10px;border:1px solid #caad7d;padding:9px 13px;cursor:pointer;color:#3b1a49;background:#fff2d8;font:700 14px system-ui,sans-serif}
+ .andy-access button.andy-submit{background:#3e184d;color:#fff2da;margin-top:10px;border-color:#3e184d}
+ .andy-access button:disabled{opacity:.55;cursor:wait}
+ .andy-access-actions{display:flex;flex-wrap:wrap;gap:9px}
+ .andy-access .andy-access-note{font-size:12px;margin-top:18px;color:#80687f}
+ @media(max-width:500px){.andy-access{padding:20px 15px;margin:20px 5px}.andy-access-actions{display:grid;grid-template-columns:1fr 1fr}.andy-access-actions button{font-size:12px}}
+
  @media(max-width:500px){body{padding:8px}.andy-navigation{padding:12px;flex-direction:column;align-items:flex-start}}
 </style>
 <script src="/andy-gate.js?v=20261104-aislado-1" defer></script>
@@ -29,8 +47,34 @@
   <strong>🤖 ANDY Studio · Edición de pruebas</strong>
   <a href="/">← Volver al Bingo</a>
  </nav>
- <div class="andy-gate" role="status" aria-live="polite" id="andy-gate-status">Verificando sesión administrativa…</div>
+ <div class="andy-gate" role="status" aria-live="polite" id="andy-gate-status">Preparando acceso independiente…</div>
  <p id="andy-gate-error" role="alert" hidden></p>
+ <section class="andy-access" id="andy-login-box" aria-labelledby="andy-access-title">
+  <div class="andy-access-heading">
+   <span aria-hidden="true">🔐</span>
+   <div><h1 id="andy-access-title">Acceso a ANDY Studio</h1>
+    <p>Usa la contraseña de administrador y el código de seguridad de tu correo. No necesitas entrar primero a la página principal.</p></div>
+  </div>
+  <form id="andy-login-form" autocomplete="on">
+   <label for="andy-login-email">Correo autorizado</label>
+   <input id="andy-login-email" type="email" inputmode="email" autocomplete="username" maxlength="180" placeholder="correo@ejemplo.com" required>
+   <label for="andy-login-password">Contraseña del administrador</label>
+   <input id="andy-login-password" type="password" autocomplete="current-password" maxlength="200" required>
+   <button type="submit" id="andy-login-submit" class="andy-submit">Continuar y enviar código</button>
+  </form>
+  <form id="andy-code-form" hidden autocomplete="off">
+   <h2>Verificación por correo</h2>
+   <p>Escribimos al correo <strong id="andy-otp-email"></strong>. Revisa también Spam.</p>
+   <label for="andy-otp-code">Código de 6 números</label>
+   <input id="andy-otp-code" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
+   <button type="submit" id="andy-otp-submit" class="andy-submit">Verificar código y entrar</button>
+   <div class="andy-access-actions">
+    <button type="button" id="andy-otp-resend">Solicitar otro código</button>
+    <button type="button" id="andy-otp-cancel">Volver</button>
+   </div>
+  </form>
+  <p class="andy-access-note">🔒 ANDY no guarda tu contraseña ni el código. El acceso utiliza la autenticación del administrador de Bingo Andino 75.</p>
+ </section>
    <!-- ANDY STUDIO: oficina editorial privada, datos locales, sin conexión publicadora -->
   <div id="tab-andy-estudio" class="tab-content" hidden>
     <div class="andy-shell">
