@@ -41,9 +41,9 @@
  @media(max-width:500px){body{padding:8px}.andy-navigation{padding:12px;flex-direction:column;align-items:flex-start}}
 </style>
 <script src="/andy-gate.js?v=20261104-sesion-24h-1" defer></script>
-<script src="/andy-sorteo-rules.js?v=20261104-v1" defer></script>
+<script src="/andy-sorteo-rules.js?v=20261104-v3" defer></script>
 <script src="/andy-sorteo-art.js?v=20261104-v2" defer></script>
-<script src="/andy-sorteo.js?v=20261104-v2" defer></script>
+<script src="/andy-sorteo.js?v=20261104-v3" defer></script>
 </head>
 <body>
 <main class="andy-standalone">
@@ -123,13 +123,19 @@
               <p class="andy-sd-help" id="andy-sd-base"></p>
               <p class="andy-sd-help">Estos son los regalos base. Los cartones adicionales que regales los asumes tú y no reducen el premio anunciado.</p>
             </fieldset>
-            <fieldset><legend>3 · Precio y tasa</legend>
-              <div class="andy-sd-two">
-                <label>Tasa BCV (Bs por USD)<input id="andy-sd-tasa" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="Introduce tasa del día" class="andy-field"></label>
-                <label>Precio de venta (Bs)<input id="andy-sd-precio" type="number" min="1" max="100000" step="1" inputmode="numeric" class="andy-field" placeholder="Precio anunciado"></label>
+            <fieldset><legend>3 · Precio y presupuesto</legend>
+              <label>Precio del cartón (Bs)<input id="andy-sd-precio" type="number" min="1" max="100000" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 895"></label>
+              <p class="andy-sd-help">El anuncio muestra únicamente el precio en bolívares. No es obligatorio escribir la tasa BCV.</p>
+              <div id="andy-sd-total-manual-wrap">
+                <label>Total a repartir (USD) · si son 5 rondas<input id="andy-sd-total-manual" type="number" min="5" step="5" inputmode="numeric" class="andy-field" placeholder="Ej.: 340"></label>
+                <p class="andy-sd-help">Sin tasa BCV, indica tú el total de premios en dólares. ANDY verificará que la suma de los premios coincida, pero no podrá comprobar el margen del 20%.</p>
               </div>
-              <button class="andy-btn muted" id="andy-sd-precio-bcv" type="button">Usar tasa BCV como precio y redondear ↑</button>
-              <p class="andy-sd-help">La tasa se introduce manualmente por ahora; ANDY no consulta todavía al BCV. En la imagen solo aparecerá el precio en Bs.</p>
+              <details class="andy-sd-bcv-extra">
+                <summary>Opcional · calcular con la tasa BCV</summary>
+                <label>Tasa del BCV (Bs por USD)<input id="andy-sd-tasa" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="Solo si quieres usarla" class="andy-field"></label>
+                <button class="andy-btn muted" id="andy-sd-precio-bcv" type="button">Calcular precio a $1 con la tasa BCV</button>
+                <p class="andy-sd-help">En sorteos de 5 rondas, la tasa permite calcular el presupuesto en dólares y comprobar el 20%.</p>
+              </details>
             </fieldset>
             <fieldset><legend>4 · Pozo acumulado</legend>
               <label>Pozo acumulado a anunciar (USD)<input id="andy-sd-pozo-manual" type="number" min="1" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 120"></label>
