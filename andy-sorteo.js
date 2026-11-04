@@ -31,6 +31,7 @@
     $('video').value=gifts.video;
     $('precio').value=p.lowPrice?'400':'';
     $('tasa').value=''; // Nunca conservar una tasa posiblemente vencida.
+    $('total-manual').value='';
     $('rondas-info').textContent=p.special?'✨ Sábado especial · morado y dorado con mayor brillo':'💜 Estilo tradicional · morado, marfil y dorado';
     $('pozo-manual').value='';
     $('premio-a').value=''; $('premio-b').value=''; $('premio-final').value='';
@@ -39,15 +40,16 @@
   }
   function read() {
     return {date:$('fecha').value,rounds:number('rondas'),tickets:number('cartones'),gifted:number('ruleta')+number('dinamicas')+number('video'),
-      priceBs:number('precio'),rateBs:number('tasa')};
+      priceBs:number('precio'),rateBs:number('tasa'),manualTotal:$('total-manual').value.trim()};
   }
   function calc() {
     const data=read();
     const b=R.budget(data);
+    $('total-manual-wrap').hidden=data.rounds===6;
     const p=R.suggest(b.rounded||0,data.rounds);
     $('base').textContent=data.gifted+' cartones base · '+Math.max(0,data.tickets-data.gifted)+' para el cálculo';
     $('presupuesto').textContent=b.error?'Pendiente':money(b.rounded);
-    $('presupuesto-sub').textContent=b.error?b.error:'Reserva del 20%: '+money(b.kept20)+' · Aporte al pozo: $10 · Antes del redondeo: '+money(b.available);
+    $('presupuesto-sub').textContent=b.error?b.error:b.marginVerified?'Reserva del 20%: '+money(b.kept20)+' · Aporte al pozo: $10 · Antes del redondeo: '+money(b.available):'Total elegido manualmente · No es posible verificar el 20% sin conocer la tasa de cambio. El aporte de $10 al pozo debe estar contemplado en el total.';
     $('reparto-info').textContent=data.rounds===6?'4 consolaciones · 3 llenos A · 2 llenos B · lleno final':'3 consolaciones · 4 llenos iguales · lleno final';
     $('bloque-b').hidden=data.rounds===5;
     $('cantidad-a').textContent=data.rounds===6?'3 llenos de':'4 llenos de';
@@ -98,7 +100,7 @@
     mark('Se ajustó el lleno final para cuadrar el total. Comprueba que sea el premio más grande.');
   }
   function save() {
-    const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
+    const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','total-manual','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
     const d={};fields.forEach(k=>d[k]=$(k).value);
     try { localStorage.setItem(STORAGE,JSON.stringify(d)); }
     catch {mark('No se pudo guardar el borrador en este navegador.',true);}
@@ -107,7 +109,7 @@
     try {
       const d=JSON.parse(localStorage.getItem(STORAGE)||'null');
       if (!d || typeof d!=='object' || !/^\d{4}-\d{2}-\d{2}$/.test(d.fecha||'')) return false;
-      const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
+      const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','total-manual','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
       fields.forEach(k=>{if(Object.hasOwn(d,k))$(k).value=d[k];});
       const p=R.programForDate($('fecha').value);
       $('rondas-info').textContent=p.special?'✨ Sábado especial · morado y dorado con mayor brillo':'💜 Estilo tradicional · morado, marfil y dorado';
@@ -298,6 +300,7 @@
         const gifts=R.defaultGifts(number('rondas'));
         $('video').value=gifts.video;
         $('precio').value=number('rondas')===5?'400':'';
+        $('total-manual').value='';
         $('premio-a').value='';$('premio-b').value='';$('premio-final').value='';
       }
       if(input.id!=='andy-sd-vista-formato')generated=false;
@@ -314,7 +317,7 @@
     $('descargar-historia').addEventListener('click',()=>download('story'));
     $('copiar-redes').addEventListener('click',()=>copy(false));
     $('copiar-whatsapp').addEventListener('click',()=>copy(true));
-    $('siguiente').addEventListener('click',()=>{defaults(next($('fecha').value));save();draw();mark('Próximo sorteo cargado. Completa la tasa y escribe el pozo acumulado.');});
+    $('siguiente').addEventListener('click',()=>{defaults(next($('fecha').value));save();draw();mark('Próximo sorteo cargado. Escribe el precio en Bs y el pozo. La tasa BCV es opcional.');});
     draw();
   }
   init();
