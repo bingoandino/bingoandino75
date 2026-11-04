@@ -54,6 +54,7 @@
     "andy-mensaje":p.body,"andy-pie":p.caption,"andy-cta":p.cta,"andy-fecha":p.date,"andy-hora":p.time,
     "andy-guion":p.format==="reel"?"Toma 1: muestra el bombo real.\nToma 2: explica el tema con subtítulos.\nToma 3: termina con bingoandino75.com. Nunca muestres datos personales.":""};
    for(const [id,value]of Object.entries(fields)){const e=document.getElementById(id);if(e){e.value=value;e.dispatchEvent(new Event("input",{bubbles:true}));}}
+   window.dispatchEvent(new CustomEvent("andy:navigate",{detail:{view:"contenido"}}));
    document.getElementById("andy-editor-title")?.scrollIntoView({behavior:"smooth",block:"start"});
    notice("Propuesta enviada al editor. Revisa el contenido y pulsa «Guardar borrador».");
   }
