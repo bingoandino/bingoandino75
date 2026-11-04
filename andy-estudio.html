@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#31133d">
 <title>ANDY Studio | Bingo Andino 75</title>
 <link rel="stylesheet" href="/andy-studio.css?v=20261104-isolado-1">
-<link rel="stylesheet" href="/andy-sorteo.css?v=20261104-v1">
+<link rel="stylesheet" href="/andy-sorteo.css?v=20261104-menu-v1">
 <style>
  html{color-scheme:light}
  body{background:#f8f2e9;color:#341845;font-family:system-ui,sans-serif;margin:0;padding:16px;min-height:100vh}
@@ -43,7 +43,7 @@
 <script src="/andy-gate.js?v=20261104-sesion-24h-1" defer></script>
 <script src="/andy-sorteo-rules.js?v=20261104-v3" defer></script>
 <script src="/andy-sorteo-art.js?v=20261104-v2" defer></script>
-<script src="/andy-sorteo.js?v=20261104-v3" defer></script>
+<script src="/andy-sorteo.js?v=20261104-menu-v1" defer></script>
 </head>
 <body>
 <main class="andy-standalone">
@@ -93,11 +93,18 @@
         </div>
       </header>
 
-      <section class="andy-sd" id="andy-sorteo-diario" aria-labelledby="andy-sd-title">
-        <div class="andy-sd-heading">
+      <section class="andy-sd" id="andy-sorteo-diario" aria-label="Preparar imagen de sorteo">
+        <button type="button" class="andy-sd-opener" id="andy-sd-abrir" aria-expanded="false" aria-controls="andy-sd-panel">
+          <span class="andy-sd-opener-icon" aria-hidden="true">🎱</span>
+          <span class="andy-sd-opener-label">Preparar imagen de sorteo</span>
+          <span class="andy-sd-opener-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div id="andy-sd-panel" hidden>
+          <div class="andy-sd-heading">
           <div><span class="andy-eyebrow">🎱 NUEVO · SORTEO DIARIO</span>
             <h3 id="andy-sd-title">Anuncios y premios del próximo sorteo</h3>
-            <p>Calcula el 80% para premios y pozo, verifica los montos y descarga las dos imágenes. El lleno final siempre es el protagonista.</p>
+            <p>Revisa premios, cartones y pozo; genera tus anuncios en formato cuadrado e historia. El lleno final siempre es el protagonista.</p>
+            <p class="andy-sd-help">La generación premium con IA aún no está conectada. Las descargas disponibles actualmente usan la plantilla de respaldo.</p>
           </div>
           <button type="button" class="andy-btn muted" id="andy-sd-siguiente">↪ Preparar día siguiente</button>
         </div>
@@ -179,6 +186,7 @@
             <p id="andy-sd-estado" class="andy-status" role="status" aria-live="polite">Preparando borrador…</p>
             <p class="andy-sd-help">🔒 Solo se guarda en este navegador. No está conectado a «Publicar pagos» y no modifica compras ni ganadores. La generación del anuncio es completamente manual, sin integración con la app de pagos.</p>
           </aside>
+        </div>
         </div>
       </section>
 

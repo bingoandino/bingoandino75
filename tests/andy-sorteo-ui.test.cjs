@@ -16,6 +16,13 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   const sandbox={window:{AndySorteoRules:R,AndySorteoArt:require(path.join(base,'andy-sorteo-art.js'))},document:{getElementById:id=>id==='andy-sorteo-diario'?root:null},
     localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>{stored[k]=v;}},console};
   vm.runInNewContext(fs.readFileSync(path.join(base,'andy-sorteo.js'),'utf8'),sandbox);
+  assert.equal(elements.panel.hidden,true,'El menú empieza oculto');
+  elements.abrir._events.click();
+  assert.equal(elements.panel.hidden,false,'El primer toque abre el menú');
+  elements.abrir._events.click();
+  assert.equal(elements.panel.hidden,true,'El segundo toque lo cierra');
+  elements.abrir._events.click();
+  assert.equal(elements.panel.hidden,false,'Se puede volver a abrir sin perder los datos');
   assert.match(elements.validacion.textContent,/datos|Premio|Completa|cifra|premios|falta|Confirma|Revisa|⚠️/i);
   elements.fecha.value='2026-11-02';elements.fecha._events.input();
   for(const [id,v] of Object.entries({tasa:'',precio:'890','pozo-manual':'100'})){

@@ -38,3 +38,24 @@
 #andy-sorteo-diario .andy-sd-bcv-extra[open] summary {margin-bottom:11px;}
 #andy-sorteo-diario .andy-sd-bcv-extra button {margin-top:10px;width:100%;}
 #andy-sorteo-diario #andy-sd-total-manual-wrap {margin-top:12px;padding:12px;border:1px solid #dcc69e;border-radius:12px;background:#fff9e8;}
+
+/* El editor de sorteo permanece oculto hasta pulsar el único botón principal. */
+#andy-sorteo-diario .andy-sd-opener {
+  display:flex;align-items:center;gap:13px;width:100%;min-height:64px;padding:13px 18px;
+  border:2px solid #daa54c;border-radius:16px;cursor:pointer;text-align:left;
+  color:#fff4d3;background:linear-gradient(120deg,#361047 0%,#60166b 54%,#370e50 100%);
+  box-shadow:inset 0 1px 0 #ffe6ab66,0 5px 18px #340d4022;
+  font-size:clamp(17px,2.8vw,22px);font-weight:900;letter-spacing:.01em;
+}
+#andy-sorteo-diario .andy-sd-opener-icon {font-size:25px;line-height:1;}
+#andy-sorteo-diario .andy-sd-opener-label {flex:1;}
+#andy-sorteo-diario .andy-sd-opener-chevron {display:block;font-size:29px;line-height:1;transition:transform .2s ease;}
+#andy-sorteo-diario .andy-sd-opener[aria-expanded="true"] .andy-sd-opener-chevron {transform:rotate(180deg);}
+#andy-sorteo-diario .andy-sd-opener:focus-visible {outline:3px solid #c28a2d;outline-offset:3px;}
+#andy-sorteo-diario #andy-sd-panel {padding-top:16px;}
+#andy-sorteo-diario #andy-sd-panel[hidden] {display:none!important;}
+#andy-sorteo-diario .andy-sd-heading .andy-sd-help {margin-top:9px;font-size:13px;}
+@media(max-width:500px){
+  #andy-sorteo-diario .andy-sd-opener {padding:13px 12px;gap:10px;min-height:60px;}
+  #andy-sorteo-diario .andy-sd-opener-icon {font-size:22px;}
+}

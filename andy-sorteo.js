@@ -289,6 +289,16 @@
     },'image/png');
   }
   function init() {
+    // Único botón visible al inicio. El menú se abre solo por decisión del usuario.
+    const opener=$('abrir'), menu=$('panel');
+    menu.hidden=true;
+    opener.setAttribute('aria-expanded','false');
+    opener.addEventListener('click',()=>{
+      const open=menu.hidden;
+      menu.hidden=!open;
+      opener.setAttribute('aria-expanded',String(open));
+      if(open) draw();
+    });
     const d=next(todayVE());
     if(!restore())defaults(d);
     else {calc();mark('Borrador restaurado desde este dispositivo.');}

@@ -56,6 +56,35 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     await testInfo.attach('andy-'+vp.label,{path:'test-results/andy-'+vp.label+'.png',contentType:'image/png'});
   });
 }
+// El editor de sorteos debe ocupar solo un botón hasta que se solicite abrirlo.
+for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,label:'telefono'}]) {
+  test('preparar imagen de sorteo abre y cierra opciones en '+vp.label,async({page})=>{
+    await page.setViewportSize({width:vp.width,height:vp.height});
+    await authenticated(page);
+    const errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(url,{waitUntil:'domcontentloaded'});
+    await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+    const open=page.getByRole('button',{name:'Preparar imagen de sorteo'});
+    await expect(open).toBeVisible();
+    await expect(open).toHaveAttribute('aria-expanded','false');
+    await expect(page.locator('#andy-sd-panel')).toBeHidden();
+    await expect(page.locator('#andy-sd-fecha')).toBeHidden();
+    await open.click();
+    await expect(open).toHaveAttribute('aria-expanded','true');
+    await expect(page.locator('#andy-sd-fecha')).toBeVisible();
+    await expect(page.locator('#andy-sd-pozo-manual')).toBeVisible();
+    await page.locator('#andy-sd-pozo-manual').fill('125');
+    await open.click();
+    await expect(page.locator('#andy-sd-panel')).toBeHidden();
+    await expect(open).toBeVisible();
+    await open.click();
+    await expect(page.locator('#andy-sd-pozo-manual')).toHaveValue('125');
+    expect(errors).toEqual([]);
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(4);
+  });
+}
 test('enlace directo presenta su propio login incluso sin sesión anterior',async({page})=>{
   await page.route(cdn,route=>route.abort());
   await page.goto(url,{waitUntil:'domcontentloaded'});
