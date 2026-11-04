@@ -1,7 +1,7 @@
 # ANDY Studio — Oficina creativa de Instagram (v1)
 
 ## Qué se puede usar al desplegar esta versión
-En esta versión la oficina se abre **directamente** desde `https://bingoandino75.com/andy-estudio.html`, sin añadir scripts ni pestañas a la portada del bingo. Si no tienes sesión, ANDY muestra su propio formulario: correo y contraseña de administrador, seguidos por el código de seis dígitos enviado al correo. Si la sesión del dispositivo sigue válida, la recupera automáticamente. El estudio incluye:
+En esta versión la oficina se abre **directamente** desde `https://bingoandino75.com/andy-estudio.html`, sin añadir scripts ni pestañas a la portada del bingo. Si no tienes sesión, ANDY muestra su propio formulario: correo y contraseña de administrador, seguidos por el código de seis dígitos enviado al correo. Si la sesión del dispositivo sigue válida, la recupera automáticamente. ANDY recuerda el identificador de sesión y dispositivo hasta un máximo local de 24 horas y, mientras se mantiene abierto y visible, verifica la autorización periódicamente para mantenerla activa. La sesión real en el servidor de administración actualmente comienza con 2 horas y puede caducar antes si se cierra ANDY durante mucho tiempo; al volver a abrir nunca se salta la comprobación del servidor. El estudio incluye:
 - Brief libre: convierte palabras clave en un borrador basado en plantillas locales, sin llamar a IA externa.
 - Seis temas: bienvenida, bombo real, tutorial de verificación, seguridad, agradecimiento, canal en vivo.
 - Tres formatos: publicación 1:1, historia 9:16 y reel (portada PNG 9:16 y guion de tomas).
