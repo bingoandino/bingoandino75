@@ -49,7 +49,7 @@
     const p=R.suggest(b.rounded||0,data.rounds);
     $('base').textContent=data.gifted+' cartones base · '+Math.max(0,data.tickets-data.gifted)+' para el cálculo';
     $('presupuesto').textContent=b.error?'Pendiente':money(b.rounded);
-    $('presupuesto-sub').textContent=b.error?b.error:b.marginVerified?'Reserva del 20%: '+money(b.kept20)+' · Aporte al pozo: $10 · Antes del redondeo: '+money(b.available):'Total elegido manualmente · No es posible verificar el 20% sin conocer la tasa de cambio. El aporte de $10 al pozo debe estar contemplado en el total.';
+    $('presupuesto-sub').textContent=b.error?b.error:b.marginVerified?'Reserva del 20%: '+money(b.kept20)+' · Aporte al pozo: $10 · Antes del redondeo: '+money(b.available):'Total elegido manualmente · No es posible verificar el 20% sin conocer la tasa de cambio. Recuerda reservar $10 adicionales para el pozo fuera de los premios anunciados.';
     $('reparto-info').textContent=data.rounds===6?'4 consolaciones · 3 llenos A · 2 llenos B · lleno final':'3 consolaciones · 4 llenos iguales · lleno final';
     $('bloque-b').hidden=data.rounds===5;
     $('cantidad-a').textContent=data.rounds===6?'3 llenos de':'4 llenos de';
@@ -65,7 +65,7 @@
     if (!data.date || !data.tickets || !data.priceBs) error=error||'Completa los datos del sorteo.';
     if (!Number.isInteger(number('max-bolas')) || number('max-bolas')<1 || number('max-bolas')>75) error=error||'El máximo de bolitas debe estar entre 1 y 75.';
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test($('hora').value)) error=error||'Indica una hora válida.';
-    $('validacion').textContent=error?'⚠️ '+error:'✅ Cifras verificadas. El anuncio está listo para revisar y descargar.';
+    $('validacion').textContent=error?'⚠️ '+error:b.marginVerified?'✅ Premios y presupuesto calculados. Revisa el anuncio antes de descargar.':'✅ Los premios cuadran con tu total manual; el margen del 20% no está verificado sin tasa BCV.';
     $('validacion').dataset.valid=error?'false':'true';
     const good=!error;
     $('descargar-cuadrado').disabled=!good;
