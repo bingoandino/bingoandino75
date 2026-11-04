@@ -9,6 +9,7 @@ on:
       - 'supabase/functions/marketing-visit/**'
       - 'supabase/functions/marketing-report/**'
       - 'tests/marketing-tracker.test.cjs'
+      - 'tests/marketing-edge.test.cjs'
       - '.github/workflows/andy-analytics-tests.yml'
   workflow_dispatch:
 jobs:
@@ -21,6 +22,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: node --test tests/marketing-tracker.test.cjs
+      - run: node --test tests/marketing-tracker.test.cjs tests/marketing-edge.test.cjs
       - run: node --check marketing-tracker.js
       - run: node --check marketing-panel.js
