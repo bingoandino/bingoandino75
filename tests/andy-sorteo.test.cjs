@@ -33,3 +33,27 @@ test('precios BCV y consistencia de premios',()=>{
   assert.equal(R.validatePrizes(620,wrong).ok,false);
   assert.equal(R.validatePrizes(610,wrong).ok,true);
 });
+
+test('lunes de seis rondas: el BCV no es obligatorio',()=>{
+  const x=R.budget({rounds:6,tickets:700,gifted:12,priceBs:895,rateBs:0,manualTotal:''});
+  assert.equal(x.error,undefined);
+  assert.equal(x.rounded,540);
+  assert.equal(x.marginVerified,true);
+  assert.equal(x.gross,688);
+});
+test('cinco rondas: sin tasa usa total manual, sin afirmar que protege el 20%',()=>{
+  const x=R.budget({rounds:5,tickets:1000,gifted:14,priceBs:400,rateBs:0,manualTotal:'340'});
+  assert.equal(x.error,undefined);
+  assert.equal(x.rounded,340);
+  assert.equal(x.marginVerified,false);
+  assert.equal(x.kept20,null);
+  assert.equal(R.validatePrizes(x.rounded,R.suggest(340,5)).ok,true);
+  assert.match(R.budget({rounds:5,tickets:1000,gifted:14,priceBs:400,rateBs:0,manualTotal:''}).error,/total a repartir/i);
+});
+test('con tasa BCV se conserva el cálculo y el margen mínimo',()=>{
+  const a={rounds:5,tickets:1000,gifted:14,priceBs:400,rateBs:890};
+  assert.equal(R.budget({...a,manualTotal:''}).rounded,340);
+  assert.equal(R.budget({...a,manualTotal:'340'}).marginVerified,true);
+  assert.match(R.budget({...a,manualTotal:'345'}).error,/20%/);
+  assert.match(R.budget({...a,manualTotal:'341'}).error,/múltiplo de \$5/);
+});
