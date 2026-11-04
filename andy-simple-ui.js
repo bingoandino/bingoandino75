@@ -57,9 +57,6 @@
     else open("campanas",true);
   });
   document.getElementById("andy-mp-goal")?.addEventListener("change",home);
-  document.getElementById("andy-copiar-directo")?.addEventListener("click",()=>{
-    document.getElementById("andy-copiar")?.click();
-  });
   window.addEventListener("andy:navigate",e=>open(e.detail?.view||"contenido",true));
   window.AndySimpleUI=Object.freeze({open,home,getView:()=>current});
   open("inicio");
