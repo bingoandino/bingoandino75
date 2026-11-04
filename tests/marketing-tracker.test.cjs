@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM } = require('jsdom');
 const code = fs.readFileSync(path.join(__dirname, '..', 'marketing-tracker.js'), 'utf8');
-function boot(url, referrer) {
+function boot(url, referrer, prepare) {
   const dom = new JSDOM('<button class="inicio-comprar">Comprar</button><a href="https://wa.me/580000">WhatsApp</a>', {
     url, referrer, runScripts: 'outside-only'
   });
@@ -14,6 +14,7 @@ function boot(url, referrer) {
     return Promise.resolve({ ok: true });
   };
   dom.window.crypto.randomUUID = () => '11111111-1111-4111-8111-111111111111';
+  if (prepare) prepare(dom.window);
   dom.window.eval(code);
   return { dom, calls };
 }
@@ -37,11 +38,11 @@ test('sin UTM ni referencia no atribuye artificialmente a Instagram',()=>{
  assert.equal(calls[0].data.origen,'desconocido');
  dom.window.close();
 });
-test('admin conocido no genera registros',()=>{
- const {dom,calls}=boot('https://bingoandino75.com/');
- dom.window.sessionStorage.setItem('admin_session_token','prueba');
- dom.window.eval(code);
- assert.equal(calls.length,1); // primera ejecución antes de token
+test('un admin con token previo no se cuenta',()=>{
+ const {dom,calls}=boot('https://bingoandino75.com/',undefined,(window)=>{
+  window.sessionStorage.setItem('admin_session_token','prueba');
+ });
+ assert.equal(calls.length,0);
  dom.window.close();
 });
 test('UTM malicioso no se guarda como campaña',()=>{
