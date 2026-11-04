@@ -40,6 +40,7 @@
   <style>#textoCompartirAprobados[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="asistente-widget.css?v=20261028-2">
 <link rel="stylesheet" href="admin-compacto.css?v=20261102-buscar-1">
+<link rel="stylesheet" href="andy-studio.css?v=20261104-1">
 <script src="admin-compacto.js?v=20261031-1" defer></script>
 <link rel="stylesheet" href="premios-pagados.css?v=1"></head>
 <body>
@@ -358,9 +359,169 @@
     <button class="tab-btn" onclick="cambiarTab('tab-ventas')">💰 Ventas</button>
     <button class="tab-btn" onclick="cambiarTab('tab-cartones')">🎱 Cartones</button>
     <button class="tab-btn" onclick="cambiarTab('tab-promociones')">🎯 Promociones</button>
+    <button class="tab-btn" onclick="cambiarTab('tab-andy-estudio')">🤖 ANDY Estudio</button>
     <button class="tab-btn" onclick="cambiarTab('tab-config')">⚙️ Configuración</button>
     <button class="tab-btn" onclick="cambiarTab('tab-ganadores')">🏆 Ganadores</button>
   </nav>
+
+  <!-- ANDY STUDIO: oficina editorial privada, datos locales, sin conexión publicadora -->
+  <div id="tab-andy-estudio" class="tab-content">
+    <div class="andy-shell">
+      <header class="andy-hero">
+        <span class="andy-eyebrow">Bingo Andino 75 · Oficina creativa</span>
+        <h3>🤖 ANDY · Estudio de Instagram</h3>
+        <p>Diseña tus publicaciones, historias y portadas para reels. Organiza una agenda editorial, revisa los textos y aprueba cada pieza antes de utilizarla.</p>
+        <div class="andy-pills">
+          <span class="andy-pill">🎨 Morado · Marfil · Dorado</span>
+          <span class="andy-pill">🔒 Borradores en este dispositivo</span>
+          <span class="andy-pill">✋ Sin publicaciones automáticas</span>
+        </div>
+      </header>
+
+      <div class="andy-stats" aria-label="Resumen de contenido ANDY">
+        <div class="andy-stat"><strong id="andy-cantidad">0</strong><span>Borradores guardados</span></div>
+        <div class="andy-stat"><strong id="andy-pendientes">0</strong><span>En revisión</span></div>
+        <div class="andy-stat"><strong id="andy-aprobados">0</strong><span>Aprobados internamente</span></div>
+        <div class="andy-stat"><strong id="andy-agendados">0</strong><span>Con fecha sugerida</span></div>
+      </div>
+
+      <div class="andy-layout">
+        <section class="andy-panel" aria-labelledby="andy-editor-title">
+          <h4 id="andy-editor-title">✍️ Oficina de ANDY</h4>
+          <p class="andy-hint">Puedes darle una instrucción sencilla o partir de una idea preparada. Esta primera versión utiliza plantillas editables: aún no se conecta con un modelo de IA.</p>
+
+          <label class="andy-label" for="andy-orden">¿Qué quieres que prepare ANDY?</label>
+          <textarea class="andy-field" id="andy-orden" maxlength="250" rows="2" placeholder="Ej.: Haz una historia explicando cómo verificar una compra"></textarea>
+          <div class="andy-toolbar">
+            <button class="andy-btn gold" type="button" id="andy-brief-crear">✨ Convertir instrucción en plantilla</button>
+            <button class="andy-btn muted" type="button" id="andy-ideas">🗓️ Preparar seis ideas</button>
+            <button class="andy-btn muted" type="button" id="andy-nuevo">＋ Nuevo</button>
+          </div>
+
+          <div class="andy-separator"></div>
+          <div class="andy-two">
+            <div>
+              <label class="andy-label" for="andy-formato">Formato</label>
+              <select class="andy-field" id="andy-formato">
+                <option value="post">Publicación · Cuadrada 1:1</option>
+                <option value="story">Historia · Vertical 9:16</option>
+                <option value="reel">Reel · Portada 9:16</option>
+              </select>
+            </div>
+            <div>
+              <label class="andy-label" for="andy-tema">Idea / tema</label>
+              <select class="andy-field" id="andy-tema">
+                <option value="bienvenida">Bienvenida</option>
+                <option value="bombo">El bombo real</option>
+                <option value="tutorial">Verificar una compra</option>
+                <option value="seguridad">Seguridad</option>
+                <option value="comunidad">Agradecimiento</option>
+                <option value="vivo">Transmisión en vivo</option>
+              </select>
+            </div>
+          </div>
+          <div class="andy-toolbar">
+            <button class="andy-btn muted" type="button" id="andy-plantilla">Usar idea del tema</button>
+          </div>
+
+          <label class="andy-label" for="andy-titulo">Título principal de la imagen</label>
+          <input class="andy-field" id="andy-titulo" type="text" maxlength="75" placeholder="Ej.: ¡Bienvenidos, familia binguera!">
+
+          <label class="andy-label" for="andy-mensaje">Mensaje visible en el diseño</label>
+          <textarea class="andy-field" id="andy-mensaje" rows="2" maxlength="180" placeholder="Texto corto, fácil de leer en teléfono"></textarea>
+
+          <label class="andy-label" for="andy-pie">Texto de Instagram (pie de foto)</label>
+          <textarea class="andy-field" id="andy-pie" rows="4" maxlength="1100" placeholder="Escribe aquí el mensaje completo y los emojis que quieras utilizar"></textarea>
+
+          <label class="andy-label" for="andy-cta">Texto del recuadro inferior</label>
+          <input class="andy-field" id="andy-cta" type="text" maxlength="70" placeholder="Ej.: Nos vemos en vivo">
+
+          <div class="andy-two">
+            <div>
+              <label class="andy-label" for="andy-fecha">Fecha editorial sugerida</label>
+              <input class="andy-field" id="andy-fecha" type="date">
+            </div>
+            <div>
+              <label class="andy-label" for="andy-hora">Hora editorial sugerida</label>
+              <input class="andy-field" id="andy-hora" type="time" value="18:00">
+            </div>
+          </div>
+
+          <div id="andy-guion-grupo" hidden>
+            <label class="andy-label" for="andy-guion">Guion / lista de tomas para el reel</label>
+            <textarea class="andy-field" id="andy-guion" rows="5" maxlength="1800" placeholder="Escena 1, escena 2, subtítulos y cierre..."></textarea>
+            <p class="andy-hint">ANDY prepara el guion y la portada. Todavía no genera ni publica el archivo de video.</p>
+          </div>
+
+          <div class="andy-toolbar">
+            <button class="andy-btn primary" type="button" id="andy-guardar">Guardar borrador</button>
+            <button class="andy-btn muted" type="button" id="andy-revision" disabled>👀 En revisión</button>
+            <button class="andy-btn gold" type="button" id="andy-aprobar" disabled>✓ Aprobar internamente</button>
+            <button class="andy-btn danger" type="button" id="andy-eliminar" disabled>Eliminar</button>
+          </div>
+          <p class="andy-status" id="andy-estado" aria-live="polite">Estudio listo para crear borradores.</p>
+        </section>
+
+        <aside class="andy-panel" aria-labelledby="andy-preview-title">
+          <h4 id="andy-preview-title">👁️ Vista previa en vivo</h4>
+          <p class="andy-hint">Vista conceptual adaptable. La exportación genera un PNG con los colores del Bingo.</p>
+          <div class="andy-preview-card">
+            <div class="andy-preview" id="andy-vista" data-format="post" role="img" aria-label="Vista previa de la publicación de Bingo Andino 75">
+              <div class="andy-stars" aria-hidden="true"></div>
+              <div class="andy-mountains" aria-hidden="true"></div>
+              <span class="andy-preview-brand">BINGO ANDINO 75</span>
+              <div class="andy-preview-middle">
+                <strong id="andy-prev-titulo">TU PRÓXIMA PUBLICACIÓN</strong>
+                <p id="andy-prev-mensaje">Un mensaje para la familia binguera</p>
+              </div>
+              <div class="andy-preview-footer">
+                <span class="andy-preview-cta" id="andy-prev-cta">BINGOANDINO75.COM</span>
+                <span class="andy-preview-url">bingoandino75.com</span>
+              </div>
+            </div>
+            <span class="andy-preview-status" id="andy-prev-etiqueta">PUBLICACIÓN 1:1</span>
+            <span class="andy-preview-status" id="andy-prev-estado">BORRADOR · SIN PUBLICAR</span>
+            <p class="andy-caption-preview" id="andy-prev-pie">Tu texto de Instagram aparecerá aquí.</p>
+          </div>
+          <div class="andy-toolbar">
+            <button class="andy-btn gold" id="andy-descargar" type="button">⬇ Descargar imagen PNG</button>
+            <button class="andy-btn muted" id="andy-copiar" type="button">Copiar texto</button>
+          </div>
+          <p class="andy-hint">La descarga no envía contenido a Instagram. Verifica fechas, premios y cifras antes de aprobar.</p>
+        </aside>
+      </div>
+
+      <div class="andy-footer-grid">
+        <section class="andy-panel" aria-labelledby="andy-calendar-title">
+          <h4 id="andy-calendar-title">🗓️ Calendario editorial</h4>
+          <p class="andy-hint">Las fechas son para organizar trabajo, no programan publicaciones automáticas.</p>
+          <div class="andy-note">💡 Sugerencia: alterna contenidos informativos, seguridad, historias de comunidad y videos del bombo real. Revisa los permisos aplicables antes de promocionar juegos.</div>
+          <div class="andy-toolbar">
+            <button class="andy-btn muted" id="andy-respaldo" type="button">↧ Descargar respaldo de borradores</button>
+          </div>
+          <p class="andy-hint">Se guardan hasta 100 borradores solo en el navegador actual. No se sincronizan entre teléfonos, ni se comparte información con WhatsApp o Instagram.</p>
+        </section>
+        <section class="andy-panel" aria-labelledby="andy-drafts-title">
+          <h4 id="andy-drafts-title">📚 Biblioteca de contenido</h4>
+          <div class="andy-two">
+            <p class="andy-hint">Toca un borrador para seguir editándolo.</p>
+            <div>
+              <label class="andy-label" for="andy-filtro">Ver estado</label>
+              <select id="andy-filtro" class="andy-field">
+                <option value="todos">Todos</option>
+                <option value="borrador">Borradores</option>
+                <option value="revision">En revisión</option>
+                <option value="aprobado">Aprobados</option>
+              </select>
+            </div>
+          </div>
+          <div class="andy-draft-list" id="andy-lista" aria-live="polite">
+            <p class="andy-empty">Aquí aparecerán tus borradores de contenido.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── TAB 1: DASHBOARD ─── -->
   <div id="tab-dashboard" class="tab-content active">
@@ -751,7 +912,8 @@
 <script src="inicio-flyer.js?v=20261025-compacto-1"></script>
 <script src="verificar-enlace.js?v=20261027-1"></script>
 <script src="asistente-widget.js?v=20261028-17"></script>
-<script src="premios-pagados.js?v=1"></script></body>
+<script src="premios-pagados.js?v=1"></script>
+<script src="andy-studio.js?v=20261104-1" defer></script></body>
 </html>
 
 
