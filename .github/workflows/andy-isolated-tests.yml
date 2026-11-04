@@ -1,0 +1,47 @@
+name: ANDY Studio aislado — pruebas navegador
+on:
+  pull_request:
+    paths:
+      - 'andy-estudio.html'
+      - 'andy-gate.js'
+      - 'tests/andy-isolated-browser.spec.cjs'
+      - '.github/workflows/andy-isolated-tests.yml'
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Comprobar que inicio de Bingo no fue modificado
+        run: |
+          if git diff --name-only origin/main...HEAD | grep -Eq '^index.html$'; then
+            echo 'ERROR: ANDY aislado no debe modificar index.html'; exit 1
+          fi
+      - name: Iniciar servidor de pruebas estático
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/andy-http.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            curl -fsS http://127.0.0.1:8765/andy-estudio.html >/dev/null && break || sleep 1
+          done
+          curl -fsS http://127.0.0.1:8765/andy-estudio.html >/dev/null
+      - run: node --check andy-gate.js
+      - run: node --test tests/andy-studio.test.cjs
+      - name: Comprobar acceso, escritorio, móvil, calendario y PNG
+        run: npx playwright test tests/andy-isolated-browser.spec.cjs --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: andy-studio-capturas-pruebas
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
