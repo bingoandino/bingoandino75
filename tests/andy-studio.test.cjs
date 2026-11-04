@@ -147,3 +147,17 @@ test('una instrucción nueva no sobrescribe el borrador seleccionado',()=>{
    assert.equal(f.calls.length,0);
  }finally{f.close();}
 });
+
+test('agenda de siete días enseña propuestas y permite abrirlas',()=>{
+ const f=fixture();
+ try {
+   f.$('andy-ideas').click();
+   const days=f.$('andy-agenda').querySelectorAll('.andy-day');
+   assert.equal(days.length,7);
+   const scheduled=f.$('andy-agenda').querySelectorAll('button.andy-day-item');
+   assert.ok(scheduled.length>=4);
+   scheduled[0].click();
+   assert.ok(f.$('andy-titulo').value.length>0);
+   assert.equal(f.calls.length,0);
+ }finally{f.close();}
+});
