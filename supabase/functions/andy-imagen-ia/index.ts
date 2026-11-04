@@ -46,7 +46,7 @@ async function authorize(req:Request,p:Record<string,unknown>){
     if(user.id!==ADMIN_ID||!user.email_confirmed_at)return false;
     const query=new URL(base+"/rest/v1/sesiones_activas");
     query.searchParams.set("select","device_id,expires_at");
-    query.searchParams.set("session_token","eq."+p.sessionToken);
+    query.searchParams.set("session_token","eq."+String(p.sessionToken));
     query.searchParams.set("activa","eq.true");
     query.searchParams.set("limit","1");
     const sr=await fetch(query,{headers:{apikey:service,Authorization:"Bearer "+service},signal:AbortSignal.timeout(10000),redirect:"error"});
