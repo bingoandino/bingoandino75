@@ -53,9 +53,15 @@
     }
   } catch (_) {}
 
+  // Evita nuevos pedidos en recargas de la misma pestaña tras una recepción correcta.
+  var todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Caracas", year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(new Date());
   var sent = {};
   function sendEvent(type) {
     if (sent[type] || typeof window.fetch !== "function") return;
+    var onceKey = "andy_v1_received_" + todayKey + "_" + type;
+    try { if (storage.getItem(onceKey) === "1") return; } catch (_) {}
     sent[type] = true;
     var payload = JSON.stringify({
       sesion_id: session,
@@ -72,7 +78,11 @@
         referrerPolicy: "no-referrer",
         headers: { "Content-Type": "application/json" },
         body: payload,
-      })).catch(function () { /* Métricas opcionales; no interrumpir compra. */ });
+      })).then(function (response) {
+        if (response && response.ok) {
+          try { storage.setItem(onceKey, "1"); } catch (_) {}
+        }
+      }).catch(function () { /* Métricas opcionales; no interrumpir compra. */ });
     } catch (_) { /* nunca bloquear navegación */ }
   }
 
