@@ -170,11 +170,13 @@
   }
   function setState(next) {
     if (!editingId) { status("Guarda primero el borrador.", true); return; }
+    // Guardar primero los cambios del editor; nunca aprobar una versión antigua.
+    if (!toSaved()) return;
     const doc = drafts.find((d) => d.id === editingId);
     if (!doc) return;
-    if (next === "aprobado" && !toSaved()) return;
+    const prior = doc.state;
     doc.state = next; doc.updatedAt = new Date().toISOString();
-    if (!persist()) return;
+    if (!persist()) { doc.state = prior; return; }
     renderList(); updateCounts(); renderPreview();
     status(next === "aprobado" ? "Contenido aprobado INTERNAMENTE. No se ha enviado a Instagram." : "Borrador enviado a revisión interna.");
   }
