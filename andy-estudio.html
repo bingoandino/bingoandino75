@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/andy-studio.css?v=20261104-isolado-1">
 <link rel="stylesheet" href="/andy-sorteo.css?v=20261104-mp-v1">
 <link rel="stylesheet" href="/andy-marketing-pro.css?v=20261104-mp-v1">
+<link rel="stylesheet" href="/andy-simple-ui.css?v=20261104-simple-v1">
 <style>
  html{color-scheme:light}
  body{background:#f8f2e9;color:#341845;font-family:system-ui,sans-serif;margin:0;padding:16px;min-height:100vh}
@@ -45,7 +46,8 @@
 <script src="/andy-sorteo-rules.js?v=20261104-v3" defer></script>
 <script src="/andy-sorteo-art.js?v=20261104-ia-v1" defer></script>
 <script src="/andy-sorteo.js?v=20261104-mp-v1" defer></script>
-<script src="/andy-marketing-pro.js?v=20261104-mp-v1" defer></script>
+<script src="/andy-marketing-pro.js?v=20261104-simple-v1" defer></script>
+<script src="/andy-simple-ui.js?v=20261104-simple-v1" defer></script>
 </head>
 <body>
 <main class="andy-standalone">
@@ -87,27 +89,49 @@
       <header class="andy-hero">
         <span class="andy-eyebrow">Bingo Andino 75 · Dirección de marketing</span>
         <h3>📈 ANDY Marketing Pro</h3>
-        <p>Organiza campañas, prepara contenido para Instagram, Facebook y WhatsApp, y mide tus resultados con datos que tú registres. Las imágenes premium del sorteo las hacemos en ChatGPT.</p>
-        <div class="andy-pills">
-          <span class="andy-pill">🎯 Estrategia y crecimiento</span>
-          <span class="andy-pill">📊 Indicadores manuales</span>
-          <span class="andy-pill">🔒 Sin publicaciones ni cargos automáticos</span>
-        </div>
+        <p>Tu asistente para organizar campañas y aumentar las compras del bingo, sin pantallas innecesarias.</p>
       </header>
 
-      <section id="andy-marketing-pro" class="andy-mp" aria-labelledby="andy-mp-title">
-        <div class="andy-mp-heading">
+
+      <nav id="andy-simple-nav" class="andy-simple-nav" aria-label="Secciones de ANDY">
+        <button type="button" class="andy-nav-tab" data-andy-tab="inicio" aria-current="page"><span aria-hidden="true">🏠</span> Inicio</button>
+        <button type="button" class="andy-nav-tab" data-andy-tab="campanas"><span aria-hidden="true">🎯</span> Campañas</button>
+        <button type="button" class="andy-nav-tab" data-andy-tab="contenido"><span aria-hidden="true">✍️</span> Contenido</button>
+        <button type="button" class="andy-nav-tab" data-andy-tab="resultados"><span aria-hidden="true">📊</span> Resultados</button>
+      </nav>
+      <section id="andy-home" class="andy-simple-home" data-andy-view="inicio" aria-labelledby="andy-home-title">
+        <div class="andy-home-intro">
+          <span class="andy-eyebrow">TU AGENDA DE HOY</span>
+          <h3 id="andy-home-title">¿Qué hacemos hoy?</h3>
+          <p>Una acción concreta para avanzar. El resto de las herramientas está organizado en las pestañas.</p>
+        </div>
+        <article class="andy-today-card">
+          <p class="andy-today-kicker" id="andy-today-date">Próxima jornada</p>
+          <h4 id="andy-today-title">Preparando recomendación…</h4>
+          <p id="andy-today-summary">Propuesta para la familia binguera.</p>
+          <div class="andy-today-actions">
+            <button type="button" id="andy-today-prepare" class="andy-home-primary">Preparar este contenido</button>
+            <button type="button" data-andy-go="campanas" class="andy-home-secondary">Ver plan de la semana</button>
+          </div>
+        </article>
+        <div class="andy-home-shortcuts">
+          <button type="button" data-andy-go="resultados" class="andy-home-shortcut"><span aria-hidden="true">📊</span><span>Registrar resultados<small>Cartones, compras y alcance</small></span><span aria-hidden="true">›</span></button>
+          <button type="button" data-andy-go="contenido" class="andy-home-shortcut"><span aria-hidden="true">✍️</span><span>Escribir un anuncio<small>Textos y guiones, sin diseñar imágenes</small></span><span aria-hidden="true">›</span></button>
+        </div>
+      </section>
+
+      <section id="andy-marketing-pro" class="andy-mp" aria-label="Herramientas de marketing">
+        <div class="andy-mp-heading" data-andy-view="resultados">
           <div>
-            <span class="andy-mp-eyebrow">PANEL DE MARKETING · FAMILIA BINGUERA</span>
-            <h3 id="andy-mp-title">Tu centro de crecimiento</h3>
-            <p>Planifica publicaciones, convierte ideas en campañas y registra los resultados. Todo privado y manual, sin pagos adicionales por IA.</p>
+            <h3 id="andy-mp-title">Resultados de marketing</h3>
+            <p>Introduce los datos del día y compara qué estrategias funcionan. No se consultan automáticamente.</p>
           </div>
           <div class="andy-mp-heading-buttons">
             <button type="button" id="andy-mp-report-copy" class="andy-mp-btn">Copiar informe</button>
             <button type="button" id="andy-mp-export" class="andy-mp-btn secondary">Respaldar datos</button>
           </div>
         </div>
-        <div class="andy-mp-topbar">
+        <div class="andy-mp-topbar" data-andy-view="inicio">
           <div>
             <label for="andy-mp-goal">Objetivo principal</label>
             <select id="andy-mp-goal" class="andy-mp-field">
@@ -125,23 +149,23 @@
             <p id="andy-mp-goal-tip">Priorizar instrucciones claras para comprar.</p>
           </div>
         </div>
-        <div class="andy-mp-summary-header">
+        <div class="andy-mp-summary-header" data-andy-view="resultados">
           <h4>📊 Resultados de la semana</h4>
           <div>
             <label for="andy-mp-week">Ver la semana de</label>
             <input id="andy-mp-week" class="andy-mp-field" type="date">
           </div>
         </div>
-        <p id="andy-mp-week-title" class="andy-mp-muted">Sin resultados todavía</p>
-        <div class="andy-mp-kpis" aria-label="Indicadores registrados manualmente">
+        <p id="andy-mp-week-title" class="andy-mp-muted" data-andy-view="resultados">Sin resultados todavía</p>
+        <div class="andy-mp-kpis" data-andy-view="resultados" aria-label="Indicadores registrados manualmente">
           <div><span>Cartones vendidos</span><strong id="andy-mp-cards-total">—</strong></div>
           <div><span>Compras registradas</span><strong id="andy-mp-purchases-total">—</strong></div>
           <div><span>Consultas recibidas</span><strong id="andy-mp-inquiries-total">—</strong></div>
           <div><span>Alcance reportado</span><strong id="andy-mp-reach-total">—</strong></div>
         </div>
-        <p id="andy-mp-target-progress" class="andy-mp-target">Define tu meta semanal de cartones para comparar los resultados.</p>
+        <p id="andy-mp-target-progress" data-andy-view="resultados" class="andy-mp-target">Define tu meta semanal de cartones para comparar los resultados.</p>
         <div class="andy-mp-columns">
-          <section class="andy-mp-panel" aria-labelledby="andy-mp-plan-title">
+          <section class="andy-mp-panel" data-andy-view="campanas" aria-labelledby="andy-mp-plan-title">
             <div class="andy-mp-panel-head">
               <div>
                 <h4 id="andy-mp-plan-title">🗓️ Plan para los próximos 6 sorteos</h4>
@@ -151,7 +175,7 @@
             </div>
             <div id="andy-mp-plan" class="andy-mp-plan"></div>
           </section>
-          <section class="andy-mp-panel" aria-labelledby="andy-mp-data-title">
+          <section class="andy-mp-panel" data-andy-view="resultados" aria-labelledby="andy-mp-data-title">
             <h4 id="andy-mp-data-title">✍️ Registrar resultados</h4>
             <p>Introduce tus datos diarios cuando los tengas; ANDY no lee las ventas ni Instagram automáticamente.</p>
             <div class="andy-mp-record-grid">
@@ -166,7 +190,7 @@
             <div id="andy-mp-records" class="andy-mp-records"></div>
           </section>
         </div>
-        <section class="andy-mp-panel andy-mp-tasks-panel" aria-labelledby="andy-mp-tasks-title">
+        <section class="andy-mp-panel andy-mp-tasks-panel" data-andy-view="campanas" aria-labelledby="andy-mp-tasks-title">
           <div class="andy-mp-panel-head">
             <div><h4 id="andy-mp-tasks-title">🎯 Campañas y tareas</h4><p id="andy-mp-tasks-count">0 tareas</p></div>
           </div>
@@ -180,10 +204,10 @@
         </section>
         <p id="andy-mp-status" class="andy-mp-status" role="status" aria-live="polite">Preparando Marketing Pro…</p>
         <textarea id="andy-mp-report-text" class="andy-mp-field" rows="7" hidden readonly aria-label="Informe para copiar"></textarea>
-        <p class="andy-mp-footnote">Los números se introducen y guardan en este navegador. No hay sincronización con Instagram, el administrador, los pagos ni publicación automática. No se solicitan códigos ni datos personales de clientes.</p>
+        <p class="andy-mp-footnote" data-andy-view="resultados">Los números se introducen y guardan en este navegador. No hay sincronización con Instagram, el administrador, los pagos ni publicación automática. No se solicitan códigos ni datos personales de clientes.</p>
       </section>
 
-      <section class="andy-sd" id="andy-sorteo-diario" aria-label="Preparar imagen de sorteo">
+      <section class="andy-sd" id="andy-sorteo-diario" data-andy-view="contenido" aria-label="Preparar imagen de sorteo">
         <button type="button" class="andy-sd-opener" id="andy-sd-abrir" aria-expanded="false" aria-controls="andy-sd-panel">
           <span class="andy-sd-opener-icon" aria-hidden="true">🎱</span>
           <span class="andy-sd-opener-label">Preparar imagen de sorteo</span>
@@ -281,17 +305,17 @@
         </div>
       </section>
 
-      <div class="andy-stats" aria-label="Resumen de contenido ANDY">
+      <details class="andy-secondary-disclosure" data-andy-view="contenido"><summary>Estado de mis borradores</summary><div class="andy-stats" aria-label="Resumen de contenido ANDY">
         <div class="andy-stat"><strong id="andy-cantidad">0</strong><span>Borradores guardados</span></div>
         <div class="andy-stat"><strong id="andy-pendientes">0</strong><span>En revisión</span></div>
         <div class="andy-stat"><strong id="andy-aprobados">0</strong><span>Aprobados internamente</span></div>
         <div class="andy-stat"><strong id="andy-agendados">0</strong><span>Con fecha sugerida</span></div>
-      </div>
+      </div></details>
 
-      <div class="andy-layout">
+      <div class="andy-layout" data-andy-view="contenido">
         <section class="andy-panel" aria-labelledby="andy-editor-title">
-          <h4 id="andy-editor-title">✍️ Editor de contenido y campañas</h4>
-          <p class="andy-hint">Prepara textos, guiones y portadas sencillas. Los borradores se guardan en tu dispositivo; para las imágenes premium del sorteo utiliza ChatGPT. Esta herramienta no se conecta a una API de imágenes de pago.</p>
+          <h4 id="andy-editor-title">Escribir textos y guiones</h4>
+          <p class="andy-hint">Aquí redactas publicaciones, mensajes y guiones de reels. Las imágenes premium las hacemos en ChatGPT.</p>
 
           <label class="andy-label" for="andy-orden">¿Qué quieres que prepare ANDY?</label>
           <textarea class="andy-field" id="andy-orden" maxlength="250" rows="2" placeholder="Ej.: Haz una historia explicando cómo verificar una compra"></textarea>
@@ -327,16 +351,17 @@
             <button class="andy-btn muted" type="button" id="andy-plantilla">Usar idea del tema</button>
           </div>
 
-          <label class="andy-label" for="andy-titulo">Título principal de la imagen</label>
+          <label class="andy-label" for="andy-titulo">Título del contenido</label>
           <input class="andy-field" id="andy-titulo" type="text" maxlength="75" placeholder="Ej.: ¡Bienvenidos, familia binguera!">
 
-          <label class="andy-label" for="andy-mensaje">Mensaje visible en el diseño</label>
+          <label class="andy-label" for="andy-mensaje">Mensaje corto para la publicación</label>
           <textarea class="andy-field" id="andy-mensaje" rows="2" maxlength="180" placeholder="Texto corto, fácil de leer en teléfono"></textarea>
 
-          <label class="andy-label" for="andy-pie">Texto de Instagram (pie de foto)</label>
+          <label class="andy-label" for="andy-pie">Texto para redes sociales</label>
           <textarea class="andy-field" id="andy-pie" rows="4" maxlength="1100" placeholder="Escribe aquí el mensaje completo y los emojis que quieras utilizar"></textarea>
 
-          <label class="andy-label" for="andy-cta">Texto del recuadro inferior</label>
+          <details class="andy-editor-extras" id="andy-editor-extras"><summary>Opciones adicionales: llamado a la acción y fecha</summary>
+          <label class="andy-label" for="andy-cta">Llamado a la acción (opcional)</label>
           <input class="andy-field" id="andy-cta" type="text" maxlength="70" placeholder="Ej.: Nos vemos en vivo">
 
           <div class="andy-two">
@@ -350,6 +375,7 @@
             </div>
           </div>
 
+          </details>
           <div id="andy-guion-grupo" hidden>
             <label class="andy-label" for="andy-guion">Guion / lista de tomas para el reel</label>
             <textarea class="andy-field" id="andy-guion" rows="5" maxlength="1800" placeholder="Escena 1, escena 2, subtítulos y cierre..."></textarea>
@@ -358,6 +384,7 @@
 
           <div class="andy-toolbar">
             <button class="andy-btn primary" type="button" id="andy-guardar">Guardar borrador</button>
+            <button class="andy-btn muted" type="button" id="andy-copiar-directo">Copiar texto</button>
             <button class="andy-btn muted" type="button" id="andy-revision" disabled>👀 En revisión</button>
             <button class="andy-btn gold" type="button" id="andy-aprobar" disabled>✓ Aprobar internamente</button>
             <button class="andy-btn danger" type="button" id="andy-eliminar" disabled>Eliminar</button>
@@ -365,9 +392,11 @@
           <p class="andy-status" id="andy-estado" aria-live="polite">Estudio listo para crear borradores.</p>
         </section>
 
-        <aside class="andy-panel" aria-labelledby="andy-preview-title">
-          <h4 id="andy-preview-title">👁️ Vista previa en vivo</h4>
-          <p class="andy-hint">Vista conceptual adaptable. La exportación genera un PNG con los colores del Bingo.</p>
+        <details class="andy-preview-disclosure" id="andy-preview-optional">
+          <summary>Vista previa básica (opcional)</summary>
+          <aside class="andy-panel" aria-labelledby="andy-preview-title">
+          <h4 id="andy-preview-title">Plantilla rápida, no IA</h4>
+          <p class="andy-hint">Es un diseño sencillo de respaldo. Para los anuncios premium usamos ChatGPT.</p>
           <div class="andy-preview-card">
             <div class="andy-preview" id="andy-vista" data-format="post" role="img" aria-label="Vista previa de la publicación de Bingo Andino 75">
               <div class="andy-stars" aria-hidden="true"></div>
@@ -392,9 +421,10 @@
           </div>
           <p class="andy-hint">La descarga no envía contenido a Instagram. Verifica fechas, premios y cifras antes de aprobar.</p>
         </aside>
+        </details>
       </div>
 
-      <div class="andy-footer-grid">
+      <details class="andy-secondary-disclosure" data-andy-view="contenido" id="andy-borradores-extra"><summary>Mis borradores y calendario editorial</summary><div class="andy-footer-grid">
         <section class="andy-panel" aria-labelledby="andy-calendar-title">
           <h4 id="andy-calendar-title">🗓️ Calendario editorial</h4>
           <p class="andy-hint">Las fechas son para organizar trabajo, no programan publicaciones automáticas.</p>
@@ -423,7 +453,7 @@
             <p class="andy-empty">Aquí aparecerán tus borradores de contenido.</p>
           </div>
         </section>
-      </div>
+      </div></details>
     </div>
   </div>
 
