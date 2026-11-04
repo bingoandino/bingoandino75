@@ -14,7 +14,7 @@ async function authenticated(page, valid = true) {
   });
   await page.route(cdn, route => route.fulfill({
     status: 200, contentType: 'text/javascript',
-    body: 'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:"mock.jwt"}},error:null})}})};'
+    body: `window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{access_token:"mock.jwt"}},error:null})}})};`
   }));
   await page.route(verify, route => route.fulfill({
     status: 200, contentType:'application/json',
@@ -91,7 +91,7 @@ async function directMock(page,{passwordValid=true,otpValid=true,sessionValid=tr
   });
   await page.route(cdn,route=>route.fulfill({
     status:200,contentType:'text/javascript',
-    body: 'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:window.__andyMockSession},error:null}),signInWithOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-send",email:v.email,shouldCreateUser:v.options.shouldCreateUser});return {error:null};},verifyOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-verify",email:v.email,token:v.token,type:v.type});if(v.token==="000000")return {error:{message:"invalid",status:400}};window.__andyMockSession={access_token:"jwt-approved"};return {data:{session:window.__andyMockSession},error:null};}}})};'
+    body: `window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:localStorage.getItem('mock-auth-andy')?{access_token:'jwt-approved'}:window.__andyMockSession},error:null}),signInWithOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-send",email:v.email,shouldCreateUser:v.options.shouldCreateUser});return {error:null};},verifyOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-verify",email:v.email,token:v.token,type:v.type});if(v.token==="000000")return {error:{message:"invalid",status:400}};window.__andyMockSession={access_token:"jwt-approved"};localStorage.setItem('mock-auth-andy','yes');return {data:{session:window.__andyMockSession},error:null};}}})};`
   }));
   await page.route('**/functions/v1/admin-auth',async route=>{
     const payload=route.request().postDataJSON();
@@ -104,7 +104,7 @@ async function directMock(page,{passwordValid=true,otpValid=true,sessionValid=tr
     if(payload.action==='create_session_otp'){
       if(route.request().headers()['authorization']!=='Bearer jwt-approved'||payload.loginProof!=='test-signed-proof')
         throw new Error('Intento de crear sesión sin OTP válido');
-      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,sessionToken:'direct-admin-session',expiresAt:'2099-01-01T00:00:00Z',deviceId:payload.deviceId})});return;
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,sessionToken:'sess_11111111-2222-4333-8444-555555555555',expiresAt:'2099-01-01T00:00:00Z',deviceId:payload.deviceId})});return;
     }
     throw new Error('Acción no permitida');
   });
@@ -135,7 +135,7 @@ test('contraseña y OTP permiten entrar directamente, sin visitar el administrad
     proof:sessionStorage.getItem('pending_admin_login_proof')||localStorage.getItem('pending_admin_login_proof'),
     authCalls:window.__andyMockCalls
   }));
-  expect(result.token).toBe('direct-admin-session');
+  expect(result.token).toBe('sess_11111111-2222-4333-8444-555555555555');
   expect(result.device).toMatch(/^device_/);
   expect(result.passwordStorage).toBeNull();
   expect(result.proof).toBeNull();
@@ -180,4 +180,79 @@ test('el fallo del servicio de autenticación muestra error pero no pantalla en 
   await expect(page.locator('#andy-gate-error')).toBeVisible();
   await expect(page.locator('#tab-andy-estudio')).toBeHidden();
   await expect(page.locator('#andy-login-form')).toBeVisible();
+});
+
+
+test('recargar ANDY mantiene sesión validada sin pedir OTP nuevamente',async({page})=>{
+  await directMock(page);
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-code-form')).toBeVisible();
+  await page.locator('#andy-otp-code').fill('123456');
+  await page.locator('#andy-otp-submit').click();
+  await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+  const initial=await page.evaluate(()=>{
+    const saved=JSON.parse(localStorage.getItem('bingo_andy_sesion_24h_v1')||'null');
+    return {saved:!!saved,startedAt:saved?.startedAt,token:saved?.token,deviceId:saved?.deviceId};
+  });
+  expect(initial.saved).toBe(true);
+  expect(initial.startedAt).toBeGreaterThan(Date.now()-60000);
+  expect(initial.deviceId).toMatch(/^device_/);
+  await page.evaluate(()=>{
+    // Simula Android/PWA que descarta las credenciales volátiles al recargar.
+    sessionStorage.removeItem('admin_session_token');
+    sessionStorage.removeItem('device_id');
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+  await expect(page.locator('#andy-login-box')).toBeHidden();
+  const final=await page.evaluate(()=>({
+    token:sessionStorage.getItem('admin_session_token'),
+    calls:window.__andyMockCalls,
+    storage:JSON.parse(localStorage.getItem('bingo_andy_sesion_24h_v1')||'null')
+  }));
+  expect(final.token).toBe(initial.token);
+  expect(final.storage.startedAt).toBe(initial.startedAt);
+  expect(final.calls).toEqual([]);
+});
+test('después de 24 horas no reutiliza la sesión persistente',async({page})=>{
+  await directMock(page);
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-code-form')).toBeVisible();
+  await page.locator('#andy-otp-code').fill('123456');
+  await page.locator('#andy-otp-submit').click();
+  await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+  await page.evaluate(()=>{
+    const key='bingo_andy_sesion_24h_v1';
+    const old=JSON.parse(localStorage.getItem(key));
+    old.startedAt=Date.now()-25*60*60*1000;
+    localStorage.setItem(key,JSON.stringify(old));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#andy-login-form')).toBeVisible();
+  await expect(page.locator('#tab-andy-estudio')).toBeHidden();
+  expect(await page.evaluate(()=>localStorage.getItem('bingo_andy_sesion_24h_v1'))).toBeNull();
+});
+test('si el servidor revoca la sesión ANDY no se abre al recargar',async({page})=>{
+  await directMock(page);
+  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.locator('#andy-login-email').fill('admin@example.test');
+  await page.locator('#andy-login-password').fill('clave-de-prueba');
+  await page.locator('#andy-login-submit').click();
+  await expect(page.locator('#andy-code-form')).toBeVisible();
+  await page.locator('#andy-otp-code').fill('123456');
+  await page.locator('#andy-otp-submit').click();
+  await expect(page.locator('#tab-andy-estudio')).toBeVisible();
+  await page.route(verify,route=>route.fulfill({
+    status:401,contentType:'application/json',body:JSON.stringify({valid:false,sameDevice:false})
+  }));
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#andy-login-form')).toBeVisible();
+  await expect(page.locator('#tab-andy-estudio')).toBeHidden();
+  expect(await page.evaluate(()=>localStorage.getItem('bingo_andy_sesion_24h_v1'))).toBeNull();
 });
