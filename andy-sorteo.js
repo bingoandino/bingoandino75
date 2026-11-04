@@ -127,7 +127,8 @@
   }
   function text(ctx,s,x,y,size,color=C.ivory,weight=800,align='left',maxWidth=Infinity) {
     ctx.font=weight+' '+size+'px system-ui,Arial,sans-serif';ctx.fillStyle=color;ctx.textAlign=align;
-    ctx.fillText(String(s),x,y,maxWidth);
+    if (Number.isFinite(maxWidth)) ctx.fillText(String(s),x,y,maxWidth);
+    else ctx.fillText(String(s),x,y);
   }
   function drawDrum(ctx,cx,cy,r) {
     ctx.save();
