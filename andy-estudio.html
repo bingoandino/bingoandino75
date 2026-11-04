@@ -132,15 +132,9 @@
               <p class="andy-sd-help">La tasa se introduce manualmente por ahora; ANDY no consulta todavía al BCV. En la imagen solo aparecerá el precio en Bs.</p>
             </fieldset>
             <fieldset><legend>4 · Pozo acumulado</legend>
-              <div class="andy-sd-two">
-                <label>Pozo del sorteo anterior (USD)<input id="andy-sd-pozo" type="number" min="1" step="1" class="andy-field" inputmode="numeric" placeholder="Ej.: 120"></label>
-                <label>Resultado del pozo<select id="andy-sd-pozo-resultado" class="andy-field"><option value="pending">Aún no confirmado</option><option value="no">No hubo ganador (+$10)</option><option value="yes">Sí hubo ganador (indicar nuevo pozo)</option></select></label>
-              </div>
-              <div class="andy-sd-two">
-                <label>Pozo siguiente manual (USD, opcional)<input id="andy-sd-pozo-manual" type="number" min="1" step="1" class="andy-field" inputmode="numeric" placeholder="Sobrescribe si corresponde"></label>
-                <label>Máximo de bolitas<input id="andy-sd-max-bolas" type="number" value="52" min="1" max="75" step="1" class="andy-field"></label>
-              </div>
-              <p class="andy-sd-help">ANDY nunca deduce «no hubo ganador» solamente porque falta una publicación.</p>
+              <label>Pozo acumulado a anunciar (USD)<input id="andy-sd-pozo-manual" type="number" min="1" step="1" inputmode="numeric" class="andy-field" placeholder="Ej.: 120"></label>
+              <input id="andy-sd-max-bolas" type="hidden" value="52">
+              <p class="andy-sd-help">Escribe únicamente el monto del pozo para este sorteo. ANDY mostrará ese mismo valor, sin sumarle ni descontarle nada. Límite habitual: 52 bolitas.</p>
             </fieldset>
             <fieldset><legend>5 · Distribución tradicional</legend>
               <div class="andy-sd-budget">

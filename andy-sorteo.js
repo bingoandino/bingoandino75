@@ -32,8 +32,6 @@
     $('precio').value=p.lowPrice?'400':'';
     $('tasa').value=''; // Nunca conservar una tasa posiblemente vencida.
     $('rondas-info').textContent=p.special?'✨ Sábado especial · morado y dorado con mayor brillo':'💜 Estilo tradicional · morado, marfil y dorado';
-    $('pozo-resultado').value='pending';
-    $('pozo').value='';
     $('pozo-manual').value='';
     $('premio-a').value=''; $('premio-b').value=''; $('premio-final').value='';
     generated=false;
@@ -61,7 +59,7 @@
     });
     let error = b.error || result.error;
     const pot=projectPot();
-    if (pot===null) error = error || 'Confirma el pozo del siguiente sorteo.';
+    if (pot===null) error = error || 'Escribe el monto del pozo acumulado (USD).';
     if (!data.date || !data.tickets || !data.priceBs) error=error||'Completa los datos del sorteo.';
     if (!Number.isInteger(number('max-bolas')) || number('max-bolas')<1 || number('max-bolas')>75) error=error||'El máximo de bolitas debe estar entre 1 y 75.';
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test($('hora').value)) error=error||'Indica una hora válida.';
@@ -75,13 +73,11 @@
     return {data,b,p,pot,good,error,totalPrize};
   }
   function projectPot() {
-    const manual=$('pozo-manual').value.trim();
-    if (manual) {
-      const n=Number(manual);
-      return Number.isFinite(n)&&n>0?n:null;
-    }
-    const current=Number($('pozo').value);
-    return R.nextPot(current,$('pozo-resultado').value,null);
+    // El pozo anunciado es el monto introducido por el usuario; no se incrementa automáticamente.
+    const raw=$('pozo-manual').value.trim();
+    if (!raw) return null;
+    const amount=Number(raw);
+    return Number.isSafeInteger(amount) && amount > 0 ? amount : null;
   }
   function suggestion() {
     const x=calc();
@@ -102,7 +98,7 @@
     mark('Se ajustó el lleno final para cuadrar el total. Comprueba que sea el premio más grande.');
   }
   function save() {
-    const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo','pozo-resultado','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
+    const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
     const d={};fields.forEach(k=>d[k]=$(k).value);
     try { localStorage.setItem(STORAGE,JSON.stringify(d)); }
     catch {mark('No se pudo guardar el borrador en este navegador.',true);}
@@ -111,7 +107,7 @@
     try {
       const d=JSON.parse(localStorage.getItem(STORAGE)||'null');
       if (!d || typeof d!=='object' || !/^\d{4}-\d{2}-\d{2}$/.test(d.fecha||'')) return false;
-      const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo','pozo-resultado','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
+      const fields=['fecha','rondas','cartones','ruleta','dinamicas','video','precio','tasa','pozo-manual','premio-a','premio-b','premio-final','max-bolas','hora'];
       fields.forEach(k=>{if(Object.hasOwn(d,k))$(k).value=d[k];});
       const p=R.programForDate($('fecha').value);
       $('rondas-info').textContent=p.special?'✨ Sábado especial · morado y dorado con mayor brillo':'💜 Estilo tradicional · morado, marfil y dorado';
@@ -318,7 +314,7 @@
     $('descargar-historia').addEventListener('click',()=>download('story'));
     $('copiar-redes').addEventListener('click',()=>copy(false));
     $('copiar-whatsapp').addEventListener('click',()=>copy(true));
-    $('siguiente').addEventListener('click',()=>{defaults(next($('fecha').value));save();draw();mark('Próximo sorteo cargado. Completa la tasa y confirma el pozo.');});
+    $('siguiente').addEventListener('click',()=>{defaults(next($('fecha').value));save();draw();mark('Próximo sorteo cargado. Completa la tasa y escribe el pozo acumulado.');});
     draw();
   }
   init();
