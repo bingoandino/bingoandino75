@@ -1,0 +1,23 @@
+name: ANDY Studio — pruebas de interfaz
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'andy-studio.js'
+      - 'andy-studio.css'
+      - 'tests/andy-studio.test.cjs'
+      - '.github/workflows/andy-studio-tests.yml'
+  workflow_dispatch:
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --check andy-studio.js
+      - run: node --test tests/andy-studio.test.cjs
+      - run: node --test tests/admin-recarga.test.cjs tests/admin-busqueda.test.cjs tests/comprar.test.cjs
