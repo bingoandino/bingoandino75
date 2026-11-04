@@ -197,12 +197,16 @@
     text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS   ·   BINGOANDINO75.COM',
       540,y+(story?88:44),story?30:22,P.gold,900,'center',950);
   }
-  function poster(ctx,format,d){
+  function poster(ctx,format,d,aiBackground=null){
     const story=format==='story',w=1080,h=story?1920:1080,saturday=d.saturday===true;
     if(!ctx||!Number.isFinite(d.final)||!Number.isFinite(d.total)||!Number.isFinite(d.pot))throw Error('Datos del cartel inválidos');
-    background(ctx,w,h,saturday);
+    if(aiBackground) {
+      // AI is art only. Every prize, price and label below is drawn by ANDY from verified numbers.
+      ctx.drawImage(aiBackground,0,0,w,h);
+      ctx.fillStyle='rgba(28,4,40,.18)';ctx.fillRect(0,0,w,h);
+    } else background(ctx,w,h,saturday);
     brand(ctx,story,saturday);
-    drum(ctx,story?850:863,story?164:123,story?128:92);
+    if(!aiBackground)drum(ctx,story?850:863,story?164:123,story?128:92);
     if(story){
       finalPanel(ctx,37,406,1006,509,d.final,d.rounds,true);
       statBox(ctx,38,946,489,234,'TOTAL A REPARTIR','$'+nf.format(d.total),true,{note:'PREMIOS DEL SORTEO'});
