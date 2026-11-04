@@ -32,3 +32,9 @@
 
 #andy-sorteo-diario #andy-sd-preview {scroll-margin-top:12px;}
 #andy-sorteo-diario .andy-sd-jump {display:inline-flex;align-items:center;justify-content:center;min-height:43px;text-align:center;text-decoration:none;}
+
+#andy-sorteo-diario .andy-sd-bcv-extra {margin-top:12px;padding:10px 13px;border:1px solid #dfc9a7;border-radius:12px;background:#fffdf7;}
+#andy-sorteo-diario .andy-sd-bcv-extra summary {cursor:pointer;color:#583165;font-weight:800;font-size:14px;line-height:1.5;}
+#andy-sorteo-diario .andy-sd-bcv-extra[open] summary {margin-bottom:11px;}
+#andy-sorteo-diario .andy-sd-bcv-extra button {margin-top:10px;width:100%;}
+#andy-sorteo-diario #andy-sd-total-manual-wrap {margin-top:12px;padding:12px;border:1px solid #dcc69e;border-radius:12px;background:#fff9e8;}
