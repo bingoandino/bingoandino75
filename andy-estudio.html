@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/andy-sorteo.css?v=20261104-mp-v1">
 <link rel="stylesheet" href="/andy-marketing-pro.css?v=20261104-mp-v1">
 <link rel="stylesheet" href="/andy-simple-ui.css?v=20261104-simple-v1">
+<link rel="stylesheet" href="/andy-chatgpt-brief.css?v=20261104-brief-v1">
 <style>
  html{color-scheme:light}
  body{background:#f8f2e9;color:#341845;font-family:system-ui,sans-serif;margin:0;padding:16px;min-height:100vh}
@@ -44,9 +45,11 @@
 </style>
 <script src="/andy-gate.js?v=20261104-sesion-24h-1" defer></script>
 <script src="/andy-sorteo-rules.js?v=20261104-v3" defer></script>
-<script src="/andy-sorteo-art.js?v=20261104-ia-v1" defer></script>
+
 <script src="/andy-sorteo.js?v=20261104-mp-v1" defer></script>
 <script src="/andy-marketing-pro.js?v=20261104-simple-v1" defer></script>
+<script src="/andy-chatgpt-brief.js?v=20261104-brief-v1" defer></script>
+<script src="/andy-studio.js?v=20261104-brief-v1" defer></script>
 <script src="/andy-simple-ui.js?v=20261104-simple-v1" defer></script>
 </head>
 <body>
@@ -217,7 +220,7 @@
       <div class="andy-layout" data-andy-view="contenido">
         <section class="andy-panel" aria-labelledby="andy-editor-title">
           <h4 id="andy-editor-title">Escribir textos y guiones</h4>
-          <p class="andy-hint">Aquí redactas publicaciones, mensajes y guiones de reels. Las imágenes premium las hacemos en ChatGPT.</p>
+          <p class="andy-hint">Redacta publicaciones, mensajes y guiones. Cuando termines, pulsa «Preparar para ChatGPT» para obtener las instrucciones de una imagen profesional. La portada de un reel no es un video generado.</p>
 
           <label class="andy-label" for="andy-orden">¿Qué quieres que prepare ANDY?</label>
           <textarea class="andy-field" id="andy-orden" maxlength="250" rows="2" placeholder="Ej.: Haz una historia explicando cómo verificar una compra"></textarea>
@@ -286,44 +289,25 @@
 
           <div class="andy-toolbar">
             <button class="andy-btn primary" type="button" id="andy-guardar">Guardar borrador</button>
+            <button class="andy-btn gold" type="button" id="andy-preparar-chatgpt">✨ Preparar para ChatGPT</button>
             <button class="andy-btn muted" type="button" id="andy-copiar-directo">Copiar texto</button>
             <button class="andy-btn muted" type="button" id="andy-revision" disabled>👀 En revisión</button>
             <button class="andy-btn gold" type="button" id="andy-aprobar" disabled>✓ Aprobar internamente</button>
             <button class="andy-btn danger" type="button" id="andy-eliminar" disabled>Eliminar</button>
           </div>
           <p class="andy-status" id="andy-estado" aria-live="polite">Estudio listo para crear borradores.</p>
+          <section id="andy-chatgpt-resultado" class="andy-chatgpt-resultado" hidden aria-label="Instrucciones listas para ChatGPT">
+            <h4>✨ Instrucciones preparadas</h4>
+            <p>Estas instrucciones sirven para pedir una imagen premium aquí en ChatGPT. No se ha enviado nada automáticamente. Copia el texto y pégalo en tu conversación.</p>
+            <textarea id="andy-chatgpt-prompt" class="andy-field" rows="12" readonly aria-label="Instrucciones para ChatGPT"></textarea>
+            <div class="andy-toolbar">
+              <button type="button" class="andy-btn primary" id="andy-chatgpt-copiar">Copiar instrucciones</button>
+              <a class="andy-btn muted" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT</a>
+            </div>
+          </section>
         </section>
 
-        <details class="andy-preview-disclosure" id="andy-preview-optional">
-          <summary>Vista previa básica (opcional)</summary>
-          <aside class="andy-panel" aria-labelledby="andy-preview-title">
-          <h4 id="andy-preview-title">Plantilla rápida, no IA</h4>
-          <p class="andy-hint">Es un diseño sencillo de respaldo. Para los anuncios premium usamos ChatGPT.</p>
-          <div class="andy-preview-card">
-            <div class="andy-preview" id="andy-vista" data-format="post" role="img" aria-label="Vista previa de la publicación de Bingo Andino 75">
-              <div class="andy-stars" aria-hidden="true"></div>
-              <div class="andy-mountains" aria-hidden="true"></div>
-              <span class="andy-preview-brand">BINGO ANDINO 75</span>
-              <div class="andy-preview-middle">
-                <strong id="andy-prev-titulo">TU PRÓXIMA PUBLICACIÓN</strong>
-                <p id="andy-prev-mensaje">Un mensaje para la familia binguera</p>
-              </div>
-              <div class="andy-preview-footer">
-                <span class="andy-preview-cta" id="andy-prev-cta">BINGOANDINO75.COM</span>
-                <span class="andy-preview-url">bingoandino75.com</span>
-              </div>
-            </div>
-            <span class="andy-preview-status" id="andy-prev-etiqueta">PUBLICACIÓN 1:1</span>
-            <span class="andy-preview-status" id="andy-prev-estado">BORRADOR · SIN PUBLICAR</span>
-            <p class="andy-caption-preview" id="andy-prev-pie">Tu texto de Instagram aparecerá aquí.</p>
-          </div>
-          <div class="andy-toolbar">
-            <button class="andy-btn gold" id="andy-descargar" type="button">⬇ Descargar imagen PNG</button>
-            <button class="andy-btn muted" id="andy-copiar" type="button">Copiar texto</button>
-          </div>
-          <p class="andy-hint">La descarga no envía contenido a Instagram. Verifica fechas, premios y cifras antes de aprobar.</p>
-        </aside>
-        </details>
+
       </div>
 
       <details class="andy-secondary-disclosure" data-andy-view="contenido" id="andy-borradores-extra"><summary>Mis borradores y calendario editorial</summary><div class="andy-footer-grid">
@@ -367,8 +351,8 @@
           <div class="andy-sd-heading">
           <div><span class="andy-eyebrow">🎱 NUEVO · SORTEO DIARIO</span>
             <h3 id="andy-sd-title">Anuncios y premios del próximo sorteo</h3>
-            <p>Revisa premios, cartones y pozo; genera tus anuncios en formato cuadrado e historia. El lleno final siempre es el protagonista.</p>
-            <p class="andy-sd-help">Esta herramienta sirve para calcular premios y obtener una plantilla rápida. Para imágenes premium de los sorteos, seguimos trabajando aquí en ChatGPT sin API de pago.</p>
+            <p>Calcula y verifica premios, cartones y pozo. Después prepara las instrucciones exactas para generar la imagen aquí en ChatGPT.</p>
+            <p class="andy-sd-help">No genera plantillas básicas ni utiliza una API de imágenes de pago. Solo prepara los datos para copiarlos a ChatGPT.</p>
           </div>
           <button type="button" class="andy-btn muted" id="andy-sd-siguiente">↪ Preparar día siguiente</button>
         </div>
@@ -427,29 +411,32 @@
               <div class="andy-sd-toolbar">
                 <button type="button" class="andy-btn gold" id="andy-sd-sugerir">✨ Sugerir premios tradicionales</button>
                 <button type="button" class="andy-btn muted" id="andy-sd-cuadrar">Cuadrar con el lleno final</button>
-                <a class="andy-btn muted andy-sd-jump" href="#andy-sd-preview">👁️ Ver imagen y descargar</a>
+                <a class="andy-btn muted andy-sd-jump" href="#andy-sd-preview">Preparar anuncio para ChatGPT</a>
               </div>
               <p class="andy-sd-help">Consolaciones fijas: $10 cada una. Las sugerencias son editables: confirma tú la distribución antes de usarla.</p>
               <div class="andy-sd-check"><span>Premios sumados: <strong id="andy-sd-suma">$0</strong></span><span id="andy-sd-validacion" data-valid="false">Completa los datos</span></div>
             </fieldset>
           </div>
           <aside class="andy-sd-preview" id="andy-sd-preview">
-            <h4>👁️ Vista previa del anuncio</h4>
-
-            <p class="andy-sd-help">Plantilla rápida opcional. Los diseños premium no se generan aquí; los hacemos en ChatGPT.</p>
-            <label>Formato de vista previa<select id="andy-sd-vista-formato" class="andy-field"><option value="post">Cuadrada · Instagram/Facebook</option><option value="story">Historia · 9:16</option></select></label>
-            <canvas id="andy-sd-canvas" width="1080" height="1080" role="img" aria-label="Vista previa pendiente de datos"></canvas>
+            <h4>✨ Preparar anuncio para ChatGPT</h4>
+            <p class="andy-sd-help">Primero valida los premios. Selecciona el tamaño y ANDY preparará las instrucciones con todas las cifras exactas para copiarlas aquí en ChatGPT.</p>
+            <label>Formato del anuncio<select id="andy-sd-vista-formato" class="andy-field"><option value="post">Cuadrada · Instagram/Facebook</option><option value="story">Historia · 9:16</option></select></label>
             <div class="andy-sd-toolbar">
-              <button class="andy-btn gold" type="button" id="andy-sd-descargar-cuadrado" disabled>⬇ Cuadrada PNG</button>
-              <button class="andy-btn gold" type="button" id="andy-sd-descargar-historia" disabled>⬇ Historia PNG</button>
+              <button type="button" class="andy-btn gold" id="andy-sd-preparar-chatgpt" disabled>✨ Preparar para ChatGPT</button>
+              <button type="button" class="andy-btn muted" id="andy-sd-copiar-redes" disabled>Copiar Instagram / Facebook</button>
+              <button type="button" class="andy-btn muted" id="andy-sd-copiar-whatsapp" disabled>Copiar WhatsApp</button>
             </div>
-            <div class="andy-sd-toolbar">
-              <button class="andy-btn muted" type="button" id="andy-sd-copiar-redes" disabled>Copiar Instagram / Facebook</button>
-              <button class="andy-btn muted" type="button" id="andy-sd-copiar-whatsapp" disabled>Copiar WhatsApp</button>
+            <div id="andy-sd-resultado-chatgpt" hidden class="andy-chatgpt-resultado">
+              <p>Verifica las cifras y copia las instrucciones en ChatGPT. No se envían automáticamente.</p>
+              <textarea id="andy-sd-prompt" class="andy-field" rows="12" readonly aria-label="Instrucciones exactas para ChatGPT"></textarea>
+              <div class="andy-sd-toolbar">
+                <button type="button" class="andy-btn muted" id="andy-sd-copiar-prompt">Copiar instrucciones</button>
+                <a class="andy-btn muted andy-sd-jump" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT</a>
+              </div>
             </div>
             <textarea id="andy-sd-texto-copia" class="andy-field" rows="6" hidden readonly></textarea>
-            <p id="andy-sd-estado" class="andy-status" role="status" aria-live="polite">Preparando borrador…</p>
-            <p class="andy-sd-help">🔒 Solo se guarda en este navegador. No está conectado a «Publicar pagos» y no modifica compras ni ganadores. La generación del anuncio es completamente manual, sin integración con la app de pagos.</p>
+            <p id="andy-sd-estado" class="andy-status" role="status" aria-live="polite">Completa los datos para preparar el anuncio.</p>
+            <p class="andy-sd-help">🔒 Herramienta manual. No se conecta con pagos, compras ni con una API de imágenes.</p>
           </aside>
         </div>
         </div>
