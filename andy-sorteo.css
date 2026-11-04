@@ -29,3 +29,6 @@
 #andy-sorteo-diario [hidden] {display:none!important;}
 @media(max-width:850px){#andy-sorteo-diario .andy-sd-layout {grid-template-columns:1fr;}#andy-sorteo-diario .andy-sd-preview {position:static;} }
 @media(max-width:500px){#andy-sorteo-diario {padding:12px;margin:12px 0;}#andy-sorteo-diario fieldset{padding:9px;}#andy-sorteo-diario .andy-sd-three{gap:5px;}#andy-sorteo-diario .andy-sd-two{gap:7px;}#andy-sorteo-diario label .andy-field{padding:8px;font-size:15px;} }
+
+#andy-sorteo-diario #andy-sd-preview {scroll-margin-top:12px;}
+#andy-sorteo-diario .andy-sd-jump {display:inline-flex;align-items:center;justify-content:center;min-height:43px;text-align:center;text-decoration:none;}
