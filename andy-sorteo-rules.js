@@ -73,10 +73,10 @@
       return {ok:false,error:'El lleno final debe ser el premio más grande.',sum};
     return {ok:true,sum};
   }
-  function nextPot(current, status, resetAmount=10) {
-    if (!finitePositive(current) || !finitePositive(resetAmount)) return null;
+  function nextPot(current, status, resetAmount=null) {
+    if (!finitePositive(current)) return null;
     if (status === 'no') return Number(current)+10;
-    if (status === 'yes') return Number(resetAmount);
+    if (status === 'yes') return finitePositive(resetAmount) ? Number(resetAmount) : null;
     return null; // Nunca interpretar falta de publicación como «no hubo ganador».
   }
   function bcvCeiling(rate) { return finitePositive(rate) ? Math.ceil(Number(rate)-EPS) : null; }
