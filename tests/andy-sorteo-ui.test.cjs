@@ -18,7 +18,7 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   vm.runInNewContext(fs.readFileSync(path.join(base,'andy-sorteo.js'),'utf8'),sandbox);
   assert.match(elements.validacion.textContent,/datos|Premio|Completa|cifra|premios|falta|Confirma|Revisa|⚠️/i);
   elements.fecha.value='2026-11-02';elements.fecha._events.input();
-  for(const [id,v] of Object.entries({tasa:'890',precio:'890','pozo-manual':'100'})){
+  for(const [id,v] of Object.entries({tasa:'',precio:'890','pozo-manual':'100'})){
     elements[id].value=v;elements[id]._events.input();
   }
   elements.sugerir._events.click();
@@ -46,4 +46,16 @@ test('editor ANDY initializes and draws both PNG formats without Canvas errors',
   assert.equal(elements['descargar-cuadrado'].disabled,false);
   assert.ok(printed.includes('$140'));
   assert.ok(!ids.includes('pozo-resultado')&&!ids.includes('pozo'),'La pantalla solo debe tener un campo de pozo');
+  elements.fecha.value='2026-11-03';elements.fecha._events.input();
+  for(const [id,v] of Object.entries({tasa:'',precio:'400','total-manual':'340','pozo-manual':'140'})){
+    elements[id].value=v;elements[id]._events.input();
+  }
+  elements.sugerir._events.click();
+  assert.equal(elements.presupuesto.textContent,'$340');
+  assert.equal(elements['premio-final'].value,150);
+  assert.equal(elements['descargar-cuadrado'].disabled,false,'Cinco rondas manuales no exigen tasa BCV');
+  elements['total-manual'].value='';elements['total-manual']._events.input();
+  assert.equal(elements['descargar-cuadrado'].disabled,true,'Sin tasa ni total no se puede inventar el presupuesto');
+  elements['total-manual'].value='340';elements['total-manual']._events.input();
+  assert.equal(elements['descargar-historia'].disabled,false);
 });
