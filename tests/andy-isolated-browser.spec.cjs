@@ -91,7 +91,7 @@ async function directMock(page,{passwordValid=true,otpValid=true,sessionValid=tr
   });
   await page.route(cdn,route=>route.fulfill({
     status:200,contentType:'text/javascript',
-    body: 'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:localStorage.getItem('mock-auth-andy')?{access_token:'jwt-approved'}:window.__andyMockSession},error:null}),signInWithOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-send",email:v.email,shouldCreateUser:v.options.shouldCreateUser});return {error:null};},verifyOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-verify",email:v.email,token:v.token,type:v.type});if(v.token==="000000")return {error:{message:"invalid",status:400}};window.__andyMockSession={access_token:"jwt-approved"};localStorage.setItem('mock-auth-andy','yes');return {data:{session:window.__andyMockSession},error:null};}}})};'
+    body: `window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:localStorage.getItem('mock-auth-andy')?{access_token:'jwt-approved'}:window.__andyMockSession},error:null}),signInWithOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-send",email:v.email,shouldCreateUser:v.options.shouldCreateUser});return {error:null};},verifyOtp:async(v)=>{window.__andyMockCalls.push({action:"otp-verify",email:v.email,token:v.token,type:v.type});if(v.token==="000000")return {error:{message:"invalid",status:400}};window.__andyMockSession={access_token:"jwt-approved"};localStorage.setItem('mock-auth-andy','yes');return {data:{session:window.__andyMockSession},error:null};}}})};`
   }));
   await page.route('**/functions/v1/admin-auth',async route=>{
     const payload=route.request().postDataJSON();
