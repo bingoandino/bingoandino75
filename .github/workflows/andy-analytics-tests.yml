@@ -1,0 +1,26 @@
+name: ANDY Marketing analytics tests
+on:
+  pull_request:
+    paths:
+      - 'marketing-tracker.js'
+      - 'marketing-panel.js'
+      - 'index.html'
+      - 'supabase/marketing-visitas.sql'
+      - 'supabase/functions/marketing-visit/**'
+      - 'supabase/functions/marketing-report/**'
+      - 'tests/marketing-tracker.test.cjs'
+      - '.github/workflows/andy-analytics-tests.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/marketing-tracker.test.cjs
+      - run: node --check marketing-tracker.js
+      - run: node --check marketing-panel.js
