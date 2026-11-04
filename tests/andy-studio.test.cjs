@@ -115,3 +115,35 @@ test('no guarda si falta título o pie de Instagram',()=>{
     assert.match(f.$('andy-estado').textContent,/Escribe un título/);
   }finally{f.close();}
 });
+
+test('editar una pieza aprobada invalida su aprobación hasta revisar de nuevo',()=>{
+ const f=fixture();
+ try {
+   input(f,'andy-titulo','Mensaje inicial');
+   input(f,'andy-pie','Primer contenido');
+   f.$('andy-guardar').click();
+   f.$('andy-aprobar').click();
+   assert.equal(f.saved()[0].state,'aprobado');
+   input(f,'andy-pie','Nuevo contenido sin aprobar');
+   assert.match(f.$('andy-prev-estado').textContent,/CAMBIOS SIN APROBAR/);
+   f.$('andy-guardar').click();
+   assert.equal(f.saved()[0].state,'revision');
+   assert.equal(f.$('andy-aprobados').textContent,'0');
+ }finally{f.close();}
+});
+test('una instrucción nueva no sobrescribe el borrador seleccionado',()=>{
+ const f=fixture();
+ try {
+   input(f,'andy-titulo','Primer borrador');
+   input(f,'andy-pie','Texto primero');
+   f.$('andy-guardar').click();
+   input(f,'andy-orden','Una historia sobre seguridad');
+   f.$('andy-brief-crear').click();
+   assert.equal(f.$('andy-formato').value,'story');
+   assert.equal(f.$('andy-tema').value,'seguridad');
+   f.$('andy-guardar').click();
+   assert.equal(f.saved().length,2);
+   assert.equal(f.saved().some(v=>v.title==='Primer borrador'),true);
+   assert.equal(f.calls.length,0);
+ }finally{f.close();}
+});
