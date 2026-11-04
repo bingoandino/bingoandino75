@@ -1,0 +1,117 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { JSDOM } = require('jsdom');
+
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const studioJS = fs.readFileSync(path.join(root, 'andy-studio.js'), 'utf8');
+const studioCSS = fs.readFileSync(path.join(root, 'andy-studio.css'), 'utf8');
+function fixture(initial = []) {
+  const dom = new JSDOM(html, { url: 'https://bingoandino75.com/', runScripts:'outside-only' });
+  const w = dom.window;
+  w.confirm = () => true;
+  const calls=[];
+  w.fetch=(...args)=>{calls.push(args);throw new Error('Estudio no puede llamar servicios remotos');};
+  if(initial.length) w.localStorage.setItem('bingo_andino_andy_borradores_v1',JSON.stringify(initial));
+  w.eval(studioJS);
+  const $ = (id) => w.document.getElementById(id);
+  const saved=()=>JSON.parse(w.localStorage.getItem('bingo_andino_andy_borradores_v1')||'[]');
+  return {w,dom,$,calls,saved,close:()=>dom.window.close()};
+}
+function input(f,id,value){
+  f.$(id).value=value;
+  f.$(id).dispatchEvent(new f.w.Event('input',{bubbles:true}));
+}
+test('ANDY se añade como pestaña de admin sin modificar compra ni iniciar sesión',()=>{
+  assert.match(html,/id="tab-andy-estudio"/);
+  assert.match(html,/cambiarTab\('tab-andy-estudio'\)/);
+  assert.match(html,/andy-studio.js/);
+  assert.match(html,/andy-studio.css/);
+  assert.match(html,/onclick="mostrarVentana\('inscripcion'\)"/);
+  assert.match(html,/id="btnEnviarComprobante"/);
+  assert.match(studioCSS,/#tab-andy-estudio/);
+  assert.doesNotMatch(studioJS,/from\(["']inscripciones["']\)|service_role|SUPABASE_SERVICE_ROLE_KEY/);
+});
+test('guarda borradores localmente y jamás intenta publicar',()=>{
+  const f=fixture();
+  try{
+    input(f,'andy-titulo','Familia binguera');
+    input(f,'andy-pie','Gracias por acompañarnos 💜');
+    f.$('andy-guardar').click();
+    assert.equal(f.saved().length,1);
+    assert.equal(f.saved()[0].title,'Familia binguera');
+    assert.equal(f.$('andy-cantidad').textContent,'1');
+    assert.equal(f.calls.length,0);
+    assert.match(f.$('andy-estado').textContent,/No se ha publicado/);
+  }finally{f.close();}
+});
+test('la aprobación guarda la última versión de texto, sin publicar en Instagram',()=>{
+  const f=fixture();
+  try{
+    input(f,'andy-titulo','Bienvenida');
+    input(f,'andy-pie','Primera versión');
+    f.$('andy-guardar').click();
+    input(f,'andy-pie','Segunda versión revisada');
+    f.$('andy-aprobar').click();
+    assert.equal(f.saved()[0].state,'aprobado');
+    assert.equal(f.saved()[0].caption,'Segunda versión revisada');
+    assert.equal(f.$('andy-aprobados').textContent,'1');
+    assert.match(f.$('andy-prev-estado').textContent,/APROBADO/);
+    assert.equal(f.calls.length,0);
+  }finally{f.close();}
+});
+test('genera seis propuestas con fecha y nunca las marca como publicadas',()=>{
+  const f=fixture();
+  try{
+    f.$('andy-ideas').click();
+    assert.equal(f.saved().length,6);
+    assert.equal(new Set(f.saved().map(x=>x.format)).size,3);
+    assert.equal(f.saved().every(x=>x.state==='borrador'),true);
+    assert.equal(f.saved().every(x=>x.date && new Date(x.date+'T12:00:00Z').getUTCDay()!==0),true);
+    assert.equal(f.$('andy-agendados').textContent,'6');
+    assert.equal(f.calls.length,0);
+  }finally{f.close();}
+});
+test('guion de reels y proporción 9:16 visibles al elegir Reel',()=>{
+  const f=fixture();
+  try{
+    input(f,'andy-formato','reel');
+    assert.equal(f.$('andy-vista').dataset.format,'reel');
+    assert.equal(f.$('andy-guion-grupo').hidden,false);
+    assert.match(f.$('andy-descargar').textContent,/portada/);
+  }finally{f.close();}
+});
+test('un título malicioso se muestra como texto, no como HTML',()=>{
+  const f=fixture();
+  try{
+    input(f,'andy-titulo','<img src=x onerror=alert(1)>');
+    input(f,'andy-pie','texto seguro');
+    f.$('andy-guardar').click();
+    assert.equal(f.$('andy-prev-titulo').textContent,'<img src=x onerror=alert(1)>');
+    assert.equal(f.$('andy-vista').querySelector('img'),null);
+    assert.equal(f.$('andy-lista').querySelector('img'),null);
+    assert.equal(f.calls.length,0);
+  }finally{f.close();}
+});
+test('mantiene borradores antiguos y nunca llama a red para recuperarlos',()=>{
+  const f=fixture([{id:'offline-1',format:'story',theme:'seguridad',title:'Cuidado con estafas',
+    body:'No compartas códigos',caption:'Recordatorio de seguridad',cta:'Cuidémonos',
+    date:'2026-11-04',time:'18:00',state:'borrador',script:'',updatedAt:'2026-11-04T00:00:00Z'}]);
+  try{
+    assert.equal(f.$('andy-cantidad').textContent,'1');
+    f.$('andy-lista').querySelector('button').click();
+    assert.equal(f.$('andy-titulo').value,'Cuidado con estafas');
+    assert.equal(f.$('andy-formato').value,'story');
+    assert.equal(f.calls.length,0);
+  }finally{f.close();}
+});
+test('no guarda si falta título o pie de Instagram',()=>{
+  const f=fixture();
+  try{
+    f.$('andy-guardar').click();
+    assert.equal(f.saved().length,0);
+    assert.match(f.$('andy-estado').textContent,/Escribe un título/);
+  }finally{f.close();}
+});
