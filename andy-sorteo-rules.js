@@ -30,25 +30,41 @@
   }
   const finitePositive = (x) => Number.isFinite(Number(x)) && Number(x) > 0;
   function budget(input) {
-    const { rounds, tickets, priceBs, rateBs, gifted } = input;
+    const { rounds, tickets, priceBs, rateBs, gifted, manualTotal } = input;
     if (![5,6].includes(Number(rounds))) return {error:'Selecciona 5 o 6 rondas.'};
     const nTickets = Number(tickets), nGift = Number(gifted);
     if (!Number.isSafeInteger(nTickets) || nTickets < 1 || !Number.isSafeInteger(nGift) || nGift < 0 || nGift >= nTickets)
       return {error:'Revisa cartones y regalos; los regalados deben ser menos que el total.'};
     if (!finitePositive(priceBs)) return {error:'Indica el precio del cartón en Bs.'};
-    if (!finitePositive(rateBs)) return {error:'Indica la tasa oficial BCV del día para calcular el presupuesto en USD.'};
-    // Los días de $1 se calculan como un dólar por cartón, redondeando su precio en Bs hacia arriba.
-    // Los días de precio bajo se convierten a dólares con la tasa BCV indicada por el operador.
-    const unitUsd = Number(rounds) === 6 ? 1 : Number(priceBs) / Number(rateBs);
-    const gross = (nTickets - nGift) * unitUsd;
+    const six = Number(rounds) === 6;
+    const withRate = finitePositive(rateBs);
+    // En 6 rondas cada cartón equivale a $1 para el presupuesto.
+    // En 5 rondas el precio en Bs no se puede convertir a USD sin tasa o un total manual.
+    const manualEntered = !six && manualTotal !== undefined && manualTotal !== null && String(manualTotal).trim() !== '';
+    const manual = Number(manualTotal);
+    if (manualEntered && (!Number.isSafeInteger(manual) || manual <= 0 || manual % 5 !== 0))
+      return {error:'El total manual debe ser positivo y múltiplo de $5.'};
+    if (!six && !withRate && !manualEntered)
+      return {error:'Para 5 rondas, escribe el total a repartir en USD o utiliza la tasa BCV opcional.'};
+    const potContribution = 10;
+    const paidTickets = nTickets-nGift;
+    if (!six && !withRate) {
+      // No afirmar que se verificó la reserva de 20% sin conocer la tasa de cambio.
+      return {paidTickets, unitUsd:null, gross:null, kept20:null, forPrizesAndPot:null,
+        potContribution,available:null,rounded:manual,realMargin:null,manual:true,marginVerified:false};
+    }
+    const unitUsd = six ? 1 : Number(priceBs) / Number(rateBs);
+    const gross = paidTickets * unitUsd;
     const kept20 = gross * .2;
     const forPrizesAndPot = gross * .8;
-    const potContribution = 10;
     const available = forPrizesAndPot - potContribution;
-    const rounded = Math.floor((available + EPS) / 5) * 5;
-    if (rounded < 0) return {error:'No hay presupuesto suficiente.'};
-    return {paidTickets:nTickets-nGift,unitUsd,gross,kept20,forPrizesAndPot,potContribution,
-      available,rounded,realMargin:gross-potContribution-rounded};
+    const ceiling = Math.floor((available + EPS) / 5) * 5;
+    if (ceiling < 0) return {error:'No hay presupuesto suficiente.'};
+    if (manualEntered && manual > ceiling)
+      return {error:'El total manual supera el presupuesto calculado y reduciría tu 20%.'};
+    const rounded = manualEntered ? manual : ceiling;
+    return {paidTickets,unitUsd,gross,kept20,forPrizesAndPot,potContribution,
+      available,rounded,realMargin:gross-potContribution-rounded,manual:manualEntered,marginVerified:true};
   }
   function defaultGifts(rounds) { return Number(rounds) === 5 ? {roulette:7,dynamics:3,video:4} : {roulette:7,dynamics:3,video:2}; }
   function suggest(total, rounds) {
