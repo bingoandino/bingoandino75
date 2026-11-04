@@ -135,10 +135,12 @@
     text(ctx,'B I N G O',64,y,story?49:41,P.gold,900,'left',440);
     goldText(ctx,'ANDINO',55,y+(story?131:114),story?150:129,story?615:572,'left');
     goldText(ctx,'75',story?638:585,y+(story?133:117),story?155:137,196,'left');
-    text(ctx,'T U   M E J O R   J U G A D A',63,y+(story?177:157),story?27:25,P.ivory,850,'left',645);
+    if(!saturday || story)text(ctx,'T U   M E J O R   J U G A D A',63,y+(story?177:157),story?27:25,P.ivory,850,'left',645);
     if(saturday){
-      pathRect(ctx,66,y+(story?196:173),380,47,15,'#752052','#f4c361',2);
-      text(ctx,'★  SÁBADO ESPECIAL  ★',256,y+(story?230:206),26,'#ffe5a1',900,'center',355);
+      if(story){
+        pathRect(ctx,66,y+196,380,47,15,'#752052','#f4c361',2);
+        text(ctx,'★  SÁBADO ESPECIAL  ★',256,y+230,26,'#ffe5a1',900,'center',355);
+      }else text(ctx,'★  SÁBADO ESPECIAL  ★',63,y+157,28,P.gold,900,'left',400);
     }
   }
   function finalPanel(ctx,x,y,w,h,final,rounds,story){
@@ -188,15 +190,12 @@
     text(ctx,'USD C/U',x+w/2,y+h-(story?27:13),story?26:19,P.plum,800,'center',w-30);
   }
   function footer(ctx,story,balls){
-    const y=story?1791:1016;
-    pathRect(ctx,38,y,1004,story?81:38,15,'#2b073e','#c79744',2);
-    text(ctx,'◉  BOMBO REAL    ✦  PAGOS AL INSTANTE    ✦  CON 1 CARTÓN JUEGAS TODAS LAS RONDAS',
-      540,y+(story?35:25),story?27:20,P.ivory,820,'center',975);
-    if(story){
-      text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS  ·  BINGOANDINO75.COM',540,y+114,30,P.gold,900,'center',950);
-    }else{
-      text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS     ·     BINGOANDINO75.COM',540,1070,22,P.gold,900,'center',960);
-    }
+    const y=story?1790:1009;
+    pathRect(ctx,38,y,1004,story?112:55,15,'#2b073e','#c79744',2);
+    text(ctx,'BOMBO REAL   ✦   PAGOS AL INSTANTE   ✦   CON 1 CARTÓN JUEGAS TODAS LAS RONDAS',
+      540,y+(story?42:23),story?27:19,P.ivory,820,'center',975);
+    text(ctx,'POZO: MÁXIMO '+balls+' BOLITAS   ·   BINGOANDINO75.COM',
+      540,y+(story?88:44),story?30:22,P.gold,900,'center',950);
   }
   function poster(ctx,format,d){
     const story=format==='story',w=1080,h=story?1920:1080,saturday=d.saturday===true;
