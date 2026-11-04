@@ -226,7 +226,7 @@
     beginKeepAlive();
     if (window.__andyStudioLoaded) return;
     const script = document.createElement("script");
-    script.src = "/andy-studio.js?v=20261104-directo-1";
+    script.src = "/andy-studio.js?v=20261104-brief-v1";
     script.onload = () => {
       window.__andyStudioLoaded = true;
       message("ANDY listo. Borradores guardados únicamente en este dispositivo.");

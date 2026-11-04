@@ -22,7 +22,7 @@ async function authenticated(page, valid = true) {
   }));
 }
 for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,label:'telefono'}]) {
-  test('carga editor y exporta PNG en '+vp.label,async({page},testInfo)=>{
+  test('crea brief premium para ChatGPT en '+vp.label,async({page},testInfo)=>{
     await page.setViewportSize({width:vp.width,height:vp.height});
     await authenticated(page);
     const errors=[];
@@ -44,17 +44,14 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     await page.locator('#andy-guardar').click();
     await page.locator('#andy-aprobar').click();
     await expect(page.locator('#andy-aprobados')).toHaveText('1');
-    await expect(page.locator('#andy-vista')).toBeHidden();
-    await page.locator('#andy-preview-optional summary').click();
-    await expect(page.locator('#andy-vista')).toBeVisible();
-    const dPromise=page.waitForEvent('download',{timeout:15000});
-    await page.locator('#andy-descargar').click();
-    const download=await dPromise;
-    const file=await download.path();
-    const data=fs.readFileSync(file);
-    expect(data.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
-    expect(data.readUInt32BE(16)).toBe(1080);
-    expect(data.readUInt32BE(20)).toBe(1920);
+    await expect(page.locator('#andy-chatgpt-resultado')).toBeHidden();
+    await page.locator('#andy-preparar-chatgpt').click();
+    await expect(page.locator('#andy-chatgpt-resultado')).toBeVisible();
+    await expect(page.locator('#andy-chatgpt-prompt')).toHaveValue(/PORTADA DE REEL/);
+    await expect(page.locator('#andy-chatgpt-prompt')).toHaveValue(/Bombo real y comunidad/);
+    await expect(page.locator('#andy-chatgpt-prompt')).toHaveValue(/morado profundo, marfil cálido y dorado metálico/);
+    await expect(page.locator('#andy-descargar')).toHaveCount(0);
+    await expect(page.locator('#andy-vista')).toHaveCount(0);
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(4);
     expect(errors).toEqual([]);
@@ -87,6 +84,16 @@ for (const vp of [{width:1365,height:900,label:'desktop'},{width:390,height:844,
     await expect(open).toBeVisible();
     await open.click();
     await expect(page.locator('#andy-sd-pozo-manual')).toHaveValue('125');
+    await page.locator('#andy-sd-fecha').fill('2026-11-02');
+    await page.locator('#andy-sd-precio').fill('890');
+    await page.locator('#andy-sd-pozo-manual').fill('100');
+    await page.locator('#andy-sd-sugerir').click();
+    await expect(page.locator('#andy-sd-premio-final')).toHaveValue('210');
+    await page.locator('#andy-sd-preparar-chatgpt').click();
+    await expect(page.locator('#andy-sd-resultado-chatgpt')).toBeVisible();
+    await expect(page.locator('#andy-sd-prompt')).toHaveValue(/POZO ACUMULADO: \$100 USD/);
+    await expect(page.locator('#andy-sd-prompt')).toHaveValue(/LLENO FINAL: \$210 USD/);
+    await expect(page.locator('#andy-sd-canvas')).toHaveCount(0);
     expect(errors).toEqual([]);
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(4);

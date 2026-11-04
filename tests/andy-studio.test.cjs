@@ -9,6 +9,7 @@ const html = fs.readFileSync(path.join(root, 'andy-estudio.html'), 'utf8');
 const homepage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const studioJS = fs.readFileSync(path.join(root, 'andy-studio.js'), 'utf8');
 const studioCSS = fs.readFileSync(path.join(root, 'andy-studio.css'), 'utf8');
+const briefJS = fs.readFileSync(path.join(root, 'andy-chatgpt-brief.js'), 'utf8');
 function fixture(initial = []) {
   const dom = new JSDOM(html, { url: 'https://bingoandino75.com/', runScripts:'outside-only' });
   const w = dom.window;
@@ -16,6 +17,7 @@ function fixture(initial = []) {
   const calls=[];
   w.fetch=(...args)=>{calls.push(args);throw new Error('Estudio no puede llamar servicios remotos');};
   if(initial.length) w.localStorage.setItem('bingo_andino_andy_borradores_v1',JSON.stringify(initial));
+  w.eval(briefJS);
   w.eval(studioJS);
   const $ = (id) => w.document.getElementById(id);
   const saved=()=>JSON.parse(w.localStorage.getItem('bingo_andino_andy_borradores_v1')||'[]');
@@ -59,7 +61,7 @@ test('la aprobación guarda la última versión de texto, sin publicar en Instag
     assert.equal(f.saved()[0].state,'aprobado');
     assert.equal(f.saved()[0].caption,'Segunda versión revisada');
     assert.equal(f.$('andy-aprobados').textContent,'1');
-    assert.match(f.$('andy-prev-estado').textContent,/APROBADO/);
+    assert.equal(f.$('andy-aprobar').disabled,false);
     assert.equal(f.calls.length,0);
   }finally{f.close();}
 });
@@ -75,13 +77,14 @@ test('genera seis propuestas con fecha y nunca las marca como publicadas',()=>{
     assert.equal(f.calls.length,0);
   }finally{f.close();}
 });
-test('guion de reels y proporción 9:16 visibles al elegir Reel',()=>{
+test('guion de reels visible al elegir Reel; no se ofrece una descarga PNG básica',()=>{
   const f=fixture();
   try{
     input(f,'andy-formato','reel');
-    assert.equal(f.$('andy-vista').dataset.format,'reel');
+    assert.equal(f.$('andy-formato').value,'reel');
     assert.equal(f.$('andy-guion-grupo').hidden,false);
-    assert.match(f.$('andy-descargar').textContent,/portada/);
+    assert.equal(f.$('andy-descargar'),null);
+    assert.equal(f.$('andy-vista'),null);
   }finally{f.close();}
 });
 test('un título malicioso se muestra como texto, no como HTML',()=>{
@@ -90,8 +93,9 @@ test('un título malicioso se muestra como texto, no como HTML',()=>{
     input(f,'andy-titulo','<img src=x onerror=alert(1)>');
     input(f,'andy-pie','texto seguro');
     f.$('andy-guardar').click();
-    assert.equal(f.$('andy-prev-titulo').textContent,'<img src=x onerror=alert(1)>');
-    assert.equal(f.$('andy-vista').querySelector('img'),null);
+    f.$('andy-preparar-chatgpt').click();
+    assert.match(f.$('andy-chatgpt-prompt').value,/<img src=x onerror=alert\(1\)>/);
+    assert.equal(f.$('andy-chatgpt-resultado').querySelector('img'),null);
     assert.equal(f.$('andy-lista').querySelector('img'),null);
     assert.equal(f.calls.length,0);
   }finally{f.close();}
@@ -126,7 +130,6 @@ test('editar una pieza aprobada invalida su aprobación hasta revisar de nuevo',
    f.$('andy-aprobar').click();
    assert.equal(f.saved()[0].state,'aprobado');
    input(f,'andy-pie','Nuevo contenido sin aprobar');
-   assert.match(f.$('andy-prev-estado').textContent,/CAMBIOS SIN APROBAR/);
    f.$('andy-guardar').click();
    assert.equal(f.saved()[0].state,'revision');
    assert.equal(f.$('andy-aprobados').textContent,'0');
@@ -160,5 +163,26 @@ test('agenda de siete días enseña propuestas y permite abrirlas',()=>{
    scheduled[0].click();
    assert.ok(f.$('andy-titulo').value.length>0);
    assert.equal(f.calls.length,0);
+ }finally{f.close();}
+});
+
+test('prepara instrucciones profesionales para copiar aquí en ChatGPT sin llamar a una API',()=>{
+ const f=fixture();
+ try{
+   input(f,'andy-formato','story');
+   input(f,'andy-titulo','¡Familia binguera!');
+   input(f,'andy-mensaje','Bombo real y bolitas manuales');
+   input(f,'andy-pie','Hoy acompañamos a la familia binguera.');
+   f.$('andy-preparar-chatgpt').click();
+   assert.equal(f.$('andy-chatgpt-resultado').hidden,false);
+   const prompt=f.$('andy-chatgpt-prompt').value;
+   assert.match(prompt,/1080 × 1920/);
+   assert.match(prompt,/morado profundo, marfil cálido y dorado metálico/);
+   assert.match(prompt,/Bombo real y bolitas manuales/);
+   assert.match(prompt,/ChatGPT|Bingo Andino 75/);
+   assert.equal(f.calls.length,0);
+   input(f,'andy-titulo','Cambié el texto');
+   assert.equal(f.$('andy-chatgpt-resultado').hidden,true,
+     'No se debe mantener a la vista un brief con información desactualizada');
  }finally{f.close();}
 });

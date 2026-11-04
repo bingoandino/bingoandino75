@@ -124,7 +124,7 @@
       date: el(fields.date).value || todayVE(),
       time: el(fields.time).value || "18:00"
     });
-    status("Plantilla cargada. Personaliza los textos y revísalos antes de aprobar.");
+    status("Idea cargada. Personaliza los textos antes de guardarlos.");
   }
   function newDraft() {
     editingId = null;
@@ -305,18 +305,32 @@
   }
   function renderPreview() {
     const d=values();
-    el("andy-vista").dataset.format=d.format;
-    el("andy-prev-titulo").textContent=d.title || "TU PRÓXIMA PUBLICACIÓN";
-    el("andy-prev-mensaje").textContent=d.body || "Un mensaje para la familia binguera";
-    el("andy-prev-cta").textContent=d.cta || "BINGOANDINO75.COM";
-    el("andy-prev-etiqueta").textContent=d.format==="story"?"HISTORIA 9:16":d.format==="reel"?"PORTADA REEL 9:16":"PUBLICACIÓN 1:1";
-    el("andy-prev-pie").textContent=d.caption || "Tu texto de Instagram aparecerá aquí.";
-    const doc = drafts.find((v)=>v.id===editingId);
-    const dirty = !!doc && Object.keys(fields).some((key) => doc[key] !== d[key]);
-    el("andy-prev-estado").textContent=dirty && doc?.state === "aprobado"?
-      "CAMBIOS SIN APROBAR":doc?.state==="aprobado"?"APROBADO INTERNAMENTE":"BORRADOR · SIN PUBLICAR";
-    el("andy-guion-grupo").hidden = d.format !== "reel";
-    el("andy-descargar").textContent=d.format==="reel"?"Descargar portada PNG":"Descargar imagen PNG";
+    el("andy-guion-grupo").hidden=d.format!=="reel";
+    // La solicitud de ChatGPT siempre debe reflejar los últimos datos escritos.
+    const result=el("andy-chatgpt-resultado");
+    if(result)result.hidden=true;
+  }
+  async function prepareForChatGPT() {
+    const module=window.AndyChatGPTBrief;
+    if(!module){status("No se pudo preparar el contenido. Actualiza la página.",true);return;}
+    let brief;
+    try {brief=module.editorBrief(values());}
+    catch(err){status(err.message||"Completa el contenido antes de preparar las instrucciones.",true);return;}
+    el("andy-chatgpt-prompt").value=brief;
+    el("andy-chatgpt-resultado").hidden=false;
+    el("andy-chatgpt-resultado").scrollIntoView?.({behavior:"smooth",block:"nearest"});
+    await copyChatGPTPrompt();
+  }
+  async function copyChatGPTPrompt() {
+    const field=el("andy-chatgpt-prompt");
+    if(!field.value){status("Primero prepara las instrucciones.",true);return;}
+    try{
+      await navigator.clipboard.writeText(field.value);
+      status("Instrucciones copiadas. Abre ChatGPT y pégalas para generar una imagen premium.");
+    }catch(_){
+      field.focus();field.select();
+      status("Las instrucciones están listas. Selecciónalas y cópialas para pegarlas en ChatGPT.");
+    }
   }
   async function copyCaption() {
     const d=values();
@@ -335,104 +349,6 @@
     setTimeout(()=>URL.revokeObjectURL(url),1000);
     status("Respaldo descargado. Recuerda que los borradores no están sincronizados entre teléfonos.");
   }
-  function roundRect(ctx,x,y,w,h,r) {
-    ctx.beginPath();ctx.roundRect(x,y,w,h,r);
-  }
-  function wrapped(ctx,text,maxWidth,maxLines) {
-    const words=text.trim().split(/\s+/).filter(Boolean);
-    const lines=[];
-    let line="";
-    words.forEach((word)=>{
-      const attempt=line?line+" "+word:word;
-      if (ctx.measureText(attempt).width>maxWidth && line) {
-        lines.push(line);line=word;
-      } else line=attempt;
-    });
-    if(line)lines.push(line);
-    if(lines.length>maxLines){lines.length=maxLines;lines[maxLines-1]=lines[maxLines-1].replace(/[.,;:]*$/,"")+"…";}
-    return lines;
-  }
-  function exportImage() {
-    const d=values();
-    if(!d.title){status("Primero escribe un título para exportar la imagen.",true);return;}
-    const portrait=d.format!=="post";
-    const w=1080,h=portrait?1920:1080;
-    const canvas=document.createElement("canvas");
-    canvas.width=w;canvas.height=h;
-    const ctx=canvas.getContext("2d");
-    if(!ctx){status("Este navegador no permite exportar la imagen.",true);return;}
-    const bg=ctx.createLinearGradient(0,0,w,h);
-    bg.addColorStop(0,"#220831");bg.addColorStop(.55,"#4a1d5e");bg.addColorStop(1,"#170521");
-    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-    // Golden halo, soft light and decorative mountains.
-    const halo=ctx.createRadialGradient(w*.5,h*.32,20,w*.5,h*.32,w*.72);
-    halo.addColorStop(0,"rgba(236,194,100,.28)");halo.addColorStop(1,"rgba(236,194,100,0)");
-    ctx.fillStyle=halo;ctx.fillRect(0,0,w,h);
-    ctx.strokeStyle="#cfaa60";ctx.lineWidth=7;roundRect(ctx,30,30,w-60,h-60,36);ctx.stroke();
-    for(let i=0;i<29;i++){
-      const xx=(i*227+88)%w, yy=(i*373+84)%h;
-      ctx.fillStyle=i%3===0?"#f9db91":"rgba(255,243,220,.55)";
-      ctx.beginPath();ctx.arc(xx,yy,i%4===0?5:2.5,0,Math.PI*2);ctx.fill();
-    }
-    const mountainY=h*.77;
-    ctx.fillStyle="#321043";
-    ctx.beginPath();ctx.moveTo(0,h);ctx.lineTo(0,mountainY+80);ctx.lineTo(w*.17,mountainY-100);ctx.lineTo(w*.31,mountainY+5);ctx.lineTo(w*.55,mountainY-200);ctx.lineTo(w*.76,mountainY+20);ctx.lineTo(w,mountainY-130);ctx.lineTo(w,h);ctx.closePath();ctx.fill();
-    ctx.fillStyle="#200829";
-    ctx.beginPath();ctx.moveTo(0,h);ctx.lineTo(0,mountainY+120);ctx.lineTo(w*.23,mountainY+40);ctx.lineTo(w*.42,mountainY+130);ctx.lineTo(w*.67,mountainY-50);ctx.lineTo(w,h*.85);ctx.lineTo(w,h);ctx.closePath();ctx.fill();
-
-    ctx.textAlign="center";
-    ctx.fillStyle="#f8e5bc";ctx.font="bold 39px system-ui, sans-serif";
-    ctx.fillText("BINGO ANDINO 75",w/2,portrait?245:155);
-    ctx.strokeStyle="#d6ab5a";ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(200,portrait?280:188);ctx.lineTo(w-200,portrait?280:188);ctx.stroke();
-    ctx.font="bold 28px system-ui, sans-serif";ctx.fillStyle="#e8c87e";
-    ctx.fillText("FAMILIA BINGUERA",w/2,portrait?335:245);
-
-    const headY=portrait?660:430;
-    const headline=(d.title || "BINGO ANDINO 75").toUpperCase();
-    let fontSize=portrait?87:82;
-    let lines=[];
-    while(fontSize>=48){
-      ctx.font="900 "+fontSize+"px system-ui, sans-serif";
-      lines=wrapped(ctx,headline,w-155,portrait?5:3);
-      if(lines.length<=(portrait?5:3) && lines.every(line=>ctx.measureText(line).width<=w-155))break;
-      fontSize-=5;
-    }
-    ctx.font="900 "+fontSize+"px system-ui, sans-serif";
-    ctx.fillStyle="#fff2d9";
-    const lineGap=fontSize*1.15;
-    const top=headY-(lines.length-1)*lineGap*.5;
-    lines.forEach((line,i)=>ctx.fillText(line,w/2,top+i*lineGap));
-    ctx.font="500 "+(portrait?41:35)+"px system-ui, sans-serif";
-    const subLines=wrapped(ctx,d.body || "Bingo Andino 75",w-180,3);
-    const messageTop=top+(lines.length-1)*lineGap+(portrait?145:95);
-    subLines.forEach((line,i)=>ctx.fillText(line,w/2,messageTop+i*(portrait?57:45)));
-
-    const cta=d.cta || "BINGOANDINO75.COM";
-    ctx.font="bold 33px system-ui, sans-serif";
-    const pillW=Math.min(w-130,Math.max(380,ctx.measureText(cta).width+110));
-    const pillY=portrait?1510:870;
-    ctx.fillStyle="#fff4dc";roundRect(ctx,(w-pillW)/2,pillY,pillW,90,45);ctx.fill();
-    ctx.fillStyle="#3b164d";ctx.fillText(cta.slice(0,65),w/2,pillY+57);
-    ctx.font="bold 24px system-ui, sans-serif";
-    ctx.fillStyle="#e8c87e";ctx.fillText("bingoandino75.com",w/2,h-85);
-    const saved=drafts.find((v)=>v.id===editingId);
-    if(saved?.state!=="aprobado"){
-      ctx.fillStyle="rgba(30,6,40,.68)";
-      ctx.fillRect(80,h-215,w-160,56);
-      ctx.fillStyle="#fff2d9";ctx.font="bold 23px system-ui, sans-serif";
-      ctx.fillText("BORRADOR · SIN PUBLICAR",w/2,h-177);
-    }
-    canvas.toBlob((blob)=>{
-      if(!blob){status("No se pudo preparar la imagen PNG.",true);return;}
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement("a");a.href=url;
-      a.download="andy-"+d.format+"-"+todayVE()+".png";
-      document.body.append(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
-      status(d.format==="reel"?"Portada PNG descargada. El video del reel todavía requiere edición.":"Imagen PNG descargada para revisión. No se ha publicado.");
-    },"image/png");
-  }
   function briefToDraft() {
     const text=el("andy-orden").value.trim();
     if(!text){status("Escribe primero qué contenido necesitas.",true);return;}
@@ -446,7 +362,7 @@
       /gracias|agradec/i.test(text)?"comunidad":"bienvenida";
     const data=ideas[theme];
     fill({format:isReel?"reel":isStory?"story":"post",theme,...data,date:todayVE(),time:"18:00"});
-    status("Preparé una plantilla según tu instrucción. Es una propuesta local, no contenido generado por IA.");
+    status("Preparé los textos a partir de una idea. Usa «Preparar para ChatGPT» para obtener instrucciones visuales.");
   }
   function init() {
     drafts=safeStorageRead();
@@ -460,8 +376,9 @@
     el("andy-revision").addEventListener("click",()=>setState("revision"));
     el("andy-eliminar").addEventListener("click",remove);
     el("andy-ideas").addEventListener("click",buildWeek);
-    el("andy-copiar").addEventListener("click",copyCaption);
-    el("andy-descargar").addEventListener("click",exportImage);
+    el("andy-copiar-directo").addEventListener("click",copyCaption);
+    el("andy-preparar-chatgpt").addEventListener("click",()=>{void prepareForChatGPT();});
+    el("andy-chatgpt-copiar").addEventListener("click",()=>{void copyChatGPTPrompt();});
     el("andy-respaldo").addEventListener("click",downloadBackup);
     el("andy-brief-crear").addEventListener("click",briefToDraft);
     el("andy-filtro").addEventListener("change",renderList);
