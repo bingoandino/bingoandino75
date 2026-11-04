@@ -146,6 +146,7 @@
       return false;
     }
     const old = drafts.find((d) => d.id === editingId);
+    const changed = !!old && Object.keys(fields).some((key) => old[key] !== item[key]);
     if (!old && drafts.length >= MAX_DRAFTS) {
       status("Llegaste al máximo de 100 borradores locales; exporta un respaldo.", true);
       return false;
@@ -153,7 +154,8 @@
     const doc = {
       ...item,
       id: old ? old.id : (window.crypto?.randomUUID?.() || ("andy-" + Date.now() + "-" + drafts.length)),
-      state: old ? old.state : "borrador",
+      // Una pieza aprobada pierde la aprobación si se modifica cualquier campo.
+      state: old && old.state === "aprobado" && changed ? "revision" : old ? old.state : "borrador",
       updatedAt: new Date().toISOString()
     };
     if (old) drafts = drafts.map((d) => d.id === doc.id ? doc : d);
@@ -276,7 +278,9 @@
     el("andy-prev-etiqueta").textContent=d.format==="story"?"HISTORIA 9:16":d.format==="reel"?"PORTADA REEL 9:16":"PUBLICACIÓN 1:1";
     el("andy-prev-pie").textContent=d.caption || "Tu texto de Instagram aparecerá aquí.";
     const doc = drafts.find((v)=>v.id===editingId);
-    el("andy-prev-estado").textContent=doc?.state==="aprobado"?"APROBADO INTERNAMENTE":"BORRADOR · SIN PUBLICAR";
+    const dirty = !!doc && Object.keys(fields).some((key) => doc[key] !== d[key]);
+    el("andy-prev-estado").textContent=dirty && doc?.state === "aprobado"?
+      "CAMBIOS SIN APROBAR":doc?.state==="aprobado"?"APROBADO INTERNAMENTE":"BORRADOR · SIN PUBLICAR";
     el("andy-guion-grupo").hidden = d.format !== "reel";
     el("andy-descargar").textContent=d.format==="reel"?"Descargar portada PNG":"Descargar imagen PNG";
   }
@@ -398,6 +402,8 @@
   function briefToDraft() {
     const text=el("andy-orden").value.trim();
     if(!text){status("Escribe primero qué contenido necesitas.",true);return;}
+    // Un brief nuevo nunca reemplaza silenciosamente un borrador seleccionado.
+    newDraft();
     const isReel=/reel|video|grabaci[oó]n/i.test(text);
     const isStory=/historia|story|stories|encuesta|trivia/i.test(text);
     const theme=/seguridad|estafa|c[oó]digo/i.test(text)?"seguridad":
