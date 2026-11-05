@@ -31,6 +31,7 @@ function setup(){
    if(b._confirm){state.state.awards=[...(state.state.awards||[]),...eligible.map((w,i)=>({drawId:w.drawId,name:w.name,winningTicket:w.ticket,assignedTicket:String(100+i)}))];state.version++;}
    return Response.json({pending:b._confirm?[]:pending,awards:state.state.awards||[],available:10,canAssign:pending.length>0&&!b._confirm});
   }
+  if(path==='/rest/v1/slot_rondas_excluidos')return Response.json([]);
   if(path==='/rest/v1/inscripciones'){assert.equal(options.method,'GET','purchases must only be read');return Response.json(q.get('select')==='id'?(anchor?[{id:anchor}]:[]):registrations);}
   if(path==='/rest/v1/slot_premios_sesiones'){
    if(options.method==='POST'){state={...JSON.parse(options.body),created_at:'2026-10-27T18:00:00Z',updated_at:'2026-10-27T18:00:00Z'};mutations.push('history:insert');return Response.json([structuredClone(state)])}
@@ -123,4 +124,20 @@ test('award API derives owner and sources on server, previews only free-card win
  assert.equal(JSON.stringify(a.body).includes('cedula'),false);
  assert.equal((await f.call({action:'remove-winner',sessionId:s.id,drawId:free.drawId})).status,409);
  assert.equal((await f.call({action:'assign-awards',sessionId:s.id})).body.session.awards.length,1);
+});
+
+test('payment delivery requires explicit send; retries preserve submission and new draws wait for another send',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session;
+ const req={action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'10 USD',uniquePerson:true,excludeWinners:true};
+ await f.call(req);assert.equal(f.getState().state.paymentSubmission,undefined);
+ const sent=await f.call({action:'send-payments',sessionId:s.id});assert.equal(sent.status,200);assert.equal(sent.body.sent,1);assert.deepEqual(sent.body.session.paymentSubmission.drawIds,[req.drawId]);
+ const version=f.getState().version;await f.call({action:'send-payments',sessionId:s.id});assert.equal(f.getState().version,version);
+ const next=crypto.randomUUID();await f.call({...req,drawId:next});assert.deepEqual(f.getState().state.paymentSubmission.drawIds,[req.drawId]);
+ await f.call({action:'send-payments',sessionId:s.id});assert.deepEqual(f.getState().state.paymentSubmission.drawIds,[req.drawId,next]);
+ f.setAnchor('different');assert.equal((await f.call({action:'send-payments',sessionId:s.id})).status,409);
+});
+test('free card winners cannot be sent to cash payments',async()=>{
+ const f=setup(),s=(await f.call({action:'load'})).body.session;
+ await f.call({action:'draw',sessionId:s.id,drawId:crypto.randomUUID(),prize:'1 cartón gratis',uniquePerson:true,excludeWinners:true});
+ assert.equal((await f.call({action:'send-payments',sessionId:s.id})).status,400);assert.equal(f.getState().state.paymentSubmission,undefined);
 });

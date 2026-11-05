@@ -1,6 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const script=fs.readFileSync(path.join(__dirname,'../slot/app.js'),'utf8');
-const code=script.slice(script.indexOf('let refreshingRounds=false;'));
+const code=script.slice(script.indexOf('let refreshingRounds=false;'),script.indexOf('var sendingPayments=false;'));
 test('exclusions fetch only on button click, avoid overlap and ignore an old session',async()=>{
  let resolve,calls=0,renders=0;const nodes={};
  const c={demo:false,session:{id:'first'},phase:'ready',$:id=>nodes[id]||(nodes[id]={}),renderRounds:()=>renders++,api:()=>{calls++;return new Promise(r=>resolve=r);},setInterval:()=>assert.fail('No polling'),document:{addEventListener:()=>assert.fail('No automatic refresh')},window:{addEventListener:()=>assert.fail('No focus refresh')}};
