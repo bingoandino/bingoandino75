@@ -62,3 +62,35 @@ test('el recibo toma el foco, desplaza la vista y oculta el formulario de pago y
 test('un recibo de reenvío muestra los cartones y el estado originales, no la nueva selección',()=>{
  const f=fixture();try{f.w.estadoEnvioCompra.compra={cartones:Array.from({length:25},(_,i)=>i+1)};f.w.confirmarEnvioCompra({id:60,cartones:[700,701],estado:'aprobado',reenvio:true});const texto=f.w.document.getElementById('confirmacion-compra').textContent;assert.match(texto,/ya fue recibida/);assert.match(texto,/#60: 2 cartones/);assert.match(texto,/ya está verificado/);assert.doesNotMatch(texto,/25 cartones|pendiente de verificación/);}finally{f.close();}
 });
+
+test('datos de pago incorrectos se señalan juntos, toman foco y no suben la captura; corregir permite enviar',async()=>{
+ const f=fixture();try{
+  const d=f.w.document,phone=d.getElementById('pago_telefono'),ci=d.getElementById('pago_cedula');
+  phone.value='0414';ci.value='';
+  await f.w.enviarComprobante();
+  assert.equal(f.calls.upload,0);assert.equal(f.calls.insert,0);
+  assert.equal(d.activeElement,phone);
+  assert.equal(phone.getAttribute('aria-invalid'),'true');assert.equal(ci.getAttribute('aria-invalid'),'true');
+  assert.equal(d.getElementById('pago_banco').getAttribute('aria-invalid'),'false');
+  assert.match(d.getElementById('pago_telefono-error').textContent,/incompleto/);
+  assert.match(d.getElementById('pago_cedula-error').textContent,/titular/);
+  assert.equal(f.w.usuario.cartones.length,25);
+  phone.value='04141234567';ci.value='12345678';
+  await f.w.enviarComprobante();
+  assert.equal(phone.getAttribute('aria-invalid'),'false');assert.equal(d.getElementById('pago_telefono-error').hidden,true);
+  assert.equal(f.calls.upload,1);assert.equal(f.calls.insert,1);
+ }finally{f.close();}
+});
+test('el aviso rojo se retira al corregir y mantiene los datos recordados',()=>{
+ const f=fixture();try{
+  const w=f.w,d=w.document;
+  w.eval(source.slice(source.indexOf('function cargarDatosPagoCliente()'),source.indexOf('function copiarPagoMovil(')));
+  w.localStorage.setItem('pago_movil_cliente',JSON.stringify({banco:'0105',telefono:'0414',cedula:'12345678'}));
+  w.cargarDatosPagoCliente();const phone=d.getElementById('pago_telefono');
+  phone.dispatchEvent(new w.Event('blur'));
+  assert.equal(phone.getAttribute('aria-invalid'),'true');
+  phone.value='04141234567';phone.dispatchEvent(new w.Event('input'));
+  assert.equal(phone.getAttribute('aria-invalid'),'false');assert.equal(d.getElementById('pago_telefono-error').hidden,true);
+  assert.equal(JSON.parse(w.localStorage.getItem('pago_movil_cliente')).telefono,'04141234567');
+ }finally{f.close();}
+});

@@ -2850,6 +2850,49 @@ async function comprobarEnvioCompra() {
   } catch { /* Una consulta fallida nunca autoriza un nuevo envío. */ }
   estado.fase = 'incierta'; mostrarEstadoEnvioCompra(false); return false;
 }
+function validarCampoPagoMovil(campo) {
+  const valor = campo.value.trim();
+  const digitos = valor.replace(/\D/g, '');
+  let mensaje = '';
+  if (campo.id === 'pago_banco') {
+    if (!valor) mensaje = 'Falta tu banco. Selecciona o escribe el banco de tu Pago Móvil.';
+    else if (valor.length > 160) mensaje = 'Escribe solamente el nombre o código de tu banco.';
+  } else if (campo.id === 'pago_telefono') {
+    if (!digitos) mensaje = 'Falta tu teléfono de Pago Móvil. Ejemplo: 04141234567.';
+    else if (!/^[0-9]{10,15}$/.test(digitos)) mensaje = 'Revisa tu teléfono de Pago Móvil: está incompleto o tiene números de más. Ejemplo: 04141234567.';
+  } else if (campo.id === 'pago_cedula') {
+    if (!digitos) mensaje = 'Falta la cédula del titular de tu Pago Móvil.';
+    else if (!/^[0-9]{4,12}$/.test(digitos)) mensaje = 'Revisa la cédula del titular de tu Pago Móvil: debe tener entre 4 y 12 números.';
+  }
+  let aviso = document.getElementById(campo.id + '-error');
+  if (!aviso) {
+    aviso = document.createElement('p');
+    aviso.id = campo.id + '-error';
+    aviso.className = 'error-dato-pago';
+    aviso.setAttribute('aria-live', 'polite');
+    campo.insertAdjacentElement('afterend', aviso);
+    const descripciones = new Set((campo.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+    descripciones.add(aviso.id);
+    campo.setAttribute('aria-describedby', [...descripciones].join(' '));
+  }
+  campo.classList.toggle('dato-pago-invalido', !!mensaje);
+  campo.setAttribute('aria-invalid', String(!!mensaje));
+  aviso.textContent = mensaje;
+  aviso.hidden = !mensaje;
+  return !mensaje;
+}
+function validarDatosPagoMovil() {
+  let primero = null;
+  for (const id of ['pago_banco', 'pago_telefono', 'pago_cedula']) {
+    const campo = document.getElementById(id);
+    if (campo && !validarCampoPagoMovil(campo) && !primero) primero = campo;
+  }
+  if (primero) {
+    primero.focus({ preventScroll: true });
+    primero.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }
+  return !primero;
+}
 async function enviarComprobante() {
   if (['confirmada', 'incierta'].includes(window.estadoEnvioCompra?.fase)) return comprobarEnvioCompra();
   if (window.estadoEnvioCompra?.fase === 'enviando') return;
@@ -2874,6 +2917,8 @@ async function enviarComprobante() {
     usuario.telefono = telefonoNormalizado;
     const campoTelefono = document.getElementById('telefono');
     if (campoTelefono) campoTelefono.value = telefonoNormalizado;
+
+    if (!validarDatosPagoMovil()) return;
 
     const referencia4dig = ReferenciaBancaria.ultimos4(document.getElementById('referencia4dig').value);
 const PagoBanco = document.getElementById('pago_banco').value.trim();
@@ -5231,7 +5276,14 @@ function cargarDatosPagoCliente() {
   cedula.value = String(datos.cedula || '').replace(/\D/g, '');
 
   [banco, telefono, cedula].forEach(input => {
-    input.addEventListener('input', guardarDatosPagoClienteAutomatico);
+    input.addEventListener('input', () => {
+      guardarDatosPagoClienteAutomatico();
+      if (input.getAttribute('aria-invalid') === 'true') validarCampoPagoMovil(input);
+    });
+    input.addEventListener('change', () => {
+      if (input.getAttribute('aria-invalid') === 'true') validarCampoPagoMovil(input);
+    });
+    input.addEventListener('blur', () => validarCampoPagoMovil(input));
   });
 }
 

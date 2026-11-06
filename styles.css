@@ -2779,3 +2779,20 @@ input:checked + .toggle-slider:before {
 #referencia-estado:empty{display:none}
 #referencia-estado{color:#ffe36b}
 @media(max-width:400px){.referencia-bancaria-fila{flex-wrap:wrap}.referencia-bancaria-fila input{flex-basis:100%;width:100%}.referencia-bancaria-fila button{width:100%}}
+
+/* Señala el dato que necesita corrección antes de enviar el comprobante. */
+#pago .dato-pago-invalido {
+  border: 2px solid #b42318 !important;
+  background-color: #fff4f2 !important;
+  color: #8a1c13 !important;
+  outline-color: #b42318;
+}
+#pago .error-dato-pago {
+  color: #a21b12;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: -4px 0 14px;
+  text-align: left;
+}
+#pago .error-dato-pago[hidden] { display: none; }
