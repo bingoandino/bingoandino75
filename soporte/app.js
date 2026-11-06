@@ -16,9 +16,9 @@ async function run(work){if(busy)return;busy=true;document.querySelectorAll('but
 function savePending(){if(pending)sessionStorage.setItem(PENDING,JSON.stringify(pending));else sessionStorage.removeItem(PENDING);}
 function money(n){return Number(n).toLocaleString('es-VE',{maximumFractionDigits:2})+' Bs';}
 function sync(){
- const g=pending?.gestion,has=!!pending;
- const ready=!!g&&g.estado==='reservado'&&Date.parse(g.vence)>Date.now();
- const expired=!!g&&g.estado==='reservado'&&!ready;
+ const g=pending?.gestion,has=!!pending,cartones=Array.isArray(g?.cartones)?g.cartones:[];
+ const ready=!!g&&g.estado==='reservado'&&cartones.length>0&&Date.parse(g.vence)>Date.now();
+ const expired=!!g&&g.estado==='reservado'&&Date.parse(g.vence)<=Date.now();
  const recovery=!!pending?.compra;
  for(const id of ['cedula','cantidad','mode','numbers','search'])$(id).disabled=has||busy;
  $('reserve').disabled=has||busy||!panel?.abierto;
@@ -32,14 +32,15 @@ function sync(){
  const helper=$('reserveAtPaymentStatus');
  helper.textContent=reserveError||(recovery?'Hay una compra en proceso. Consulta esa misma gestión antes de volver a registrar.':
  !panel?.abierto?'Las ventas están cerradas. No se puede registrar la compra.':
+ g?.estado==='reservado'&&!cartones.length?'No se recuperaron los cartones. Pulsa «Consultar gestión pendiente» antes de continuar.':
  ready?'Los cartones están reservados. Pulsa «Registrar compra» para completar el registro.':
  expired?'La reserva venció. Al registrar se intentarán reservar nuevamente los mismos cartones.':
  has?'Al registrar se recuperará la reserva de cartones.':
  'Pulsa «Registrar compra». El sistema reservará los cartones y enviará el comprobante automáticamente.');
  const price=g?.precio??panel?.precio;
- $('total').textContent=price?money(price*(g?.cartones.length||Number($('cantidad').value)||0)):'— Bs';
+ $('total').textContent=price?money(price*(cartones.length||Number($('cantidad').value)||0)):'— Bs';
  $('priceDetail').textContent=price?money(price)+' por cartón':'';
- if(g){$('tickets').replaceChildren(...g.cartones.map(n=>{const s=document.createElement('span');s.className='ticket';s.textContent=String(n).padStart(4,'0');return s;}));}
+ $('tickets').replaceChildren(...cartones.map(n=>{const s=document.createElement('span');s.className='ticket';s.textContent=String(n).padStart(4,'0');return s;}));
  const frozen=recovery;
  for(const id of ['nombre','telefono','banco','referencia','differentPayer','pagoCedula','pagoTelefono','pagoBanco','proof'])$(id).disabled=frozen||busy;
 }
@@ -135,6 +136,7 @@ async function reserveFromPayment(){
    if(!pending)await startReserve();
    return;
  }
+ if(!Array.isArray(g.cartones)||!g.cartones.length)throw Error('No se recuperaron los cartones de esta gestión. Pulsa «Consultar gestión pendiente» antes de continuar.');
  const previousNumbers=[...g.cartones];
  await api('liberar',{id:pending.id});
  pending=null;savePending();
@@ -164,7 +166,7 @@ async function registerPurchase(){
   await reserveFromPayment();
  }
  const g=pending?.gestion;
- if(!g||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()){
+ if(!g||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()||!Array.isArray(g.cartones)||!g.cartones.length){
   if(!$('purchaseForm').reportValidity())return;
   throw Error('No se pudieron reservar los cartones. Revisa los datos y vuelve a intentarlo.');
  }
@@ -186,7 +188,7 @@ $('purchaseForm').onsubmit=e=>{
  });
 };
 async function submitSame(){try{const d=await api('registrar',{id:pending.id,anchor:pending.gestion.anchor,precio:pending.gestion.precio,compra:pending.compra});showReceipt(d.recibo);}catch(e){if(e.status===409){delete pending.compra;savePending();}throw e;}}
-function showReceipt(r){receipt=r;pending=null;savePending();$('purchaseForm').hidden=true;$('success').hidden=false;appendText($('receipt'),[r.nombre,'Compra #'+r.id+' · '+r.cartones.length+' cartones · '+money(r.monto),'Cartones: '+r.cartones.join(', '),'Estado al registrar: pendiente de verificación']);$('message').value='💜 '+r.nombre+', registramos tu compra de '+r.cartones.length+' cartón'+(r.cartones.length===1?'':'es')+'.\n🎟️ '+r.cartones.join(', ')+'\n⏳ Tu pago está pendiente de verificación.\nConsulta el estado y tus cartones aquí:\nhttps://bingoandino75.com/?verificar=1';status('Compra registrada. El bot verificará el pago.');sync();}
+function showReceipt(r){if(!r||!Array.isArray(r.cartones)||!r.cartones.length)throw Error('No se pudo comprobar el resultado de esta compra. Consulta la gestión pendiente antes de registrar otra.');receipt=r;pending=null;savePending();$('purchaseForm').hidden=true;$('success').hidden=false;appendText($('receipt'),[r.nombre,'Compra #'+r.id+' · '+r.cartones.length+' cartones · '+money(r.monto),'Cartones: '+r.cartones.join(', '),'Estado al registrar: pendiente de verificación']);$('message').value='💜 '+r.nombre+', registramos tu compra de '+r.cartones.length+' cartón'+(r.cartones.length===1?'':'es')+'.\n🎟️ '+r.cartones.join(', ')+'\n⏳ Tu pago está pendiente de verificación.\nConsulta el estado y tus cartones aquí:\nhttps://bingoandino75.com/?verificar=1';status('Compra registrada. El bot verificará el pago.');sync();}
 async function recover(){if(!pending)return;restoreDraft(pending.draft);const d=await api('resultado',{id:pending.id});const g=d.gestion;if(g?.recibo){showReceipt(g.recibo);return;}if(!g){if(pending.compra)throw Error('No se encontró la gestión. Revisa el historial antes de continuar');await reserveSame();return;}pending.gestion=g;savePending();if(pending.compra){await submitSame();return;}sync();if(!d.vigente||g.estado!=='reservado'||Date.parse(g.vence)<=Date.now()){await api('liberar',{id:pending.id});pending=null;savePending();sync();status('La reserva anterior venció o el sorteo cambió. Revisa y selecciona nuevamente.');}else status('Reserva recuperada. Adjunta la captura para continuar.');}
 $('recover').onclick=()=>run(recover);
 $('copy').onclick=()=>run(async()=>{await navigator.clipboard.writeText($('message').value);status('Mensaje copiado');});
