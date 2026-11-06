@@ -3210,18 +3210,42 @@ async function elegirMasCartones() {
 
 // ==================== FUNCIOS DEL PANEL ADMIN ====================
 async function cargarPanelAdmin() {
-await Promise.all([
+  if (cargarPanelAdmin.enCurso) return;
+  cargarPanelAdmin.enCurso = true;
+  const botonRecargar = document.getElementById("btn-recargar-panel");
+  const panel = document.getElementById('admin-panel');
+  let aviso = document.getElementById('admin-estado-carga');
+  if (!aviso && panel) {
+    aviso = document.createElement('p');
+    aviso.id = 'admin-estado-carga';
+    aviso.setAttribute('role', 'status');
+    panel.prepend(aviso);
+  }
+  if (aviso) aviso.textContent = 'Actualizando compras…';
+  if (botonRecargar) botonRecargar.disabled = true;
+  async function conLimite(operacion) {
+    let timer;
+    try {
+      return await Promise.race([Promise.resolve(operacion), new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('La conexión está tardando. Pulsa Recargar para volver a consultar.')), 15000);
+      })]);
+    } finally { clearTimeout(timer); }
+  }
+  try {
+  // Las estadísticas no deben impedir que se muestren las compras.
+  const resumen = Promise.allSettled([
+
   obtenerTotalCartones(),
   obtenerMontoTotalRecaudado(),
   contarCartonesVendidos(),
   cargarModoCartonesAdmin(),
   cargarPromocionesAdmin()
-]);
+].map(conLimite));
 
-cartonesOcupados = await fetchTodosLosOcupados();
+const ocupados = conLimite(fetchTodosLosOcupados()).then(datos => { cartonesOcupados = datos; }).catch(error => console.warn('Disponibilidad del panel:', error));
   
  
-  const { data, error } = await supabase
+  const { data, error } = await conLimite(supabase
     .from('inscripciones')
     .select(`
       id,
@@ -3238,27 +3262,28 @@ cartonesOcupados = await fetchTodosLosOcupados();
       pago_cedula,
       estado
     `)
-    .order('id', { ascending: false });
+    .order('id', { ascending: false }));
 
   if (error) {
     console.error(error);
-    return alert('Error cargando inscripciones');
+    throw new Error('No se pudieron cargar las compras. Pulsa Recargar para volver a consultar.');
   }
 
   // Avisos del bot: tabla privada, accesible solo para el administrador autenticado.
   // Un fallo leyendo avisos NO interrumpe las compras ni los controles existentes.
   const revisionesBot = new Map();
   try {
-    const { data: avisos, error: errorAvisos } = await supabase
+    const { data: avisos, error: errorAvisos } = await conLimite(supabase
       .from('bingo_revision_bot')
       .select('inscripcion_id,codigo,motivo,revisado_at')
-      .limit(1000);
+      .limit(1000));
     if (errorAvisos) throw errorAvisos;
     (avisos || []).forEach(a => revisionesBot.set(String(a.inscripcion_id), a));
   } catch (e) {
     console.warn('No fue posible consultar las alertas privadas del verificador', e);
   }
 
+  await Promise.all([resumen, ocupados]);
   const tbody = document.querySelector('#tabla-comprobantes tbody');
   tbody.innerHTML = '';
 
@@ -3381,6 +3406,15 @@ btnRechazar.onclick = () => procesarEstadoUnaVez(
     `Cartones disponibles: ${totalCartones - cartonesOcupados.length} de ${totalCartones}`;
   const pendientes = data.filter(item => item.estado === 'pendiente').length;
 document.getElementById('pendientes-count').textContent = pendientes;
+  if (aviso) aviso.textContent = 'Compras actualizadas';
+  } catch (error) {
+    console.error('No se pudo actualizar el administrador:', error);
+    if (aviso) aviso.textContent = error.message || 'No se pudieron cargar las compras. Pulsa Recargar.';
+  } finally {
+    cargarPanelAdmin.enCurso = false;
+    if (botonRecargar) botonRecargar.disabled = false;
+  }
+
 }
 document.getElementById('btn-recargar-panel').addEventListener('click', () => {
   cargarPanelAdmin();  // Llama directamente a la función que refresca el contenido

@@ -27,3 +27,17 @@ test('nombre, cédula y referencia conservan la dirección al reconstruir la tab
 test('una selección realizada mientras llega la actualización se aplica al resultado nuevo',async()=>{
  const {w,set,defer}=setup();try{await w.cargarPanelAdmin();const finish=await defer();const loading=w.cargarPanelAdmin();w.ordenarPendientesArriba();set([row(5,'aprobado','Reciente','500','5000'),row(4,'pendiente','Por verificar','400','4000')]);finish();await loading;assert.deepEqual(names(w),['Por verificar','Reciente']);}finally{w.close()}
 });
+test('una consulta colgada muestra error y permite recargar sin borrar filas previas',async()=>{
+ const {w}=setup();try{
+  await w.cargarPanelAdmin();const anteriores=names(w);
+  const panel=w.document.createElement('div');panel.id='admin-panel';w.document.body.append(panel);
+  const boton=w.document.createElement('button');boton.id='btn-recargar-panel';panel.append(boton);
+  const desde=w.supabase.from.bind(w.supabase);const timeout=w.setTimeout.bind(w);
+  w.setTimeout=(fn,ms)=>timeout(fn,ms===15000?0:ms);
+  w.supabase.from=tabla=>tabla==='inscripciones'?{select(){return this},order(){return new Promise(()=>{})}}:desde(tabla);
+  const carga=w.cargarPanelAdmin();assert.equal(boton.disabled,true);
+  await carga;assert.equal(boton.disabled,false);assert.deepEqual(names(w),anteriores);
+  assert.match(w.document.getElementById('admin-estado-carga').textContent,/Pulsa Recargar/);
+  w.supabase.from=desde;await w.cargarPanelAdmin();assert.match(w.document.getElementById('admin-estado-carga').textContent,/actualizadas/);
+ }finally{w.close()}
+});

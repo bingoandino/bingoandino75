@@ -54,11 +54,16 @@
   const privadas=filas.filter(f=>typeof f.comprobante==='string' && f.comprobante.startsWith(prefijo));
   if(!privadas.length)return;
   const rutas=privadas.map(f=>f.comprobante.slice(prefijo.length));
+  let temporizador;
   try{
-   const {data,error}=await cliente.storage.from('comprobantes').createSignedUrls(rutas,3600);
+   const {data,error}=await Promise.race([
+    cliente.storage.from('comprobantes').createSignedUrls(rutas,3600),
+    new Promise((_,reject)=>{temporizador=setTimeout(()=>reject(new Error('Tiempo de espera de comprobantes agotado')),12000);})
+   ]);
    if(error)throw error;
    privadas.forEach((fila,i)=>{fila.comprobante=data?.[i]?.signedUrl||'';});
   }catch{privadas.forEach(fila=>{fila.comprobante='';});}
+  finally{clearTimeout(temporizador);}
  };
  if(typeof global.fetch==='function'){
   const original=global.fetch.bind(global);
