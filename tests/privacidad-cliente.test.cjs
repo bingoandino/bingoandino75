@@ -19,3 +19,13 @@ test('solo admite enlaces públicos o firmados del bucket de comprobantes correc
  const w=new JSDOM('',{url:'https://example.test',runScripts:'outside-only'}).window;
  try{w.eval(read('script.js').split('var supabase')[0]);const base='https://dbkixcpwirjwjvjintkr.supabase.co';assert.ok(w.comprobanteURLSegura(base+'/storage/v1/object/sign/comprobantes/x.jpg?token=prueba'));for(const url of ['javascript:alert(1)',base+'.evil.example/storage/v1/object/sign/comprobantes/x.jpg',base+'/storage/v1/object/sign/cartones/x.jpg'])assert.equal(w.comprobanteURLSegura(url),'');}finally{w.close();}
 });
+test('un servidor de comprobantes sin respuesta no deja esperando las compras',async()=>{
+ const d=new JSDOM('',{url:'https://bingoandino75.com',runScripts:'outside-only'}),w=d.window;
+ try{
+  const timeout=w.setTimeout.bind(w);w.setTimeout=(fn,ms)=>timeout(fn,ms===12000?0:ms);
+  w.supabase={storage:{from:()=>({createSignedUrls:()=>new Promise(()=>{})})}};
+  w.eval(read('referencia.js').split('(function (global) {')[0]);
+  const rows=[{comprobante:'https://dbkixcpwirjwjvjintkr.supabase.co/storage/v1/object/public/comprobantes/x.jpg'}];
+  await w.prepararComprobantesPrivados(rows);assert.equal(rows[0].comprobante,'');
+ }finally{w.close()}
+});
