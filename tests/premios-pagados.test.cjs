@@ -6,3 +6,22 @@ function setup(options={}){const downloads=[],queries=[],revoked=[],observers=[]
  const dom=new JSDOM(read('index.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''),{url:'https://bingoandino75.com/',runScripts:'dangerously',virtualConsole:new VirtualConsole()});const w=dom.window;w.supabase=mock;w.scrollTo=()=>{};w.mostrarSeccion=id=>{w.document.querySelectorAll('section').forEach(s=>s.classList.toggle('oculto',s.id!==id));};w.URL.createObjectURL=()=> 'blob:test-'+(++count);w.URL.revokeObjectURL=u=>revoked.push(u);w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};w.IntersectionObserver=class {constructor(cb){this.cb=cb;observers.push(this);}observe(el){this.el=el;}unobserve(){}disconnect(){}};w.eval(read('publicacion.js'));w.eval(read('premios-pagados.js'));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));return {w,downloads,queries,revoked,observers,row};}
 test('miniaturas diferidas; tocar carga la imagen completa y abre visor con cierre, sin escrituras',async()=>{const t=setup();try{await t.w.abrirPremiosPagados();const cards=t.w.document.querySelectorAll('.pp-tarjeta');assert.equal(cards.length,1);assert.equal(t.downloads.length,0);const o=t.observers[0];o.cb([{isIntersecting:true,target:o.el}]);await tick();assert.deepEqual(t.downloads,[t.row.miniatura]);await cards[0].querySelector('button').onclick();assert.equal(t.w.document.getElementById('pp-modal').open,true);assert.equal(t.downloads.at(-1),ruta);assert.match(t.w.document.getElementById('pp-foto').src,/^blob:/);t.w.document.getElementById('pp-cerrar').click();assert.equal(t.w.document.getElementById('pp-modal').open,false);assert(t.revoked.length>0);assert.equal(t.w.document.getElementById('pp-fecha').value,'2026-10-31');assert.match(read('premios-pagados.css'),/pinch-zoom/);}finally{t.w.close();}});
 test('publicación retirada o vacía no descarga imágenes; datos maliciosos se muestran como texto',async()=>{const t=setup({withdrawn:true});try{await t.w.abrirPremiosPagados('2026-10-31');assert.equal(t.downloads.length,0);assert.equal(t.queries.filter(q=>q.table==='premios_pagados_imagenes').length,0);assert.match(t.w.document.getElementById('pp-estado').textContent,/No hay/);}finally{t.w.close();}const x=setup({hostile:true});try{await x.w.abrirPremiosPagados();assert.equal(x.w.document.querySelector('.pp-tarjeta h3 img'),null);assert.match(x.w.document.querySelector('.pp-tarjeta h3').textContent,/<img/);}finally{x.w.close();}const e=setup({empty:true});try{await e.w.abrirPremiosPagados();assert.match(e.w.document.getElementById('pp-estado').textContent,/Pronto/);assert.equal(e.downloads.length,0);}finally{e.w.close();}});
+test('compartir usa el anuncio claro, la fecha elegida y el enlace con vista previa de pagos',async()=>{
+ const t=setup();try{await t.w.abrirPremiosPagados('2026-10-31');let enviado;
+ t.w.navigator.share=async value=>{enviado=value;};await t.w.document.getElementById('pp-compartir').onclick();
+ assert.match(enviado.text,/Así pagamos a nuestros ganadores/);assert.match(enviado.text,/31 de octubre de 2026/);assert.match(enviado.text,/Toca el enlace para ver los pagos/);
+ assert.equal(enviado.url,'https://bingoandino75.com/premios/?premios=2026-10-31');
+ delete t.w.navigator.share;Object.defineProperty(t.w.navigator,'clipboard',{value:{writeText:async value=>{enviado=value;}}});
+ await t.w.document.getElementById('pp-compartir').onclick();assert.ok(enviado.endsWith('https://bingoandino75.com/premios/?premios=2026-10-31'));
+ }finally{t.w.close();}
+});
+
+test('la página de vista previa conserva fecha válida y rechaza destinos o fechas incorrectas',()=>{
+ const vm=require('node:vm');const source=read('premios/abrir.js');
+ for(const [query,expected] of [['2026-11-05','https://bingoandino75.com/?premios=2026-11-05'],['2026-02-30',null],['https://otro.test/',null]]){
+  let destino=null;const fields={'ver-pagos':{},estado:{}};
+  vm.runInNewContext(source,{URL,Date,Number,document:{getElementById:id=>fields[id]},window:{location:{href:'https://bingoandino75.com/premios/?premios='+encodeURIComponent(query),origin:'https://bingoandino75.com',replace:u=>{destino=u;}}}});
+  assert.equal(destino,expected);
+ }
+ const html=read('premios/index.html');assert.match(html,/og:title.*Así pagamos/);assert.doesNotMatch(html,/Compra tus cartones/);
+});
