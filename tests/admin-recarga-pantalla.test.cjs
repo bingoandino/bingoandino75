@@ -115,7 +115,7 @@ test('Pestañas sin event global, con preferencia guardada',async()=>{
  }finally{f.close();}
 });
 test('Se renueva script sin modificar verificación OTP',()=>{
- assert.match(index,/script\.js\?v=20261102-admin-buscar-1/);
+ assert.match(index,/script\.js\?v=20261106-campos-pago/);
  assert.ok(script.includes('async function verificarOTP()'));
  assert.ok(script.includes('create_session_otp'));
  assert.ok(script.includes("sessionStorage.setItem('admin_vista_panel_v1','panel')"));

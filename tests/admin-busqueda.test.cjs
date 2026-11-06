@@ -54,7 +54,7 @@ test('Ventas incluye botón Buscar, Limpiar y selector accesible sin cambiar nav
   assert.equal(f.tipo.options.length,6);
   assert.equal(f.w.document.getElementById('form-buscar-inscripciones-admin').getAttribute('role'),'search');
   assert.ok(html.includes("admin-compacto.css?v=20261102-buscar-1"));
-  assert.ok(html.includes("script.js?v=20261102-admin-buscar-1"));
+  assert.ok(html.includes("script.js?v=20261106-campos-pago"));
  }finally{f.close();}
 });
 test('Busca por nombre con acentos, cédula, teléfono y referencia',()=>{
