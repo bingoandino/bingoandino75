@@ -84,7 +84,7 @@ test('rechaza JWT sin OTP, OTP viejo, prueba ausente o alterada',async()=>{
  assert.equal((await attempt(adminJwt('password'))).status,401);
  assert.equal((await attempt(adminJwt('otp',Math.floor(Date.now()/1000)-3600))).status,401);
  assert.equal((await attempt(adminJwt(),null)).status,401);
- assert.equal((await attempt(adminJwt(),loginProof.slice(0,-1)+'0')).status,401);
+ assert.equal((await attempt(adminJwt(),loginProof.slice(0,-1)+(loginProof.endsWith('0')?'1':'0'))).status,401);
  assert.equal((await attempt(adminJwt(),loginProof.replace(/^\d+/,String(Date.now()-3600000)))).status,401);
  assert.equal((await attempt(adminJwt())).status,200);assert.equal(opens,1);
 });
