@@ -52,7 +52,7 @@ const env=k=>({SUPABASE_URL:'https://test.supabase.co',SUPABASE_ANON_KEY:'public
 const input={action:'generate',type:'Adivinanza',theme:'',difficulty:'Muy difícil',previous:[]};
 const req=(body=input)=>new Request('https://test.supabase.co/functions/v1/dinamicas-ia',{method:'POST',headers:{origin:'https://bingoandino75.com',authorization:'Bearer test'},body:JSON.stringify(body)});
 const completion=d=>Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(d)}]}}]});
-function harness(sequence){const calls=[];const handler=createHandler(env,async(url,opts)=>{if(url.includes('/auth/'))return Response.json({id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email_confirmed_at:'yes'});calls.push(JSON.parse(opts.body));const item=sequence.shift();assert(item,'unexpected model request');return item instanceof Response?item:completion(item)});return {handler,calls};}
+function harness(sequence){const calls=[],urls=[];const handler=createHandler(env,async(url,opts)=>{if(url.includes('/auth/'))return Response.json({id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email_confirmed_at:'yes'});calls.push(JSON.parse(opts.body));urls.push(url);const item=sequence.shift();assert(item,'unexpected model request');if(item instanceof Error)throw item;return item instanceof Response?item:completion(item)});return {handler,calls,urls};}
 test('una propuesta fácil se descarta y se regenera automáticamente; revisor no ve solución del autor',async()=>{
  const {handler,calls}=harness([{...draft},{...good,notObvious:false},{...draft},good]);
  const r=await handler(req());assert.equal(r.status,200);assert.equal(calls.length,4);
@@ -65,6 +65,21 @@ test('dos soluciones discrepantes no se publican como éxito',async()=>{
 });
 test('un error de cuota del proveedor no provoca más llamadas',async()=>{
  const {handler,calls}=harness([new Response('',{status:429})]);assert.equal((await handler(req())).status,502);assert.equal(calls.length,1);
+});
+test('saturación al revisar usa Gemini de respaldo sin regenerar la pregunta ni saltarse la revisión',async()=>{
+ const {handler,calls,urls}=harness([{...draft},new Response('',{status:503}),good]);
+ const response=await handler(req());assert.equal(response.status,200);assert.equal(calls.length,3);
+ assert.match(urls[1],/gemini-3\.5-flash-lite/);assert.match(urls[2],/gemini-3\.6-flash/);assert.deepEqual(calls[1].contents,calls[2].contents);
+ assert.deepEqual(calls[1].generationConfig.responseSchema,calls[2].generationConfig.responseSchema);
+});
+test('dos modelos saturados muestran indisponibilidad y no una dinámica sin revisar',async()=>{
+ const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);
+ const response=await handler(req());assert.equal(response.status,503);assert.equal(calls.length,2);
+ const data=await response.json();assert.match(data.error,/saturado/);assert(!data.question);
+});
+test('errores de solicitud no se intentan con otro modelo',async()=>{
+ const {handler,calls}=harness([new Response('',{status:400})]);
+ assert.equal((await handler(req())).status,502);assert.equal(calls.length,1);
 });
 test('acertijos y anagramas se comprueban sin pedirle al modelo que invente la solución',async()=>{
  for(const type of ['Acertijo','Palabra desordenada']){
