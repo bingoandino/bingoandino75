@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {numberRiddle} from '../supabase/functions/dinamicas-ia/number-riddle.mjs';
 import {createLogic} from '../supabase/functions/dinamicas-ia/logic.mjs';
 import {acceptReview} from '../supabase/functions/dinamicas-ia/quality.mjs';
 import {createHandler} from '../supabase/functions/dinamicas-ia/handler.mjs';
@@ -52,7 +53,7 @@ const env=k=>({SUPABASE_URL:'https://test.supabase.co',SUPABASE_ANON_KEY:'public
 const input={action:'generate',type:'Adivinanza',theme:'',difficulty:'Muy difícil',previous:[]};
 const req=(body=input)=>new Request('https://test.supabase.co/functions/v1/dinamicas-ia',{method:'POST',headers:{origin:'https://bingoandino75.com',authorization:'Bearer test'},body:JSON.stringify(body)});
 const completion=d=>Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(d)}]}}]});
-function harness(sequence){const calls=[];const handler=createHandler(env,async(url,opts)=>{if(url.includes('/auth/'))return Response.json({id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email_confirmed_at:'yes'});calls.push(JSON.parse(opts.body));const item=sequence.shift();assert(item,'unexpected model request');return item instanceof Response?item:completion(item)});return {handler,calls};}
+function harness(sequence){const calls=[],urls=[];const handler=createHandler(env,async(url,opts)=>{if(url.includes('/auth/'))return Response.json({id:'5121c2ba-c8f1-40f8-8b3e-130a75f60ac5',email_confirmed_at:'yes'});calls.push(JSON.parse(opts.body));urls.push(url);const item=sequence.shift();assert(item,'unexpected model request');if(item instanceof Error)throw item;return item instanceof Response?item:completion(item)});return {handler,calls,urls};}
 test('una propuesta fácil se descarta y se regenera automáticamente; revisor no ve solución del autor',async()=>{
  const {handler,calls}=harness([{...draft},{...good,notObvious:false},{...draft},good]);
  const r=await handler(req());assert.equal(r.status,200);assert.equal(calls.length,4);
@@ -61,14 +62,48 @@ test('una propuesta fácil se descarta y se regenera automáticamente; revisor n
 });
 test('dos soluciones discrepantes no se publican como éxito',async()=>{
  const {handler,calls}=harness([{...draft},{...good,answer:'Espejo'},{...draft},{...good,answer:'Telescopio'}]);
- const r=await handler(req());assert.equal(r.status,422);assert.equal(calls.length,4);assert(!(await r.json()).question);
+ const r=await handler(req({...input,theme:'Naturaleza'}));assert.equal(r.status,422);assert.equal(calls.length,4);assert(!(await r.json()).question);
 });
 test('un error de cuota del proveedor no provoca más llamadas',async()=>{
  const {handler,calls}=harness([new Response('',{status:429})]);assert.equal((await handler(req())).status,502);assert.equal(calls.length,1);
+});
+test('saturación al revisar usa Gemini de respaldo sin regenerar la pregunta ni saltarse la revisión',async()=>{
+ const {handler,calls,urls}=harness([{...draft},new Response('',{status:503}),good]);
+ const response=await handler(req());assert.equal(response.status,200);assert.equal(calls.length,3);
+ assert.match(urls[1],/gemini-3\.5-flash-lite/);assert.match(urls[2],/gemini-3\.6-flash/);assert.deepEqual(calls[1].contents,calls[2].contents);
+ assert.deepEqual(calls[1].generationConfig.responseSchema,calls[2].generationConfig.responseSchema);
+});
+test('dos modelos saturados muestran indisponibilidad y no una dinámica sin revisar',async()=>{
+ const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);
+ const response=await handler(req({...input,theme:'Naturaleza'}));assert.equal(response.status,503);assert.equal(calls.length,2);
+ const data=await response.json();assert.match(data.error,/saturado/);assert(!data.question);
+});
+test('errores de solicitud no se intentan con otro modelo',async()=>{
+ const {handler,calls}=harness([new Response('',{status:400})]);
+ assert.equal((await handler(req())).status,502);assert.equal(calls.length,1);
 });
 test('acertijos y anagramas se comprueban sin pedirle al modelo que invente la solución',async()=>{
  for(const type of ['Acertijo','Palabra desordenada']){
   const {handler,calls}=harness([]);const r=await handler(req({...input,type,theme:'Venezuela',previous:['x'.repeat(1800)]}));
   assert.equal(r.status,200);const d=await r.json();assert(d.answer);assert(d.question);assert.equal(calls.length,0);
  }
+});
+
+const pos=['primera','segunda','tercera','cuarta','quinta'];
+function numericCheck(d,line){let m;
+ if(m=line.match(/La suma de todas mis cifras es (\d+)/))return d.reduce((a,b)=>a+b,0)===Number(m[1]);
+ if(m=line.match(/Mi (\w+) cifra más mi (\w+) cifra suman (\d+)/))return d[pos.indexOf(m[1])]+d[pos.indexOf(m[2])]===Number(m[3]);
+ if(m=line.match(/Mi (\w+) cifra supera a mi (\w+) cifra en (\d+)/))return d[pos.indexOf(m[1])]-d[pos.indexOf(m[2])]===Number(m[3]);
+ if(m=line.match(/El doble de mi (\w+) cifra más mi (\w+) cifra da (\d+)/))return 2*d[pos.indexOf(m[1])]+d[pos.indexOf(m[2])]===Number(m[3]);
+ throw Error('unparsed numeric clue');
+}
+test('respaldo numérico: el texto se resuelve de forma única en todos los niveles',()=>{
+ for(const [level,n] of Object.entries({'Fácil':2,'Media':3,'Difícil':4,'Muy difícil':5})){
+  const pool=[];for(let k=10**(n-1);k<10**n;k++){const a=String(k).split('').map(Number);if(!a.includes(0)&&new Set(a).size===n)pool.push(a);}
+  for(let i=0;i<10;i++){const r=numberRiddle('',level),clues=r.question.split('\n').filter(x=>/^\d+\./.test(x));assert(clues.length>=n);const solutions=pool.filter(d=>clues.every(c=>numericCheck(d,c)));assert.equal(solutions.length,1);assert.equal(solutions[0].join(''),r.answer);for(let j=0;j<clues.length;j++)assert(pool.filter(d=>clues.filter((_,k)=>j!==k).every(c=>numericCheck(d,c))).length>1);}
+ }
+ assert.equal(numberRiddle('Naturaleza','Muy difícil'),null);
+});
+test('si ambos Gemini fallan, Sorpréndeme devuelve respaldo verificado del mismo nivel',async()=>{
+ const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);const r=await handler(req());assert.equal(r.status,200);const data=await r.json();assert.match(data.source,/respaldo comprobado/);assert.match(data.answer,/^[1-9]{5}$/);assert.equal(calls.length,2);
 });
