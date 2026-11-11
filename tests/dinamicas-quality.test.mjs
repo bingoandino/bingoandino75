@@ -60,9 +60,9 @@ test('una propuesta fácil se descarta y se regenera automáticamente; revisor n
  for(const i of [1,3]){const data=JSON.parse(calls[i].contents[0].parts[0].text);assert.deepEqual(Object.keys(data).sort(),['question','theme']);assert(!JSON.stringify(data).includes(draft.answer));}
  assert.equal((await r.json()).explanation,good.explanation);
 });
-test('dos soluciones discrepantes no se publican como éxito',async()=>{
+test('dos soluciones discrepantes se descartan y se sustituye el borrador por contenido revisado',async()=>{
  const {handler,calls}=harness([{...draft},{...good,answer:'Espejo'},{...draft},{...good,answer:'Telescopio'}]);
- const r=await handler(req({...input,theme:'Naturaleza'}));assert.equal(r.status,422);assert.equal(calls.length,4);assert(!(await r.json()).question);
+ const r=await handler(req({...input,theme:'Naturaleza'}));assert.equal(r.status,200);assert.equal(calls.length,4);const data=await r.json();assert.match(data.source,/Biblioteca revisada/);assert.notEqual(data.question,draft.question);assert(!data.answer.includes('Espejo'));assert(!data.answer.includes('Telescopio'));
 });
 test('un error de cuota del proveedor no provoca más llamadas',async()=>{
  const {handler,calls}=harness([new Response('',{status:429})]);assert.equal((await handler(req())).status,502);assert.equal(calls.length,1);
@@ -73,10 +73,10 @@ test('saturación al revisar usa Gemini de respaldo sin regenerar la pregunta ni
  assert.match(urls[1],/gemini-3\.5-flash-lite/);assert.match(urls[2],/gemini-3\.6-flash/);assert.deepEqual(calls[1].contents,calls[2].contents);
  assert.deepEqual(calls[1].generationConfig.responseSchema,calls[2].generationConfig.responseSchema);
 });
-test('dos modelos saturados muestran indisponibilidad y no una dinámica sin revisar',async()=>{
+test('dos modelos saturados utilizan biblioteca revisada sin publicar un borrador de IA',async()=>{
  const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);
- const response=await handler(req({...input,theme:'Naturaleza'}));assert.equal(response.status,503);assert.equal(calls.length,2);
- const data=await response.json();assert.match(data.error,/saturado/);assert(!data.question);
+ const response=await handler(req({...input,theme:'Naturaleza'}));assert.equal(response.status,200);assert.equal(calls.length,2);
+ const data=await response.json();assert.match(data.source,/Biblioteca revisada/);assert(data.question);assert(!data.error);
 });
 test('errores de solicitud no se intentan con otro modelo',async()=>{
  const {handler,calls}=harness([new Response('',{status:400})]);
@@ -105,5 +105,5 @@ test('respaldo numérico: el texto se resuelve de forma única en todos los nive
  assert.equal(numberRiddle('Naturaleza','Muy difícil'),null);
 });
 test('si ambos Gemini fallan, Sorpréndeme devuelve respaldo verificado del mismo nivel',async()=>{
- const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);const r=await handler(req());assert.equal(r.status,200);const data=await r.json();assert.match(data.source,/respaldo comprobado/);assert.match(data.answer,/^[1-9]{5}$/);assert.equal(calls.length,2);
+ const {handler,calls}=harness([new Response('',{status:503}),new Response('',{status:503})]);const r=await handler(req());assert.equal(r.status,200);const data=await r.json();assert.match(data.source,/respaldo/);assert.match(data.question,/4 (?:respuestas|adivinanzas)/);assert.equal(data.answer.split('\n').length,4);assert.equal(calls.length,2);
 });
