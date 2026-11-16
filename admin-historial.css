@@ -1,0 +1,12 @@
+#tab-historial { color: #392148; }
+#tab-historial .historial-nota { padding: 12px; background: #fff5dc; border-radius: 10px; line-height: 1.5; }
+#historial-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 20px 0; }
+#historial-form label { display: flex; flex: 1 1 180px; flex-direction: column; gap: 6px; font-weight: 600; }
+#historial-form input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid #ad99ba; border-radius: 8px; background: white; color: #392148; font-size: 16px; }
+#historial-resultados { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,310px),1fr)); gap: 14px; }
+.historial-card { background: #fffcf5; border: 1px solid #dcc8a0; border-radius: 12px; padding: 16px; overflow-wrap: anywhere; }
+.historial-card h4 { font-size: 19px; margin: 0 0 12px; color: #532d69; }
+.historial-card p { margin: 7px 0; line-height: 1.4; }
+.historial-paginacion { display: flex; gap: 12px; margin-top: 18px; }
+#tab-historial [hidden] { display: none !important; }
+#tab-historial button { min-height: 44px; }
