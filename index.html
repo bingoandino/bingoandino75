@@ -41,7 +41,9 @@
 <link rel="stylesheet" href="asistente-widget.css?v=20261028-2">
 <link rel="stylesheet" href="admin-compacto.css?v=20261102-buscar-1-20261106-admin-recuperar-1">
 <script src="admin-compacto.js?v=20261031-1-20261106-admin-recuperar-1" defer></script>
-<link rel="stylesheet" href="premios-pagados.css?v=1"></head>
+<link rel="stylesheet" href="premios-pagados.css?v=1"><link rel="stylesheet" href="admin-historial.css?v=20261116-1">
+<script src="admin-historial.js?v=20261116-1" defer></script>
+</head>
 <body>
   <div id="overlay-carga" style="
   position: fixed;
@@ -360,7 +362,24 @@
     <button class="tab-btn" onclick="cambiarTab('tab-promociones')">🎯 Promociones</button>
     <button class="tab-btn" onclick="cambiarTab('tab-config')">⚙️ Configuración</button>
     <button class="tab-btn" onclick="cambiarTab('tab-ganadores')">🏆 Ganadores</button>
+    <button class="tab-btn" onclick="cambiarTab('tab-historial')">🕘 Sorteos anteriores</button>
   </nav>
+
+  <div id="tab-historial" class="tab-content">
+    <h3>🕘 Consultar sorteos anteriores</h3>
+    <button type="button" class="btn-admin" onclick="cambiarTab('tab-ventas')">← Sorteo actual</button>
+    <p class="historial-nota">Solo consulta. Busca por nombre, cédula, teléfono, datos de pago móvil, referencia o número de cartón. Las fechas corresponden al <strong>respaldo</strong>, no al pago: el sorteo del sábado puede estar en el respaldo del domingo.</p>
+    <form id="historial-form">
+      <label>Buscar registros anteriores<input name="historialTexto" type="search" maxlength="100" placeholder="Nombre, cédula, teléfono…" autocomplete="off"></label>
+      <label>Respaldo desde<input name="historialDesde" type="date"></label>
+      <label>Respaldo hasta<input name="historialHasta" type="date"></label>
+      <button type="submit" class="btn-admin">🔎 Buscar en historial</button>
+      <button type="reset" class="btn-admin">Limpiar</button>
+    </form>
+    <p id="historial-status" role="status" aria-live="polite"></p>
+    <div id="historial-resultados"></div>
+    <div class="historial-paginacion"><button id="historial-anterior" class="btn-admin" hidden>Anterior</button><button id="historial-siguiente" class="btn-admin" hidden>Siguiente</button></div>
+  </div>
 
   <!-- ─── TAB 1: DASHBOARD ─── -->
   <div id="tab-dashboard" class="tab-content active">
