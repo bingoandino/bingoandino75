@@ -1,10 +1,10 @@
-import {isConsolationPrize,consolationPool} from './round-rules.js?v=1.0.22';
-import {spinSeconds,animationParticipants} from './spin-plan.js?v=1.0.22';
-import {announcementText} from './award-announcement.js?v=1.0.22';
-import {isFreeCardPrize,pendingFreeWinners} from './award-rules.js?v=1.0.22';
-import {spinCylinder} from './spin-cylinder.js?v=1.0.22';
+import {isConsolationPrize,consolationPool} from './round-rules.js?v=1.0.23';
+import {spinSeconds,animationParticipants} from './spin-plan.js?v=1.0.23';
+import {announcementText} from './award-announcement.js?v=1.0.23';
+import {isFreeCardPrize,pendingFreeWinners} from './award-rules.js?v=1.0.23';
+import {spinCylinder} from './spin-cylinder.js?v=1.0.23';
 import {uuid} from './uuid.js';
-import {api,startLogin,resendCode,verifyCode,hasSession,clearSession,endSession} from './auth.js?v=1.0.22';
+import {api,startLogin,resendCode,verifyCode,hasSession,clearSession,endSession} from './auth.js?v=1.0.23';
 import {celebrate} from './confetti.js';
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const trophy='<svg class="trophy" viewBox="0 0 30 32" aria-hidden="true"><path d="M7 2h16v4h6v5c0 6-5 9-10 9v5h5v4H6v-4h5v-5C6 20 1 17 1 11V6h6V2Zm0 7H4v2c0 3 2 5 4 6L7 9Zm16 0-1 8c2-1 4-3 4-6V9h-3Z"/></svg>';
@@ -82,7 +82,7 @@ function demoAwardPreview(){
 }
 function showAwardPreview(p){
  $('#awardRows').innerHTML=p.pending.map(w=>'<div class="award-row"><b>'+esc(w.name)+'</b><span>Ganó con el cartón '+esc(w.winningTicket)+'</span><small>'+(w.paymentComplete?'Datos de Pago Móvil registrados':'⚠️ Pago Móvil incompleto: se conservarán los datos disponibles')+'</small></div>').join('')+(p.awards||[]).map(w=>'<div class="award-row assigned"><b>'+esc(w.name)+'</b><span>🎁 Cartón entregado: <strong>'+esc(w.assignedTicket)+'</strong></span><small>Ganó con el cartón '+esc(w.winningTicket)+'</small></div>').join('')+(p.skipped||[]).map(w=>'<div class="award-row"><b>'+esc(w.name)+'</b><small>'+(w.reason==='duplicate-person'?'Una sola entrega: esta persona aparece más de una vez.':'Esta persona ya recibió su cartón gratis en este sorteo.')+'</small></div>').join('');
- $('#awardStatus').textContent=p.pending.length?(p.available<p.pending.length?'No hay suficientes cartones disponibles. No se entregará ninguno.':p.pending.length+' premios por entregar · '+p.available+' cartones disponibles.'):'No hay premios pendientes de 1 cartón gratis.';
+ $('#awardStatus').textContent=p.pending.length?(p.available<p.pending.length?'No alcanzan los apartados de ruleta. Aparta más desde el administrador.':p.pending.length+' premios por entregar · '+p.available+' cartones apartados para ruleta.'):'No hay premios pendientes de 1 cartón gratis.';
  $('#confirmAwards').disabled=!p.canAssign;
 }
 async function previewAwards(){
