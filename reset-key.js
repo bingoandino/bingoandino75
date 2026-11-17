@@ -66,7 +66,7 @@
     try{
      const {data,error}=await global.supabase.rpc('rpc_reiniciar_sorteo_con_clave',{_clave:password.el.value});
      if(error)throw error;if(!data?.ok)throw new Error(data?.error||'No se pudo reiniciar el sorteo.');
-     close();global.alert('Sorteo reiniciado. Se conservaron el respaldo y los ganadores publicados.');global.location.reload();
+     close();global.alert('Sorteo reiniciado. Se apartaron 8 cartones para ruleta y 5 para dinámicas. Se conservaron el respaldo y los ganadores publicados.');global.location.reload();
     }catch(error){notice.textContent=error.message||'No se pudo reiniciar. Intenta nuevamente.';}
     finally{password.el.value='';running=false;submit.disabled=false;cancel.disabled=false;}
    };
