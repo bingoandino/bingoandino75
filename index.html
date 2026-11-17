@@ -42,7 +42,7 @@
 <link rel="stylesheet" href="admin-compacto.css?v=20261102-buscar-1-20261106-admin-recuperar-1">
 <script src="admin-compacto.js?v=20261031-1-20261106-admin-recuperar-1" defer></script>
 <link rel="stylesheet" href="premios-pagados.css?v=1"><link rel="stylesheet" href="admin-historial.css?v=20261116-1">
-<script src="admin-premios.js?v=20261117-2" defer></script>
+<script src="admin-premios.js?v=20261117-3" defer></script>
 <script src="admin-historial.js?v=20261116-1" defer></script>
 </head>
 <body>
@@ -370,7 +370,7 @@
   <div id="tab-apartados-premios" class="tab-content">
 <h3>🎁 Apartar cartones para premios</h3>
 <p>Elige cuántos cartones quieres mantener apartados para cada app. Se escogen al azar y quedan fuera de la venta hasta entregarlos o liberarlos.</p>
-<p>Las cantidades indican los que quedan por entregar. Reduce una cantidad o coloca 0 para liberar sobrantes. Al reiniciar el sorteo se apartan automáticamente 8 para ruleta y 5 para dinámicas. Puedes cambiar las cantidades cuando lo necesites.</p>
+<p>Las cantidades indican los que quedan por entregar. Reduce una cantidad o coloca 0 para liberar sobrantes. Al reiniciar, todos los cartones quedan disponibles. Al llegar a 10 compras aprobadas se apartan 8 para ruleta y 5 para dinámicas, una sola vez por sorteo. Los cartones de premio no cuentan como compras. Puedes cambiar las cantidades y liberar sobrantes.</p>
 <button type="button" id="premios-apartados-refresh" class="btn-admin">↻ Actualizar</button>
 <form id="premios-apartados-form" style="display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:20px 0">
 <label>Ruleta · por entregar<input name="ruleta" type="number" min="0" max="10000" step="1" inputmode="numeric" required style="display:block;width:130px"></label>
@@ -779,7 +779,7 @@
 <script src="script.js?v=20261106-campos-pago-20261106-admin-recuperar-1"></script>
 
 <script src="enlaces-inicio.js?v=20261026-enlaces-1"></script>
-<script src="reset-key.js?v=20261117-apartados-auto-1"></script>
+<script src="reset-key.js?v=20261117-diez-compras-1"></script>
 <script src="resumen-cartones.js?v=20261103-continuar-visible-1"></script>
 <script src="inicio-flyer.js?v=20261025-compacto-1"></script>
 <script src="verificar-enlace.js?v=20261027-1"></script>
