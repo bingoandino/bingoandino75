@@ -2395,71 +2395,70 @@ function limpiarNombreArchivo(nombre) {
 }
 
 async function crearFuenteImagen(archivo) {
-  if (!archivo) {
-    throw new Error('No se recibió ninguna imagen');
-  }
+  if (!archivo) throw new Error('No se recibió ninguna imagen');
 
-  // createImageBitmap suele ser más estable y consume menos memoria.
   if (typeof createImageBitmap === 'function') {
     try {
-      const bitmap = await createImageBitmap(archivo, {
-        imageOrientation: 'from-image'
-      });
-
+      const bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' });
       if (bitmap.width > 0 && bitmap.height > 0) {
         return {
           imagen: bitmap,
           width: bitmap.width,
           height: bitmap.height,
-          liberar() {
-            if (typeof bitmap.close === 'function') bitmap.close();
-          }
+          liberar() { bitmap.close?.(); }
         };
       }
-
-      if (typeof bitmap.close === 'function') bitmap.close();
+      bitmap.close?.();
     } catch (errorBitmap) {
-      console.warn('createImageBitmap no pudo leer la imagen; se usará Image():', errorBitmap);
+      console.warn('createImageBitmap no pudo leer la imagen; se intentará otra lectura:', errorBitmap);
     }
   }
 
-  const objectUrl = URL.createObjectURL(archivo);
-  const img = new Image();
-  img.decoding = 'async';
+  async function abrirImagen(src, liberar) {
+    const img = new Image();
+    img.decoding = 'async';
+    try {
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada'));
+        img.src = src;
+      });
+      if (!img.naturalWidth || !img.naturalHeight) {
+        throw new Error('La imagen no tiene dimensiones válidas');
+      }
+      return { imagen: img, width: img.naturalWidth, height: img.naturalHeight, liberar };
+    } catch (error) {
+      liberar();
+      throw error;
+    }
+  }
 
+  // Algunos navegadores Android fallan al abrir blob: aunque puedan leer datos:.
+  let urlObjeto = null;
   try {
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada'));
-      img.src = objectUrl;
+    urlObjeto = URL.createObjectURL(archivo);
+    return await abrirImagen(urlObjeto, () => URL.revokeObjectURL(urlObjeto));
+  } catch (errorBlob) {
+    console.warn('El teléfono no abrió la URL temporal de la imagen:', errorBlob);
+  }
+
+  // No cargar imágenes enormes como base64 en teléfonos con poca memoria.
+  if (archivo.size > 8 * 1024 * 1024 || typeof FileReader !== 'function') {
+    throw new Error('No se pudo leer la imagen seleccionada');
+  }
+  try {
+    const dataURL = await new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => typeof lector.result === 'string'
+        ? resolve(lector.result) : reject(new Error('Archivo no legible'));
+      lector.onerror = () => reject(new Error('Archivo no legible'));
+      lector.readAsDataURL(archivo);
     });
-
-    if (typeof img.decode === 'function') {
-      try {
-        await img.decode();
-      } catch {
-        // onload ya confirmó que el navegador pudo leer la imagen.
-      }
-    }
-
-    if (!img.naturalWidth || !img.naturalHeight) {
-      throw new Error('La imagen no tiene dimensiones válidas');
-    }
-
-    return {
-      imagen: img,
-      width: img.naturalWidth,
-      height: img.naturalHeight,
-      liberar() {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  } catch (error) {
-    URL.revokeObjectURL(objectUrl);
-    throw error;
+    return await abrirImagen(dataURL, () => {});
+  } catch (errorDatos) {
+    throw new Error('No se pudo leer la imagen seleccionada');
   }
 }
-
 async function verificarImagenGenerada(archivo) {
   let fuente = null;
 
@@ -2701,6 +2700,37 @@ function obtenerExtensionImagenOriginal(archivo) {
   return extension || 'jpg';
 }
 
+async function identificarFormatoComprobante(archivo) {
+  if (!archivo || !Number.isFinite(archivo.size) || archivo.size < 1) {
+    throw new Error('La captura está vacía. Selecciona otra imagen. No vuelvas a pagar.');
+  }
+  if (archivo.size > 10 * 1024 * 1024) {
+    throw new Error('La captura supera 10 MB. Toma una nueva captura y vuelve a seleccionarla. No vuelvas a pagar.');
+  }
+  const parte = archivo.slice(0, 16);
+  const buffer = typeof parte.arrayBuffer === 'function'
+    ? await parte.arrayBuffer()
+    : await new Promise((resolve, reject) => {
+      if (typeof FileReader !== 'function') return reject(new Error('No se pudo revisar el archivo.'));
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result);
+      lector.onerror = () => reject(new Error('No se pudo revisar el archivo.'));
+      lector.readAsArrayBuffer(parte);
+    });
+  const b = new Uint8Array(buffer);
+  if (b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255) {
+    return { extension: 'jpg', contentType: 'image/jpeg' };
+  }
+  if (b.length >= 8 && [137,80,78,71,13,10,26,10].every((v,i) => b[i] === v)) {
+    return { extension: 'png', contentType: 'image/png' };
+  }
+  if (b.length >= 12 && String.fromCharCode(...b.slice(0,4)) === 'RIFF'
+      && String.fromCharCode(...b.slice(8,12)) === 'WEBP') {
+    return { extension: 'webp', contentType: 'image/webp' };
+  }
+  throw new Error('Este comprobante no es un JPG, PNG o WebP compatible. Abre el pago en tu galería y toma una nueva captura de pantalla. Si ya pagaste, no vuelvas a pagar; contacta a soporte.');
+}
+
 async function prepararComprobanteSeguro(archivoOriginal, actualizarEstado) {
   const intentos = [
     { calidad: 0.85, maxWidth: 1600, maxHeight: 5000, maxPixels: 8000000 },
@@ -2743,26 +2773,37 @@ async function prepararComprobanteSeguro(archivoOriginal, actualizarEstado) {
     actualizarEstado('Verificando imagen original...');
   }
 
-  const verificacionOriginal = await verificarImagenGenerada(archivoOriginal);
-
-  console.log('🔍 Verificación del comprobante original:', verificacionOriginal);
-
-  if (!verificacionOriginal.valida) {
-    throw new Error(
-      'El comprobante no contiene información visible. Selecciona otra imagen.'
-    );
+  // Verificar firma y tamaño antes de enviar el original: nunca aceptar un archivo arbitrario.
+  const formato = await identificarFormatoComprobante(archivoOriginal);
+  let verificacionOriginal = null;
+  try {
+    verificacionOriginal = await verificarImagenGenerada(archivoOriginal);
+  } catch (errorLectura) {
+    // En ciertos Android el decodificador local falla, aunque el archivo JPG/PNG/WebP sea real.
+    console.warn('No fue posible previsualizar el original en este teléfono:', errorLectura);
   }
 
-  alert(
-    '⚠️ La conversión a WebP no pudo completarse correctamente. ' +
-    'Para evitar un comprobante blanco, se enviará la imagen original.'
-  );
+  if (verificacionOriginal && !verificacionOriginal.valida) {
+    throw new Error('El comprobante quedó en blanco o no tiene información visible. Selecciona una nueva captura. No vuelvas a pagar.');
+  }
+
+  const archivoFinal = archivoOriginal.type === formato.contentType
+    ? archivoOriginal
+    : new File([archivoOriginal], 'comprobante.' + formato.extension, {
+      type: formato.contentType,
+      lastModified: Date.now()
+    });
+
+  alert(verificacionOriginal
+    ? '⚠️ La conversión a WebP falló. Enviaremos la imagen original para evitar un comprobante blanco.'
+    : '⚠️ Tu teléfono no pudo mostrar la vista previa, pero identificamos un archivo de imagen compatible. Enviaremos el original para revisión manual. Tu pago queda pendiente de verificación.');
 
   return {
-    archivo: archivoOriginal,
-    extension: obtenerExtensionImagenOriginal(archivoOriginal),
-    contentType: archivoOriginal.type || 'image/jpeg',
+    archivo: archivoFinal,
+    extension: formato.extension,
+    contentType: formato.contentType,
     convertidoAWebP: false,
+    requiereRevisionVisual: !verificacionOriginal,
     intento: 0
   };
 }
