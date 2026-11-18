@@ -5,3 +5,25 @@ test('acepta la referencia completa sin perder ceros ni precisión y mantiene co
 test('Pegar lee solo al pulsar y conserva la referencia completa',async()=>{const dom=fixture(),w=dom.window;try{let reads=0,inputs=0;Object.defineProperty(w.navigator,'clipboard',{value:{readText:async()=>{reads++;return '0000123456789007';}}});const campo=w.document.getElementById('referencia4dig');campo.addEventListener('input',()=>inputs++);assert.equal(reads,0);await w.pegarReferenciaBancaria();assert.equal(reads,1);assert.equal(campo.value,'0000123456789007');assert.equal(inputs,1);assert.match(w.document.getElementById('referencia-estado').textContent,/pegada/);assert.equal(w.document.getElementById('btnPegarReferencia').disabled,false);}finally{w.close();}});
 test('si no hay permiso, no hay portapapeles o el contenido es inválido no borra lo escrito',async()=>{for(const clipboard of [undefined,{readText:async()=>{throw Error('denied');}},{readText:async()=>''},{readText:async()=>'<img src=x>1234'}]){const dom=fixture(),w=dom.window;try{Object.defineProperty(w.navigator,'clipboard',{value:clipboard});const campo=w.document.getElementById('referencia4dig');campo.value='00001234';await w.pegarReferenciaBancaria();assert.equal(campo.value,'00001234');assert.equal(w.document.getElementById('btnPegarReferencia').disabled,false);assert.ok(w.document.getElementById('referencia-estado').textContent.length>0);}finally{w.close();}}});
 test('la validación real del envío deriva los últimos cuatro y rechaza referencias incompletas',()=>{const dom=fixture(),w=dom.window;try{const source=read('script.js');const start=source.indexOf('    const referencia4dig =',source.indexOf('async function enviarComprobante()'));const end=source.indexOf('const PagoBanco',start);w.eval('function referenciaParaEnvio(){'+source.slice(start,end)+'return referencia4dig;}');w.document.getElementById('referencia4dig').value='0000123456789007';assert.equal(w.referenciaParaEnvio(),'9007');w.document.getElementById('referencia4dig').value='123';assert.throws(()=>w.referenciaParaEnvio());assert.match(source,/referencia4dig: referencia4dig/);}finally{w.close();}});
+
+test('Pegar deja el campo sin foco y permite volver a tocarlo para editar', async () => {
+  const dom = fixture();
+  const w = dom.window;
+  try {
+    const campo = w.document.getElementById('referencia4dig');
+    Object.defineProperty(w.navigator, 'clipboard', {
+      value: {readText: async () => '00001234'}
+    });
+
+    await w.pegarReferenciaBancaria();
+    assert.equal(campo.value, '00001234');
+    assert.notEqual(w.document.activeElement, campo);
+
+    campo.focus();
+    assert.equal(w.document.activeElement, campo);
+    await w.pegarReferenciaBancaria();
+    assert.notEqual(w.document.activeElement, campo);
+  } finally {
+    w.close();
+  }
+});

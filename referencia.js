@@ -132,6 +132,7 @@
     const boton = document.getElementById('btnPegarReferencia');
     const estado = document.getElementById('referencia-estado');
     if (!campo || !boton || !estado) return;
+    if (document.activeElement === campo) campo.blur();
     estado.textContent = '';
     boton.disabled = true;
     try {
@@ -148,7 +149,6 @@
       estado.textContent = error.message || 'No se pudo pegar la referencia. Puedes ingresarla directamente.';
     } finally {
       boton.disabled = false;
-      campo.focus();
     }
   };
 })(window);
