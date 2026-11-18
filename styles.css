@@ -2778,7 +2778,22 @@ input:checked + .toggle-slider:before {
 #referencia-ayuda,#referencia-estado{font-size:14px;line-height:1.45;margin:8px 0 0}
 #referencia-estado:empty{display:none}
 #referencia-estado{color:#ffe36b}
-@media(max-width:400px){.referencia-bancaria-fila{flex-wrap:wrap}.referencia-bancaria-fila input{flex-basis:100%;width:100%}.referencia-bancaria-fila button{width:100%}}
+@media (max-width: 480px) {
+  #pago .registro-pago-ganador { margin: 12px auto; padding: 12px; }
+  #pago .registro-pago-ganador input { margin: 4px auto; }
+  #pago .registro-pago-ganador + h2 { margin: 12px 0 8px; }
+  #pago #comprobante { min-width: 0; margin: 4px auto; padding: 10px; }
+  #pago #comprobante-estado { margin: 4px 0 6px; }
+  #pago #btnCambiarComprobante,
+  #pago #btnEnviarComprobante,
+  #pago #btnEnviarComprobante + button { margin: 4px auto; }
+  #pago .referencia-bancaria { margin: 10px auto 8px; }
+  #pago .referencia-bancaria > label { margin-bottom: 4px; }
+  #pago .referencia-bancaria-fila input,
+  #pago .referencia-bancaria-fila button { min-height: 44px; padding: 8px 10px; }
+  #pago #referencia-ayuda,
+  #pago #referencia-estado { margin-top: 4px; }
+}
 
 /* Señala el dato que necesita corrección antes de enviar el comprobante. */
 #pago .dato-pago-invalido {
