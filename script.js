@@ -2708,15 +2708,13 @@ async function identificarFormatoComprobante(archivo) {
     throw new Error('La captura supera 10 MB. Toma una nueva captura y vuelve a seleccionarla. No vuelvas a pagar.');
   }
   const parte = archivo.slice(0, 16);
-  const buffer = typeof parte.arrayBuffer === 'function'
-    ? await parte.arrayBuffer()
-    : await new Promise((resolve, reject) => {
-      if (typeof FileReader !== 'function') return reject(new Error('No se pudo revisar el archivo.'));
-      const lector = new FileReader();
-      lector.onload = () => resolve(lector.result);
-      lector.onerror = () => reject(new Error('No se pudo revisar el archivo.'));
-      lector.readAsArrayBuffer(parte);
-    });
+  // El selector de Android puede revocar el permiso después de elegir el archivo.
+  let buffer;
+  try {
+    buffer = await leerBytesComprobante(parte);
+  } catch {
+    throw new Error(MENSAJE_ARCHIVO_INACCESIBLE);
+  }
   const b = new Uint8Array(buffer);
   if (b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255) {
     return { extension: 'jpg', contentType: 'image/jpeg' };
@@ -2730,6 +2728,111 @@ async function identificarFormatoComprobante(archivo) {
   }
   throw new Error('Este comprobante no es un JPG, PNG o WebP compatible. Abre el pago en tu galería y toma una nueva captura de pantalla. Si ya pagaste, no vuelvas a pagar; contacta a soporte.');
 }
+
+// Android puede revocar el permiso del archivo del selector antes de pulsar "Enviar".
+// Conservamos una copia acotada en memoria en cuanto el cliente selecciona la captura.
+const MENSAJE_ARCHIVO_INACCESIBLE = 'Tu teléfono no permitió leer esa captura. Toca «Elegir otra captura» y selecciónala desde Galería o Archivos. Si vuelve a fallar, toma una captura nueva del pago. No vuelvas a pagar.';
+let comprobanteSeleccionActual = null;
+let comprobanteSeleccionVersion = 0;
+
+function esArchivoInaccesible(error) {
+  const nombre = String(error?.name || '');
+  const detalle = String(error?.message || '').toLowerCase();
+  return nombre === 'NotReadableError' ||
+    /the requested file could not be read|permission problems|could not be read|file is not readable|no se pudo leer el archivo/.test(detalle);
+}
+function estadoSeleccionComprobante(mensaje, requiereOtro = false) {
+  const estado = document.getElementById('comprobante-estado');
+  if (estado) estado.textContent = mensaje;
+  const cambiar = document.getElementById('btnCambiarComprobante');
+  if (cambiar) cambiar.hidden = !requiereOtro;
+}
+async function leerBytesComprobante(archivo) {
+  if (typeof archivo.arrayBuffer === 'function') {
+    try {
+      return await archivo.arrayBuffer();
+    } catch (error) {
+      // FileReader puede funcionar en navegadores que fallan en Blob.arrayBuffer.
+      console.warn('Lectura inicial de comprobante falló:', error?.name || 'error');
+    }
+  }
+  if (typeof FileReader !== 'function') throw new Error(MENSAJE_ARCHIVO_INACCESIBLE);
+  try {
+    return await new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result);
+      lector.onerror = () => reject(lector.error || new Error('Archivo inaccesible'));
+      lector.onabort = () => reject(new Error('Lectura interrumpida'));
+      lector.readAsArrayBuffer(archivo);
+    });
+  } catch {
+    throw new Error(MENSAJE_ARCHIVO_INACCESIBLE);
+  }
+}
+async function copiarComprobanteLegible(archivo) {
+  if (!archivo || !Number.isFinite(archivo.size) || archivo.size < 1) {
+    throw new Error('La captura está vacía. Selecciona otra imagen. No vuelvas a pagar.');
+  }
+  if (archivo.size > 10 * 1024 * 1024) {
+    throw new Error('La captura supera 10 MB. Toma una nueva captura y vuelve a seleccionarla. No vuelvas a pagar.');
+  }
+  const buffer = await leerBytesComprobante(archivo);
+  if (!buffer || buffer.byteLength !== archivo.size) {
+    throw new Error(MENSAJE_ARCHIVO_INACCESIBLE);
+  }
+  const copia = new File([buffer], archivo.name || 'comprobante.jpg', {
+    type: archivo.type || 'application/octet-stream',
+    lastModified: archivo.lastModified || Date.now()
+  });
+  const formato = await identificarFormatoComprobante(copia);
+  return copia.type === formato.contentType
+    ? copia
+    : new File([buffer], copia.name, { type: formato.contentType, lastModified: copia.lastModified });
+}
+function seleccionarComprobanteLocal(archivo) {
+  const version = ++comprobanteSeleccionVersion;
+  comprobanteSeleccionActual = null;
+  if (!archivo) {
+    estadoSeleccionComprobante('Selecciona una captura JPG, PNG o WebP de hasta 10 MB.');
+    return null;
+  }
+  estadoSeleccionComprobante('Preparando captura en este teléfono…');
+  const promesa = copiarComprobanteLegible(archivo);
+  const seleccion = { archivo, version, promesa };
+  comprobanteSeleccionActual = seleccion;
+  promesa.then(
+    () => {
+      if (comprobanteSeleccionActual === seleccion) {
+        estadoSeleccionComprobante('✅ Captura lista para enviar.');
+      }
+    },
+    error => {
+      if (comprobanteSeleccionActual !== seleccion) return;
+      estadoSeleccionComprobante(error?.message || MENSAJE_ARCHIVO_INACCESIBLE, true);
+      const entrada = document.getElementById('comprobante');
+      if (entrada) entrada.value = '';
+      comprobanteSeleccionActual = null;
+    }
+  );
+  return seleccion;
+}
+async function obtenerComprobanteSeguro() {
+  const entrada = document.getElementById('comprobante');
+  const archivo = entrada?.files?.[0];
+  if (!archivo) throw new Error('Selecciona nuevamente la captura del pago. No vuelvas a pagar.');
+  const seleccion = comprobanteSeleccionActual?.archivo === archivo
+    ? comprobanteSeleccionActual
+    : seleccionarComprobanteLocal(archivo);
+  try {
+    return await seleccion.promesa;
+  } catch (error) {
+    if (esArchivoInaccesible(error)) throw new Error(MENSAJE_ARCHIVO_INACCESIBLE);
+    throw error;
+  }
+}
+document.getElementById('comprobante')?.addEventListener('change', event => {
+  seleccionarComprobanteLocal(event.target.files?.[0] || null);
+});
 
 async function prepararComprobanteSeguro(archivoOriginal, actualizarEstado) {
   const intentos = [
@@ -2971,8 +3074,7 @@ if (!PagoBanco || !PagoTelefono || !PagoCedula) {
 }
 
 guardarDatosPagoClienteAutomatico();
-   const archivoOriginal = document.getElementById('comprobante').files[0];
-if (!archivoOriginal) throw new Error('Debes subir un comprobante');
+   const archivoOriginal = await obtenerComprobanteSeguro();
 
 // Convierte, verifica y reintenta antes de subir a Supabase.
 const resultadoComprobante = await esperarEtapaCompra(() => prepararComprobanteSeguro(
@@ -3151,7 +3253,13 @@ if (duplicados.length > 0) {
       await comprobarEnvioCompra();
       return;
     }
-    alert(err.message || 'Ocurrió un error inesperado');
+    if (esArchivoInaccesible(err)) {
+      estadoSeleccionComprobante(MENSAJE_ARCHIVO_INACCESIBLE, true);
+      const entrada = document.getElementById('comprobante');
+      if (entrada) entrada.value = '';
+      comprobanteSeleccionActual = null;
+    }
+    alert(esArchivoInaccesible(err) ? MENSAJE_ARCHIVO_INACCESIBLE : (err.message || 'Ocurrió un error inesperado'));
   } finally {
     envioActivo = false;
     boton.disabled = false;
