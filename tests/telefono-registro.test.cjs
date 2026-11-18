@@ -9,6 +9,9 @@ function fixture(){
  w.estadoEnvioCompra={fase:'listo',compra:null,id:null};
  w.alert=msg=>w.aviso=msg;w.console.error=()=>{};
  w.eval(source.slice(source.indexOf('function guardarDatosInscripcion()'),source.indexOf('function confirmarCantidad()')));
+ w.obtenerComprobanteSeguro=async()=>w.document.getElementById('comprobante').files[0];
+ w.esArchivoInaccesible=()=>false;
+ w.estadoSeleccionComprobante=()=>{};
  w.eval(source.slice(source.indexOf('// Una respuesta perdida'),source.indexOf('// ==================== fUNCIONES DE USUARIO')));
  return w;
 }
