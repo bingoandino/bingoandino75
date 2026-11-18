@@ -21,6 +21,7 @@ function contexto(overrides = {}) {
     String,
     Math,
     Image: class {},
+    document: { getElementById: () => null },
     URL: { createObjectURL: () => 'blob:prueba', revokeObjectURL: () => {} },
     console: { warn() {}, log() {} },
     alert: texto => alerts.push(texto),
@@ -98,4 +99,75 @@ test('si falla blob: pero funciona data:, puede abrir una captura en Android', a
   assert.equal(salida.height, 900);
   assert.equal(revocadas, 1);
   salida.liberar();
+});
+
+
+test('la captura se conserva en memoria aunque Android cierre luego su permiso', async () => {
+  let lecturas = 0;
+  const bytes = Uint8Array.from([255,216,255,224,1,2,3,4,5,6]);
+  const original = {
+    name:'pago.jpg', type:'image/jpeg', size:bytes.length, lastModified:123,
+    async arrayBuffer(){
+      if(++lecturas > 1) throw Object.assign(new Error('The requested file could not be read'),{name:'NotReadableError'});
+      return bytes.slice().buffer;
+    }
+  };
+  const estado = {textContent:''}, cambiar={hidden:true};
+  const input = { files:[original], value:'pago.jpg', addEventListener(tipo,fn){this.listener=fn;} };
+  const document = {getElementById:id=>({comprobante:input,'comprobante-estado':estado,btnCambiarComprobante:cambiar})[id]};
+  const {ctx} = contexto({document});
+  input.listener({target:input});
+  const copia = await ctx.obtenerComprobanteSeguro();
+  assert.equal(lecturas,1);
+  assert.equal(copia.type,'image/jpeg');
+  assert.equal(copia.size,bytes.length);
+  assert.deepEqual(Array.from(new Uint8Array(await copia.arrayBuffer())),Array.from(bytes));
+  assert.match(estado.textContent,/Captura lista/);
+  assert.equal(cambiar.hidden,true);
+});
+
+test('un permiso de Android revocado se comunica en español y permite elegir otra captura', async () => {
+  const errorOriginal=Object.assign(new Error('The requested file could not be read, typically due to permission problems'),{name:'NotReadableError'});
+  const archivo={
+    name:'pago.jpg',type:'image/jpeg',size:8,
+    async arrayBuffer(){throw errorOriginal;},
+    slice(){return {arrayBuffer:async()=>{throw errorOriginal;}};}
+  };
+  class Lector {
+    readAsArrayBuffer(){queueMicrotask(()=>{this.error=errorOriginal;this.onerror();});}
+  }
+  const estado={textContent:''},cambiar={hidden:true};
+  const entrada={files:[archivo],value:'pago.jpg',addEventListener(_tipo,fn){this.listener=fn;}};
+  const document={getElementById:id=>({comprobante:entrada,'comprobante-estado':estado,btnCambiarComprobante:cambiar})[id]};
+  const {ctx}=contexto({document,FileReader:Lector});
+  entrada.listener({target:entrada});
+  await assert.rejects(ctx.obtenerComprobanteSeguro(),/Tu teléfono no permitió leer/);
+  await Promise.resolve();
+  assert.equal(entrada.value,'');
+  assert.equal(cambiar.hidden,false);
+  assert.match(estado.textContent,/Elegir otra captura/);
+  assert.equal(estado.textContent.includes('The requested file'),false);
+});
+
+test('si el permiso falla al validar la firma, tampoco muestra errores técnicos en inglés', async () => {
+  const error=Object.assign(new Error('The requested file could not be read'),{name:'NotReadableError'});
+  const archivo={size:8, slice:()=>({arrayBuffer:async()=>{throw error;}})};
+  class Lector {
+    readAsArrayBuffer(){queueMicrotask(()=>{this.error=error;this.onerror();});}
+  }
+  const {ctx}=contexto({FileReader:Lector});
+  await assert.rejects(ctx.identificarFormatoComprobante(archivo),/Tu teléfono no permitió leer/);
+});
+
+test('si Blob.arrayBuffer falla pero FileReader funciona, se conserva la imagen', async () => {
+  const bytes=Uint8Array.from([137,80,78,71,13,10,26,10,1,2,3,4]);
+  const archivo={name:'pago.png',type:'image/png',size:bytes.length,lastModified:123,
+    async arrayBuffer(){throw Error('fallo Blob.arrayBuffer');}};
+  class Lector {
+    readAsArrayBuffer(){queueMicrotask(()=>{this.result=bytes.slice().buffer;this.onload();});}
+  }
+  const {ctx}=contexto({FileReader:Lector});
+  const copia=await ctx.copiarComprobanteLegible(archivo);
+  assert.equal(copia.size,bytes.length);
+  assert.equal(copia.type,'image/png');
 });
