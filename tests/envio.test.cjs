@@ -61,7 +61,7 @@ test('las mediciones no contienen argumentos, archivos, respuestas ni mensajes d
 });
 test('el envío real conserva validaciones y agrupa intentos incluso cuando captura su propio error',async()=>{
   const f=await fixture(async()=>{});
-  try{const source=read('script.js');f.w.eval(source.slice(source.indexOf('async function enviarComprobante()'),source.indexOf('// ==================== fUNCIONES DE USUARIO')));
+  try{const source=read('script.js');f.w.esArchivoInaccesible=()=>false;f.w.estadoSeleccionComprobante=()=>{};f.w.eval(source.slice(source.indexOf('async function enviarComprobante()'),source.indexOf('// ==================== fUNCIONES DE USUARIO')));
     f.w.eval('var usuario={};');let alerts=0;f.w.alert=()=>alerts++;f.w.console.error=()=>{};
     // Reinstala el adaptador sobre la función real, con un DOM nuevo.
     const block=read('referencia.js').slice(read('referencia.js').indexOf('// Solo tiempos'));

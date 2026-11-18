@@ -266,7 +266,9 @@
       <input type="text" inputmode="numeric" pattern="[0-9]+" aria-label="Cédula del titular de tu Pago Móvil" id="pago_cedula" placeholder="Tu cédula de Pago Móvil">
     </div>
 <h2>💳 Sube tu comprobante</h2>
-    <input type="file" accept="image/jpeg,image/png,image/webp" id="comprobante">
+    <input type="file" accept="image/jpeg,image/png,image/webp" id="comprobante" aria-describedby="comprobante-estado">
+    <p id="comprobante-estado" role="status" aria-live="polite">Selecciona una captura JPG, PNG o WebP de hasta 10 MB.</p>
+    <button type="button" id="btnCambiarComprobante" hidden onclick="document.getElementById('comprobante').click()">🔄 Elegir otra captura</button>
     <div class="referencia-bancaria">
       <label for="referencia4dig">Referencia bancaria</label>
       <div class="referencia-bancaria-fila">
@@ -776,7 +778,7 @@
 <script src="publicacion.js?v=20261025-ciruela-1-20261025-dorado-1"></script>
 <script src="jugar/acceso.js?v=20261026-real-1"></script>
 <script src="referencia.js?v=20261031-reenvios-1-20261106-admin-recuperar-1"></script>
-<script src="script.js?v=20261106-campos-pago-20261106-admin-recuperar-1-20261117-comprobante-android-1"></script>
+<script src="script.js?v=20261106-campos-pago-20261106-admin-recuperar-1-20261117-comprobante-android-1-20261118-permisos-1"></script>
 
 <script src="enlaces-inicio.js?v=20261026-enlaces-1"></script>
 <script src="reset-key.js?v=20261117-diez-compras-1"></script>
