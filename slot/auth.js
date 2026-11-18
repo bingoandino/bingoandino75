@@ -14,3 +14,16 @@ export function clearSession(){auth=null;passwordProof=null;sessionStorage.remov
 export async function endSession(){try{if(hasSession())await api('sign-out')}finally{clearSession()}}
 async function accessToken(){if(!hasSession())throw Object.assign(new Error('Ingresa con contraseña y código del correo.'),{status:401});if(auth.expires_at<Date.now()+60000){if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token',{refresh_token:auth.refresh_token}).then(remember).finally(()=>refreshing=null);await refreshing;}return auth.access_token;}
 export async function api(action,payload={}){let token;try{token=await accessToken()}catch(e){clearSession();throw Object.assign(e,{status:401})}return slotRequest(action,{...payload,slotAccess:auth.slotAccess},token);}
+
+/** Endpoint separado para Fidelidad: reutiliza la sesión autorizada del slot. */
+export async function fidelidadApi(action,payload={}){
+ let token;
+ try{token=await accessToken()}catch(e){clearSession();throw Object.assign(e,{status:401})}
+ const endpoint=SUPABASE_URL+'/functions/v1/slot-fidelidad';
+ const response=await fetch(endpoint,{method:'POST',headers:{
+  apikey:PUBLIC_KEY,Authorization:'Bearer '+token,'Content-Type':'application/json'
+ },body:JSON.stringify({action,...payload,slotAccess:auth.slotAccess}),cache:'no-store'});
+ const data=await response.json().catch(()=>({error:'No se pudo leer la respuesta de Fidelidad.'}));
+ if(!response.ok)throw Object.assign(new Error(data.error||'Error consultando Fidelidad.'),{status:response.status});
+ return data;
+}

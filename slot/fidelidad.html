@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#261031"><title>Bingo Andino 75 · Fidelidad Semanal</title>
+<link rel="stylesheet" href="./styles.css?v=1.0.19">
+<link rel="stylesheet" href="./fidelidad.css?v=1">
+</head><body>
+<div class="backdrop" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
+<main class="loyalty-app">
+<header><div class="brand"><span aria-hidden="true">🎰</span><h1>Bingo Andino <span>75</span></h1></div><div class="demo">PREMIO A LA FIDELIDAD</div></header>
+<nav aria-label="Navegación de sorteos"><a class="loyalty-back" href="./index.html">← Consolación y cartones gratis</a><span class="loyalty-tag">💜 Fidelidad semanal</span></nav>
+<div class="section-title"><span>✦</span><h2>Fidelidad Binguera</h2><span>✦</span></div>
+<p class="loyalty-intro">Para quienes compraron los seis días, de lunes a sábado, y no ganaron rondas, lleno final ni consolación.</p>
+<section class="loyalty-toolbar" aria-label="Comprobación semanal">
+ <div><span class="loyalty-caption">SEMANA DEL SORTEO</span><strong id="weekRange">—</strong></div>
+ <div><span class="loyalty-caption">PARTICIPANTES ELEGIBLES</span><strong id="eligibleCount">—</strong></div>
+ <button type="button" class="secondary" id="verify">↻ Verificar participantes</button>
+</section>
+<p id="loyaltyStatus" class="loyalty-status" role="status" aria-live="polite">Comprobando el historial…</p>
+<section id="loyaltyContent" hidden>
+ <div class="loyalty-main">
+  <section class="loyalty-machine-area" aria-label="Tragamonedas de fidelidad">
+   <div class="slot-frame ready" id="machine">
+    <div class="drum-side drum-left" aria-hidden="true"></div><div class="drum-side drum-right" aria-hidden="true"></div><div class="lights" aria-hidden="true"></div>
+    <div class="reel" id="loyaltyReel"><div class="neighbor" id="before">Fidelidad binguera</div>
+     <div class="slot-center"><div class="eyebrow">PREMIO A LA FIDELIDAD</div>
+      <div class="slot-name" id="slotName">¿Quién será el próximo?</div>
+      <div class="slot-ticket" id="slotTicket">Una oportunidad por persona</div>
+      <div class="prize-badge" id="slotPrize">Fidelidad semanal</div>
+     </div>
+     <div class="neighbor" id="after">Bingo Andino 75</div>
+    </div>
+   </div>
+   <div class="loyalty-controls">
+    <label>Premio a entregar <input id="prize" type="text" maxlength="60" value="Premio Fidelidad" autocomplete="off"></label>
+    <label>Duración<select id="duration"><option value="3">3 segundos</option><option value="5" selected>5 segundos</option><option value="8">8 segundos</option></select></label>
+    <button type="button" class="gold" id="spin" disabled>🎰 Iniciar Fidelidad</button>
+   </div>
+   <p class="loyalty-note">El sorteo elige y guarda al ganador en el servidor antes de mostrar la animación. La app de pagos y el bot bancario no se modifican.</p>
+  </section>
+  <aside class="loyalty-people">
+   <h3>Participantes habilitados</h3>
+   <p id="remaining">—</p>
+   <div id="participants" class="loyalty-list"></div>
+  </aside>
+ </div>
+ <section class="loyalty-winners"><h2>🏆 Ganadores de la semana <span id="winnerCount">0</span></h2><div id="winners" class="loyalty-winner-grid"></div><div class="loyalty-actions"><button type="button" class="secondary" id="copy" disabled>📋 Copiar anuncio</button></div></section>
+</section>
+<section class="loyalty-blocked" id="blocked" hidden><span aria-hidden="true">🔒</span><h2>Fidelidad bloqueada</h2><p id="blockedReason">Se habilitará después de publicar todos los ganadores del sábado.</p></section>
+<footer><span>Familia binguera 💜</span><small>Los premios de este modo se registran por separado. No se asignan cartones ni se efectúan pagos automáticamente.</small></footer>
+</main><canvas id="celebration" aria-hidden="true"></canvas>
+<script type="module" src="./fidelidad.js?v=1"></script>
+</body></html>
