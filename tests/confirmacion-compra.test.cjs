@@ -21,6 +21,9 @@ function fixture({lost=false,queryFails=false,rejected=false,hangUpload=false,ha
    else result={data:saved?[saved]:[]};
    return Promise.resolve(result).then(resolve,reject);
  },async insert(){calls.insert++;if(rejected)return {error:{code:'P0001',message:'Revisa el teléfono'}};saved={id:75,cartones:[...cards],referencia4dig:'1234',estado:'pendiente'};if(hangInsert)return new Promise(()=>{});if(lost)throw Error('Failed to fetch');return {data:75};}};return q;}};
+ w.obtenerComprobanteSeguro=async()=>w.document.getElementById('comprobante').files[0];
+ w.esArchivoInaccesible=()=>false;
+ w.estadoSeleccionComprobante=()=>{};
  w.eval(core);
  const helper=fs.readFileSync('referencia.js','utf8');
  // Instala tanto el bloqueo de envío como la recuperación y sus relojes reales.
