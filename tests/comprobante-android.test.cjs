@@ -47,6 +47,19 @@ test('JPG válido se acepta como original cuando un Android no logra decodificar
   assert.match(alerts[0], /revisión manual/);
 });
 
+test('si el original es legible, se prepara sin abrir un aviso de confirmación', async () => {
+  const { ctx, alerts } = contexto();
+  ctx.convertirImagenAWebP = async () => { throw Error('Falló WebP'); };
+  ctx.verificarImagenGenerada = async () => ({ valida: true });
+  const jpg = imagen([255,216,255,224,1,2,3,4,5]);
+
+  const resultado = await ctx.prepararComprobanteSeguro(jpg);
+  assert.equal(resultado.archivo, jpg);
+  assert.equal(resultado.convertidoAWebP, false);
+  assert.equal(resultado.requiereRevisionVisual, false);
+  assert.deepEqual(alerts, []);
+});
+
 test('cabecera PNG conocida corrige metadatos MIME antes de enviar', async () => {
   const { ctx } = contexto();
   const png = imagen([137,80,78,71,13,10,26,10,0,0,0,0], 'application/octet-stream');

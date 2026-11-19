@@ -2897,9 +2897,9 @@ async function prepararComprobanteSeguro(archivoOriginal, actualizarEstado) {
       lastModified: Date.now()
     });
 
-  alert(verificacionOriginal
-    ? '⚠️ La conversión a WebP falló. Enviaremos la imagen original para evitar un comprobante blanco.'
-    : '⚠️ Tu teléfono no pudo mostrar la vista previa, pero identificamos un archivo de imagen compatible. Enviaremos el original para revisión manual. Tu pago queda pendiente de verificación.');
+  if (!verificacionOriginal) {
+    alert('⚠️ Tu teléfono no pudo mostrar la vista previa, pero identificamos un archivo de imagen compatible. Enviaremos el original para revisión manual. Tu pago queda pendiente de verificación.');
+  }
 
   return {
     archivo: archivoFinal,
